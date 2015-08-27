@@ -1,0 +1,273 @@
+===============================================================
+
+PyDP4 workflow integrating MacroModel/TINKER, Gaussian/NWChem
+and DP4 analysis
+
+version 0.4
+
+Copyright (c) 2015 Kristaps Ermanis, Jonathan M. Goodman
+
+distributed under MIT license
+
+===============================================================
+
+CONTENTS
+1) Requirements and Setup
+2) Usage
+3) NMR Description Format
+4) Included Utilites
+5) Code Organization
+
+===============================================================
+
+REQUIREMENTS AND SETUP
+
+All the python and Java files and one utility to convert to and from TINKER
+nonstandard xyz file are in the attached archive. They are set up to work
+from a centralised location. It is not a requirement, but it is probably
+best to add the location to the PATH variable.
+
+The script currently is set up to use MacroModel for molecular mechanics and
+NWChem for DFT and it runs NWChem locally. Gaussian and TINKER is also supported
+This setup has several requirements.
+
+1) One should have MacroModel or TINKER and NWChem or Gaussian.
+The beginning PyDP4.py file contains a structure "Settings", where the location
+of the TINKER scan executable or MacroModel bmin executable should be specified.
+
+2) The various manipulations of sdf files (renumbering, ring corner flipping)
+requires OpenBabel, including Python bindings. The following links provide
+instructions for building OpenBabel with Python bindings:
+http://openbabel.org/docs/dev/UseTheLibrary/PythonInstall.html
+http://openbabel.org/docs/dev/Installation/install.html#compile-bindings
+The Settings structure contain path to OpenBabel, but currently it also
+needs to be specified in InchiGen.py and FiveConf.py
+This dependency can be ignored, if no diastereomer generation or
+5 membered ring flipping is done.
+
+3) Finally, to run calculations on a computational cluster, a passwordless
+ssh connection should be set up in both directions -
+desktop -> cluster and cluster -> desktop. In most cases the modification
+of the relevant functions in Gaussian.py or NWChem.py will be required
+to fit your situation.
+
+4) All development and testing was done on Linux. However, both the scripts
+and all the backend software should work equally well on windows with little
+modification.
+
+===================
+
+USAGE
+
+To call the script:
+1) With all diastereomer generation:
+
+PyDP4.py Candidate CandidateNMR
+
+where Candidate is the sdf file containing 3D coordinates of the candidate
+structure (without the extension),
+and CandidateNMR contains the NMR description. The NMR description largely
+follows the DP4 format, but see bellow for differences.
+
+Alternatively:
+
+PyDP4.py -s chloroform Candidate CandidateNMR
+
+specifies solvent for DFT calculation. If solvent is not given, no solvent is used.
+
+2) With explicit diastereomer/other candidate structures:
+
+PyDP4.py Candidate1 Candidate2 Candidate3 ... CandidateNMR
+
+The script does not attempt to generate diastereomers, simply carries out the
+DP4 on the specified candidate structures.
+
+Script has several other switches, including switching the molecular mechanics and dft software etc.
+
+  -m {t,m}, --mm {t,m}  Select molecular mechanics program, t for tinker or m
+                        for macromodel, default is t
+
+  -d {j,g,n,z,w}, --dft {j,g,n,z,w}
+                        Select DFT program, j for Jaguar, g for Gaussian, n
+                        for NWChem, z for Gaussian on ziggy, w for NWChem on
+                        ziggy, default is z (jaguar is not yet implemented)
+
+  --StepCount STEPCOUNT
+                        Specify stereocentres for diastereomer generation
+
+  -s SOLVENT, --solvent SOLVENT
+                        Specify solvent to use for dft calculations
+
+  -q QUEUE, --queue QUEUE
+                        Specify queue for job submission on ziggy
+			(default is s1)
+
+  -t NTAUT, --ntaut NTAUT
+                        Specify number of explicit tautomers per diastereomer
+                        given in structure files, must be a multiple of
+                        structure files
+
+  -r, --rot5            Manually generate conformers for 5-memebered rings
+
+  --ra RA               Specify ring atoms, for the ring to be rotated, useful
+                        for molecules with several 5-membered rings
+
+  --AssumeDFTDone       Assume RMSD pruning, DFT setup and DFT calculations
+                        have been run already (saves time when repeating DP4
+			analysis)
+
+  -g, --GenOnly         Only generate diastereomers and tinker input files,
+                        but don't run any calculations (useful for diastereomer
+			generation for calculations ran on computers
+			without OpenBabel)
+
+  -c STEREOCENTRES, --StereoCentres STEREOCENTRES
+                        Specify stereocentres for diastereomer generation
+
+  -T, --GenTautomers    Automatically generate tautomers
+
+  -o, --DFTOpt          Optimize geometries at DFT level before NMR prediction
+
+  --pd                  Use python port of DP4
+
+  -b BASICATOMS, --BasicAtoms BASICATOMS
+                        Generate protonated states on the specified atoms and
+                        consider as tautomers
+
+More information on those can be obtained by running PyDP4.py -h
+
+======================
+
+NMR DESCRIPTION FORMAT
+
+NMRFILE example begins:
+59.58(C3),127.88(C11),127.52(C10),115.71(C9),157.42(C8),133.98(C23),118.22(C22),115.79(C21),158.00(C20),167.33(C1),59.40(C2),24.50(C31),36.36(C34),71.05(C37),142.14(C42),127.50(C41),114.64(C40),161.02(C39)
+
+4.81(H5),7.18(H15),6.76(H14),7.22(H28),7.13(H27),3.09(H4),1.73(H32 or H33),1.83(H32 or H33),1.73(H36 or H35),1.73(H36 or H35),4.50(H38),7.32(H47),7.11(H46)
+
+H15,H16
+H14,H17
+H28,H29
+H27,H30
+H47,H48
+H46,H49
+C10,C12
+C9,C13
+C22,C24
+C21,C25
+C41,C43
+C40,C44
+
+OMIT H19,H51
+
+:example ends
+
+Sections are seperated by empty lines.
+1) The first section is assigned C shifts, can also be (any).
+2) Second section is (un)assigned H shifts.
+3) This section defines chemically equivalent atoms. Each line is a new set,
+all atoms in a line are treated as equivalent, their computed shifts averaged.
+4) Final section, starting with a keyword OMIT defines atoms to be ignored.
+Atoms defined in this section do not need a corresponding shift in the NMR
+description
+
+
+=====================
+
+UTILITIES
+
+There are 2 utilities included, not necessary for the process, but sometimes
+useful.
+
+If the DP4 workflow fails at the TINKER stage, the 2 likely reasons are either 
+lack of 1gb of free memory or TINKER not accepting the numbering of the sdf
+file (this is a bug in TINKER). The latter can be fixed by running the following
+script:
+
+TreeRenum.py Candidate CandidateNMR
+
+It takes the sdf file and performs a spanning tree renumbering - making sure,
+that there are as many connected atoms in sequence as possible. So far this
+has always solved the TINKER problem.
+The script also renumbers the NMR description file, if it contains any atom numbers.
+The renumbered files are saved as Candidater and CandidateNMRr (r appended to their
+original name).
+
+----------------------
+Another utility is NMRhelper (called by simply typing NMRhelper.py in shell).
+It is a script with GUI interface, that assists in describing and assigning the
+NMR. In the top textbox a structure file can be chosen. This allows the utility
+to automatically detect protons attached to heteroatoms and add them to the
+OMIT list, as well as detect the chemically eqivalent atoms (currently only
+implemented for methyl groups). It also lets the script to help tracking which
+atoms are yet to be assigned (show in the bottom 2 text boxes).
+The next 2 large textboxes are for pasting raw NMR descriptions.Based on the pasted
+text, the script will try to detect the shifts and make up a rough draft of the 
+description file. After this the final version can be prepared in the main textbox.
+At any point the button to generate the NMR file can be pressed and this will write
+the file to the NMRhelper folder with the name CandidateNMR, where Candidate is the
+name of the structure file.
+IMPORTANT NOTE: Do not edit the raw data textboxes, if you have done any work in the
+main textbox, as this will cause the main textbox to revert to the rough
+automatically generated version
+
+
+=====================
+
+CODE ORGANIZATION
+
+The code is organized in several python script files, as well as several java
+files.
+
+PyDP4.py
+Main file, that should be called to start the PyDP4 workflow. Interprets the
+arguments and takes care of the general workflow logic.
+
+InchiGen.py
+Gets called if diastereomer and/or tautomer and/or protomer generation is
+used. Called by PyDP4.py.
+
+FiveConf.py
+Gets called if automatic 5-membered cycle corner-flipping is used. Called by
+PyDP4.py.
+
+MacroModel.py
+Contains all of the MacroModel specific code for input generation, calculation
+execution and output interpretation. Called by PyDP4.py.
+
+Tinker.py
+Contains all of the Tinker specific code for input generation, calculation
+execution and output interpretation. Called by PyDP4.py.
+
+ConfPrune.pyx
+Cython file for conformer alignment and RMSD pruning. Called by Gaussian.py
+and NWChem.py
+
+Gaussian.py
+Contains all of the Gaussian specific code for input generation and calculation
+execution. Called by PyDP4.py.
+
+NWChem.py
+Contains all of the NWChem specific code for input generation and calculation
+execution. Called by PyDP4.py.
+
+NMRDP4GTF.py
+Takes care of all the NMR description interpretation, equivalent atom
+averaging, Boltzmann averaging, tautomer population optimisation (if used)
+and DP4 input preparation and running either DP4.jar or DP4.py. Called by
+PyDP4.py
+
+nmrPredictNWChem.py
+Extracts NMR shifts from NWChem output files
+
+nmrPredictGaussian.java
+Extracts NMR shifts from Gaussian output files
+
+DP4.jar
+Original DP4 implementation as in J. Am. Chem. Soc. 2010, 132, 12946.
+
+DP4.py
+Equivalent and compact port to python of the same DP4 process. The results
+produced are essentially equivalent, but not identical due to different
+floating point precision used in the Python (53 bits) and Java (32 bits)
+implementation.
