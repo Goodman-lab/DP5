@@ -32,11 +32,11 @@ def main(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, settings):
 
     for isomer in range(0, len(Cvalues)):
 
-        sortedClabels, sortedCvalues, sortedCexp =\
+        sortedClabels, sortedCvalues, sortedCexp, _ =\
             AssignExpNMR(Clabels, Cvalues[isomer], Cexp)
         scaledC = ScaleNMR(sortedCvalues, sortedCexp)
 
-        sortedHlabels, sortedHvalues, sortedHexp = \
+        sortedHlabels, sortedHvalues, sortedHexp, Jvalues = \
             AssignExpNMR(Hlabels, Hvalues[isomer], Hexp)
         scaledH = ScaleNMR(sortedHvalues, sortedHexp)
 
@@ -70,7 +70,7 @@ def main(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, settings):
     PrintRelDP4('both carbon and proton data', relCombDP4)
     PrintRelDP4('carbon data only', relCDP4)
     PrintRelDP4('proton data only', relHDP4)
-
+    
     return output
 
 
@@ -81,8 +81,17 @@ def AssignExpNMR(labels, calcShifts, exp):
     exp = re.sub(r" |any", '', exp, flags=re.DOTALL)
 
     #Get all assignments, split mulitassignments
-    ExpLabels = re.findall(r"(?<=\().*?(?=\))", exp, flags=re.DOTALL)
+    ExpLabels = re.findall(r"(?<=\().*?(?=\)|;)", exp, flags=re.DOTALL)
     ExpLabels = [x.split(',') for x in ExpLabels]
+    
+    #Get J value data (if any)
+    Jdata = re.findall(r"(?<=\().*?(?=\))", exp, flags=re.DOTALL)
+    Jvalues = []
+    for d in Jdata:
+        if ';' in d:
+            Jvalues.append([float(x) for x in (d.split(';')[1]).split(',')])
+        else:
+            Jvalues.append([0])
 
     #Remove assignments and get shifts
     ShiftData = (re.sub(r"\(.*?\)", "", exp, flags=re.DOTALL)).split(',')
@@ -129,7 +138,7 @@ def AssignExpNMR(labels, calcShifts, exp):
         index = labels.index(l)
         sortedCalc.append(calcShifts[index])
 
-    return assignedExpLabels, sortedCalc, sortedExp
+    return assignedExpLabels, sortedCalc, sortedExp, Jvalues
 
 
 def SortExpAssignments(shifts, assignments):
