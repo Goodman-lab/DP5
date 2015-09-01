@@ -44,21 +44,6 @@ def main(numDS, settings, *args):
     ExpNMR_file.readline()
     Hexp = ExpNMR_file.readline()
 
-    expHlabels = []
-    expHvalues = []
-
-    #Loops through the experimental proton NMR data and picks out values
-    # and atom numbers and places them in expHlabels, expHvalues, expClabels,
-    #expCvalues
-
-    expbuf = Hexp.split(',')
-
-    for i in range(0, len(expbuf)):
-        shiftend = expbuf[i].find('(')
-        expHvalues.append(float(expbuf[i][0:shiftend]))
-        labelend = expbuf[i].find(')')
-        expHlabels.append(expbuf[i][shiftend+1:labelend])
-
     #Check if exp NMR file contains info about equivalent atoms and read it
     #into an array
     #Also reads a list of atoms to omit from analysis
