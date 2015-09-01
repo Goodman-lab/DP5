@@ -73,12 +73,21 @@ def WriteGausFile(Gausinp, conformer, atoms, charge, settings):
 
     f = file(Gausinp + '.com', 'w')
     f.write('%mem=2800MB\n%chk='+Gausinp + '.chk\n')
-    #f.write('# b3lyp/6-31g(d,p) Opt nmr=giao\n')
-    if settings.Solvent != '':
-        f.write('# b3lyp/6-31g(d,p) nmr=giao scrf=(solvent=' +
-                settings.Solvent+')\n')
+    
+    CompSettings = '# b3lyp/6-31g(d,p) nmr='
+    if settings.CouplingConstants:
+        CompSettings += '(giao,spinspin,mixed)'
     else:
-        f.write('# b3lyp/6-31g(d,p) nmr=giao\n')
+        CompSettings += 'giao'
+    
+    if settings.Solvent != '':
+        CompSettings += ' scrf=(solvent=' + settings.Solvent+')\n'
+        #f.write('# b3lyp/6-31g(d,p) nmr=giao scrf=(solvent=' +
+        #        settings.Solvent+')\n')
+    else:
+        CompSettings += '\n'
+        #f.write('# b3lyp/6-31g(d,p) nmr=giao\n')
+    f.write(CompSettings)
     f.write('\n'+Gausinp+'\n\n')
     f.write(str(charge) + ' 1\n')
 

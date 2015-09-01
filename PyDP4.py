@@ -73,7 +73,7 @@ class Settings:
     MMstepcount = 6000
     MMfactor = 500  # nsteps = MMfactor*degrees of freedom
     HardConfLimit = 10000
-    MaxConcurrentJobs = 75
+    MaxConcurrentJobs = 150
     PerStructConfLimit = 100
     InitialRMSDcutoff = 0.75
     MaxCutoffEnergy = 10.0
@@ -85,6 +85,7 @@ class Settings:
     charge = None
     BasicAtoms = []
     ForceField = 'mmff'
+    CouplingConstants = False
 
 settings = Settings()
 
@@ -352,8 +353,13 @@ if __name__ == '__main__':
     parser.add_argument("-t", "--ntaut", help="Specify number of explicit\
     tautomers per diastereomer given in structure files, must be a multiple\
     of structure files", type=int, default=1)
+    parser.add_argument("-l", "--ConfLimit", help="Specify maximum number of \
+    conformers per structure. If above this, adaptive RMSD pruning will be \
+    performed", type=int, default=100)
     parser.add_argument("-r", "--rot5", help="Manually generate conformers for\
     5-memebered rings", action="store_true")
+    parser.add_argument("-j", "--CouplingConstants", help="Calculate coupling\
+    constants and use in analysis", action="store_true")
     parser.add_argument('--ra', help="Specify ring atoms, for the ring to be\
     rotated, useful for molecules with several 5-membered rings")
     parser.add_argument("--AssumeDFTDone", help="Assume RMSD pruning, DFT setup\
@@ -383,7 +389,8 @@ if __name__ == '__main__':
     settings.queue = args.queue
     settings.ScriptDir = getScriptPath()
     settings.ForceField = args.ff
-
+    settings.PerStructConfLimit = args.ConfLimit
+    
     if args.pd:
         settings.PDP4 = True
         settings.EP5 = False
@@ -425,6 +432,8 @@ if __name__ == '__main__':
         settings.Solvent = args.solvent
     if args.rot5:
         settings.Rot5Cycle = True
+    if args.CouplingConstants:
+        settings.CouplingConstants = True
     if args.ra is not None:
         settings.RingAtoms =\
             [int(x) for x in (args.ra).split(',')]
