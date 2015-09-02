@@ -30,8 +30,9 @@ def main(numDS, settings, *args):
     print '\nRunning NMRpredict script...'
 
     if settings.DFT == 'z' or settings.DFT == 'g':
-        (outputs, NumFiles, Ntaut) = Gaussian.RunNMRPredict(numDS, *args[:-1])
-        Noutp = len(outputs)
+        (RelEs, populations, labels, BoltzmannShieldings, Ntaut) = \
+                                            Gaussian.RunNMRPredict(numDS, *args)
+        Noutp = len(BoltzmannShieldings)
     elif settings.DFT == 'n' or settings.DFT == 'w':
         (RelEs, populations, labels, BoltzmannShieldings, Ntaut) = \
                                             NWChem.RunNMRPredict(numDS, *args)
@@ -70,90 +71,42 @@ def main(numDS, settings, *args):
     flatequiv = [val for sublist in equivalents for val in sublist]    
     flatomits = [val for sublist in omits for val in sublist]
 
-    if settings.DFT == 'z' or settings.DFT == 'g':
-        for DS in range(0, len(outputs)):
+    for DS in range(0, numDS):
 
-            Cvalues.append([])
-            Hvalues.append([])
+        Cvalues.append([])
+        Hvalues.append([])
 
-            nmrdata = outputs[DS].split('\n')
+        buf = ''
+        for val in RelEs[DS]:
+            num = float(val)
+            buf = buf + "{:5.2f}".format(num) + ', '
+        print '\nConformer relative energies (kJ/mol): ' + buf[:-2]
 
-            RelEnergies = nmrdata[2].split(',')
-            buf = ''
-            for val in RelEnergies[1:NumFiles[DS]]:
-                num = float(val)
-                buf = buf + "{:5.2f}".format(num) + ', '
-            buf = buf + "{:5.2f}".format(float(RelEnergies[NumFiles[DS]]))
-            print '\nConformer relative energies (kJ/mol): ' + buf
+        buf = ''
+        for val in populations[DS]:
+            num = float(val)
+            buf = buf + "{:4.1f}".format(num*100) + ', '
+        print '\nPopulations (%): ' + buf[:-2]
 
-            #Print population(%) for diagnostic purposes
-            Populations = nmrdata[3].split(',')
-            buf = ''
-            for val in Populations[1:NumFiles[DS]]:
-                num = float(val)
-                buf = buf + "{:4.1f}".format(num) + ', '
-            buf = buf + "{:4.1f}".format(float(Populations[NumFiles[DS]]))
-            print '\nPopulations (%): ' + buf
+        #loops through particular output and collects shielding constants
+        #and calculates shifts relative to TMS
+        for atom in range(0, len(BoltzmannShieldings[DS])):
+            shift = 0
+            if labels[atom][0] == 'C' and not labels[atom] in flatomits:
+                # only read labels once, i.e. the first diastereomer
+                if DS == 0:
+                    Clabels.append(labels[atom])
+                shift = (TMS_SC_C13-BoltzmannShieldings[DS][atom]) / \
+                    (1-(TMS_SC_C13/10**6))
+                Cvalues[DS].append(shift)
 
-            #loops through particular output and collects shielding constants
-            #and calculates shifts relative to TMS
-            for row in nmrdata[4:]:
-                data = row.split(',')
-                shift = 0
-                if len(data) > NumFiles[DS]:
-                    if data[0][23] == 'C' and not data[0][23:] in flatomits:
-                        # only read labels once, i.e. the first diastereomer
-                        if DS == 0:
-                            Clabels.append(str(data[0][23:]))
-                        shift = (TMS_SC_C13-float(data[NumFiles[DS]+1])) / \
-                            (1-(TMS_SC_C13/10**6))
-                        Cvalues[DS].append(shift)
-
-                    if data[0][23] == 'H' and not data[0][23:] in flatomits:
-                        # only read labels once, i.e. the first diastereomer
-                        if DS == 0:
-                            Hlabels.append(str(data[0][23:]))
-                        shift = (TMS_SC_H1-float(data[NumFiles[DS]+1])) / \
-                            (1-(TMS_SC_H1/10**6))
-                        Hvalues[DS].append(shift)
-
-    elif settings.DFT == 'n' or settings.DFT == 'w':
-        for DS in range(0, numDS):
-
-            Cvalues.append([])
-            Hvalues.append([])
-
-            buf = ''
-            for val in RelEs[DS]:
-                num = float(val)
-                buf = buf + "{:5.2f}".format(num) + ', '
-            print '\nConformer relative energies (kJ/mol): ' + buf[:-2]
-
-            buf = ''
-            for val in populations[DS]:
-                num = float(val)
-                buf = buf + "{:4.1f}".format(num*100) + ', '
-            print '\nPopulations (%): ' + buf[:-2]
-
-            #loops through particular output and collects shielding constants
-            #and calculates shifts relative to TMS
-            for atom in range(0, len(BoltzmannShieldings[DS])):
-                shift = 0
-                if labels[atom][0] == 'C' and not labels[atom] in flatomits:
-                    # only read labels once, i.e. the first diastereomer
-                    if DS == 0:
-                        Clabels.append(labels[atom])
-                    shift = (TMS_SC_C13-BoltzmannShieldings[DS][atom]) / \
-                        (1-(TMS_SC_C13/10**6))
-                    Cvalues[DS].append(shift)
-
-                if labels[atom][0] == 'H' and not labels[atom] in flatomits:
-                    # only read labels once, i.e. the first diastereomer
-                    if DS == 0:
-                        Hlabels.append(labels[atom])
-                    shift = (TMS_SC_H1-BoltzmannShieldings[DS][atom]) / \
-                        (1-(TMS_SC_H1/10**6))
-                    Hvalues[DS].append(shift)
+            if labels[atom][0] == 'H' and not labels[atom] in flatomits:
+                # only read labels once, i.e. the first diastereomer
+                if DS == 0:
+                    Hlabels.append(labels[atom])
+                shift = (TMS_SC_H1-BoltzmannShieldings[DS][atom]) / \
+                    (1-(TMS_SC_H1/10**6))
+                Hvalues[DS].append(shift)
 
     #Looks for equivalent atoms in the computational data, averages the shifts
     #and removes the redundant signals

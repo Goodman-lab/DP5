@@ -12,6 +12,7 @@ execution. Called by PyDP4.py.
 
 import Tinker
 import MacroModel
+import nmrPredictGaus
 
 import subprocess
 import socket
@@ -390,7 +391,7 @@ def IsZiggyGComplete(f, folder, settings):
         except subprocess.CalledProcessError, e:
             print "ssh ziggy cat failed: " + str(e.output)
             return False
-        if "Normal termination" in outp2:
+        if "Normal termination" in outp2[-90:]:
             return True
     return False
 
@@ -400,7 +401,7 @@ Change to support tautomers - treat a tautomer as a few extra conformers with
 different file names
 Correction: Treat them as diastereomers and submit to nmrpredict, but remember
 that they are tautomers, so that their populations can be optimized
-"""
+
 def RunNMRPredict(numDS, *args):
 
     TautInputs = []
@@ -425,7 +426,7 @@ def RunNMRPredict(numDS, *args):
 
     #This loop runs nmrPredict for each diastereomer and collects
     #the outputs
-    """ To change: run nmrpredict for each tautomer seperately"""
+    To change: run nmrpredict for each tautomer seperately
     for ds in range(0, numDS):
         for taut in range(0, Ntaut[ds]):
 
@@ -440,6 +441,37 @@ def RunNMRPredict(numDS, *args):
             #print '\n\n' + outputs[isomer]
 
     return (outputs, NumFiles, Ntaut)
+"""
+def RunNMRPredict(numDS, *args):
+
+    GausNames = []
+    NTaut = []
+
+    for val in range(0, numDS):
+        NTaut.append(args[val*2])
+        GausNames.append(args[val*2+1])
+
+    RelEs = []
+    populations = []
+    BoltzmannShieldings = []
+
+    print GausNames
+    print NTaut
+    #This loop runs nmrPredict for each diastereomer and collects
+    #the outputs    
+    for isomer in GausNames:
+
+        GausFiles = glob.glob(isomer + 'ginp*.out')
+        for f in range(0, len(GausFiles)):
+            GausFiles[f] = GausFiles[f][:-4]
+
+        #Runs nmrPredictNWChem Name001, ... and collects output
+        (x, y, labels, z) = nmrPredictGaus.main(*GausFiles)
+        RelEs.append(x)
+        populations.append(y)
+        BoltzmannShieldings.append(z)
+
+    return (RelEs, populations, labels, BoltzmannShieldings, NTaut)
 
 
 def getScriptPath():

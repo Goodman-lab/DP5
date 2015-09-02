@@ -73,7 +73,7 @@ class Settings:
     MMstepcount = 6000
     MMfactor = 500  # nsteps = MMfactor*degrees of freedom
     HardConfLimit = 10000
-    MaxConcurrentJobs = 150
+    MaxConcurrentJobs = 75
     PerStructConfLimit = 100
     InitialRMSDcutoff = 0.75
     MaxCutoffEnergy = 10.0
