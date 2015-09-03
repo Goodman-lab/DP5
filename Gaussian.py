@@ -396,52 +396,6 @@ def IsZiggyGComplete(f, folder, settings):
     return False
 
 
-"""
-Change to support tautomers - treat a tautomer as a few extra conformers with
-different file names
-Correction: Treat them as diastereomers and submit to nmrpredict, but remember
-that they are tautomers, so that their populations can be optimized
-
-def RunNMRPredict(numDS, *args):
-
-    TautInputs = []
-    Ntaut = []
-    NumFiles = []
-    arg = 0
-
-    #Pick all tautomer counts and filenames
-    for ds in range(0, numDS):
-        Ntaut.append(int(args[arg]))
-        arg = arg+1
-        TautInputs.append([])
-        for taut in range(0, Ntaut[ds]):
-            TautInputs[ds].append('')
-            NumFiles.append(0)
-            for f in glob.glob(args[arg] + 'ginp*.out'):
-                TautInputs[ds][taut] = TautInputs[ds][taut] + f[:-4] + ' '
-                NumFiles[-1] = NumFiles[-1] + 1
-            arg = arg+1
-
-    outputs = []
-
-    #This loop runs nmrPredict for each diastereomer and collects
-    #the outputs
-    To change: run nmrpredict for each tautomer seperately
-    for ds in range(0, numDS):
-        for taut in range(0, Ntaut[ds]):
-
-            #Prepares input for nmrPredict
-            javafolder = getScriptPath()
-            jinp = 'CLASSPATH=' + javafolder + \
-                ' java nmrPredictGaussian ' + TautInputs[ds][taut]
-            print jinp
-
-            #Runs java nmrPredict JagName001, ... and collects output
-            outputs.append(subprocess.check_output(jinp, shell=True))
-            #print '\n\n' + outputs[isomer]
-
-    return (outputs, NumFiles, Ntaut)
-"""
 def RunNMRPredict(numDS, *args):
 
     GausNames = []
@@ -462,10 +416,9 @@ def RunNMRPredict(numDS, *args):
     for isomer in GausNames:
 
         GausFiles = glob.glob(isomer + 'ginp*.out')
-        for f in range(0, len(GausFiles)):
-            GausFiles[f] = GausFiles[f][:-4]
-
-        #Runs nmrPredictNWChem Name001, ... and collects output
+        GausFiles = [x[:-4] for x in GausFiles]
+        
+        #Runs nmrPredictGaus Name001, ... and collects output
         (x, y, labels, z) = nmrPredictGaus.main(*GausFiles)
         RelEs.append(x)
         populations.append(y)
