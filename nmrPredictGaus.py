@@ -65,28 +65,32 @@ def main(*args):
                 populations[conformer]
         BoltzmannShieldings.append(shielding)
     
-    #Calculate Boltzmann weighed coupling constants (FC and J)
-    Natoms = len(Jlabels)
-    BoltzmannFC = [[0.0 for i in range(Natoms)] for i in range(Natoms)]
-    BoltzmannJ = [[0.0 for i in range(Natoms)] for i in range(Natoms)]
+    if len(Jlabels)<2:
+        return (relEs, populations, labels, BoltzmannShieldings, [""], [0], [0])
+    else:
+        #Calculate Boltzmann weighed coupling constants (FC and J)
+        Natoms = len(Jlabels)
+        BoltzmannFC = [[0.0 for i in range(Natoms)] for i in range(Natoms)]
+        BoltzmannJ = [[0.0 for i in range(Natoms)] for i in range(Natoms)]
+        
+        for a1 in range(Natoms):
+            for a2 in range(Natoms):
+                coupling = 0.0
+                for conf in range(len(FCmatrices)):
+                    coupling = coupling + FCmatrices[conf][a1][a2] * \
+                        populations[conf]
+                    BoltzmannFC[a1][a2] = coupling
     
-    for a1 in range(Natoms):
-        for a2 in range(Natoms):
-            coupling = 0.0
-            for conf in range(len(FCmatrices)):
-                coupling = coupling + FCmatrices[conf][a1][a2] * \
-                    populations[conf]
-                BoltzmannFC[a1][a2] = coupling
-
-    for a1 in range(Natoms):
-        for a2 in range(Natoms):
-            coupling = 0.0
-            for conf in range(len(Jmatrices)):
-                coupling = coupling + Jmatrices[conf][a1][a2] * \
-                    populations[conf]
-                BoltzmannJ[a1][a2] = coupling
-
-    return (relEs, populations, labels, BoltzmannShieldings, BoltzmannFC, BoltzmannJ)
+        for a1 in range(Natoms):
+            for a2 in range(Natoms):
+                coupling = 0.0
+                for conf in range(len(Jmatrices)):
+                    coupling = coupling + Jmatrices[conf][a1][a2] * \
+                        populations[conf]
+                    BoltzmannJ[a1][a2] = coupling
+    
+        return relEs, populations, labels, BoltzmannShieldings,\
+            Jlabels, BoltzmannFC, BoltzmannJ
 
 
 def ReadShieldings(GOutpFile):

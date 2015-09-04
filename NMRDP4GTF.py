@@ -30,13 +30,13 @@ def main(numDS, settings, *args):
     print '\nRunning NMRpredict script...'
 
     if settings.DFT == 'z' or settings.DFT == 'g':
-        (RelEs, populations, labels, BoltzmannShieldings, Ntaut) = \
-                                            Gaussian.RunNMRPredict(numDS, *args)
-        Noutp = len(BoltzmannShieldings)
+        (RelEs, populations, labels, BoltzmannShieldings, Jlabels, BoltzmannFCs,
+            BoltzmannJs, Ntaut) =  Gaussian.RunNMRPredict(numDS, *args)
     elif settings.DFT == 'n' or settings.DFT == 'w':
         (RelEs, populations, labels, BoltzmannShieldings, Ntaut) = \
                                             NWChem.RunNMRPredict(numDS, *args)
-        Noutp = len(BoltzmannShieldings)
+    
+    Noutp = len(BoltzmannShieldings)
 
     #Reads the experimental NMR data from the file
     ExpNMR = args[-1]
@@ -68,7 +68,6 @@ def main(numDS, settings, *args):
     #This loops through predictNMR outputs for each diastereomer and collects
     #NMR data
 
-    flatequiv = [val for sublist in equivalents for val in sublist]    
     flatomits = [val for sublist in omits for val in sublist]
 
     for DS in range(0, numDS):
@@ -180,51 +179,15 @@ def main(numDS, settings, *args):
             OptHvalues.append(BuffH)
             tstart = tstart + Ntaut[tindex]
 
-    #Output the seperated shifts to terminal and DP4 input file
-    #along with the experimental NMR data
-    if (not settings.PDP4) and (not settings.EP5):
-
-        WriteDP4input(Clabels, OptCvalues, Cexp, Hlabels, OptHvalues, Hexp)
-        #Run the DP4 java file and collect the output
-        javafolder = getScriptPath()
-        DP4outp = subprocess.check_output('CLASSPATH=' + javafolder +
-            ' java -jar ' + javafolder + '/DP4.jar DP4inp.inp',
-            shell=True)
-        print '\n' + DP4outp
-
-    else:
-        import DP4
-        DP4outp = DP4.main(Clabels, OptCvalues, Hlabels, OptHvalues, Cexp,
-                           Hexp, settings)
+    import DP4
+    DP4outp = DP4.main(Clabels, OptCvalues, Hlabels, OptHvalues, Cexp,
+                       Hexp, settings)
 
     return '\n'.join(DP4outp) + '\n'
 
 
-def WriteDP4input(Clabels, Cvalues, Cexp, Hlabels, Hvalues, Hexp):
-
-    print '\nWriting input file for DP4...'
-    DP4_file = open('DP4inp.inp', 'w')
-
-    DP4_file.write(','.join(Clabels) + '\n')
-    print '\n' + ','.join(Clabels)
-    for line in Cvalues:
-        print ','.join(format(v, "4.2f") for v in line)
-        DP4_file.write(','.join(format(v, "4.2f") for v in line) + '\n')
-
-    DP4_file.write('\n' + Cexp)
-    print '\n' + Cexp
-
-    DP4_file.write('\n' + ','.join(Hlabels) + '\n')
-    print '\n' + ','.join(Hlabels)
-    for line in Hvalues:
-        print ','.join(format(v, "4.2f") for v in line)
-        DP4_file.write(','.join(format(v, "4.2f") for v in line) + '\n')
-
-    DP4_file.write('\n' + Hexp + '\n')
-    print '\n' + Hexp
-
-    DP4_file.close()
-
+def ReadExpNMR(f):
+    pass
 
 def OptTautPop(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp):
     #Pairwise match exp signals to computed ones based on assignments first,
