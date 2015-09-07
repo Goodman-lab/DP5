@@ -37,7 +37,7 @@ Interprets the arguments and takes care of the general workflow logic.
 from __future__ import division
 
 import Gaussian
-import NMRAnalysis
+import NMRDP4GTF
 import Tinker
 import MacroModel
 import NWChem
@@ -309,7 +309,7 @@ def main(filename, ExpNMR, nfiles):
             allargs.append(settings.NTaut)
             allargs.extend(inpfiles[i*settings.NTaut:(i+1)*settings.NTaut])
         allargs.append(ExpNMR)
-        DP4outp = NMRAnalysis.main(numDS, settings, *allargs)
+        DP4outp = NMRDP4GTF.main(numDS, settings, *allargs)
         print '\nWriting the DP4 output to DP4outp'
         if not settings.EP5:
             if nfiles == 1:
