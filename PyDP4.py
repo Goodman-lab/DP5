@@ -140,7 +140,7 @@ def main(filename, ExpNMR, nfiles):
             inpfiles = list(newinpfiles)
         else:
             numDS = int(nfiles/settings.NTaut)
-            if (numDS == 1):
+            if numDS == 1:
                 import InchiGen
                 for f in filename:
                     tdiastereomers = []
@@ -160,20 +160,20 @@ def main(filename, ExpNMR, nfiles):
         #Check if there already are Tinker output files with the right names
         tinkfiles = glob.glob('*.tout')
         mminpfiles = []
-        for filename in inpfiles:
-            if filename + '.tout' in tinkfiles and (filename + 'rot.tout' in
+        for f in inpfiles:
+            if f + '.tout' in tinkfiles and (f + 'rot.tout' in
                                     tinkfiles or settings.Rot5Cycle is False):
                 if len(mminpfiles) == 0:
                     MMRun = True
             else:
                 MMRun = False
-                mminpfiles.append(filename)
+                mminpfiles.append(f)
     else:
         #Check if there already are Tinker output files with the right names
         mmfiles = glob.glob('*.log')
         mminpfiles = []
-        for filename in inpfiles:
-            if filename + '.log' in mmfiles and (filename + 'rot.log' in
+        for f in inpfiles:
+            if f + '.log' in mmfiles and (f + 'rot.log' in
                                         mmfiles or settings.Rot5Cycle is False):
                 if len(mminpfiles) == 0:
                     MMRun = True
@@ -190,7 +190,7 @@ def main(filename, ExpNMR, nfiles):
     else:
         if settings.MMTinker:
             print 'Some Tinker files missing.'
-            print '\Seting up Tinker files...'
+            print '\nSeting up Tinker files...'
             Tinker.SetupTinker(len(inpfiles), settings, *mminpfiles)
             if settings.GenOnly:
                 print "Input files generated, quitting..."
@@ -265,7 +265,7 @@ def main(filename, ExpNMR, nfiles):
                 print "The DFT calculations will be done in " +\
                     str(math.ceil(len(Files2Run)/MaxCon)) + " batches"
                 i = 0
-                while((i+1)*MaxCon < len(Files2Run)):
+                while (i+1)*MaxCon < len(Files2Run):
                     print "Starting batch nr " + str(i+1)
                     Gaussian.RunOnZiggy(now.strftime('%d%b%H%M')+str(i+1),
                         settings.queue, Files2Run[(i*MaxCon):((i+1)*MaxCon)], settings)
@@ -292,7 +292,7 @@ def main(filename, ExpNMR, nfiles):
                 print "The DFT calculations will be done in " +\
                     str(math.ceil(len(Files2Run)/MaxCon)) + " batches"
                 i = 0
-                while((i+1)*MaxCon < len(Files2Run)):
+                while (i+1)*MaxCon < len(Files2Run):
                     print "Starting batch nr " + str(i+1)
                     NWChem.RunOnZiggy(now.strftime('%d%b%H%M')+str(i+1),
                         settings.queue, Files2Run[(i*MaxCon):((i+1)*MaxCon)], settings)
@@ -301,7 +301,7 @@ def main(filename, ExpNMR, nfiles):
                 NWChem.RunOnZiggy(now.strftime('%d%b%H%M')+str(i+1),
                     settings.queue, Files2Run[(i*MaxCon):], settings)
 
-    if (numDS < 2):
+    if numDS < 2:
         print "DP4 requires at least 2 candidate structures!"
     else:
         allargs = []
@@ -390,7 +390,7 @@ if __name__ == '__main__':
     settings.ScriptDir = getScriptPath()
     settings.ForceField = args.ff
     settings.PerStructConfLimit = args.ConfLimit
-    
+
     if args.pd:
         settings.PDP4 = True
         settings.EP5 = False
