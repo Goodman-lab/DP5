@@ -14,11 +14,14 @@ import NWChem
 
 import sys
 import scipy.optimize as sciopt
+from numpy import mean
 import math
 import os
 
 TMS_SC_C13 = 191.69255
 TMS_SC_H1 = 31.7518583
+
+J_THRESHOLD = 0.4
 
 
 def main(numDS, settings, *args):
@@ -76,10 +79,16 @@ def main(numDS, settings, *args):
             OptCvalues.append(BuffC)
             OptHvalues.append(BuffH)
             tstart = tstart + Ntaut[tindex]
-
+    
+    NewBoltzmannJs, NewJlabels = ZeroEquivJ(BoltzmannJs, Jlabels, equivs, omits)
+    print "\n J value matrixes after pruning: \n"
+    for i, Jvals in enumerate(NewBoltzmannJs):
+        print "Isomer " + str(i) + ":"
+        PrintJMatrixLim(Jvals, NewJlabels)
+    
     import DP4
     #Run DP4 (or alternative, if set in settings) analysis and collect output
-    DP4outp = DP4.main(Clabels, OptCvalues, Hlabels, OptHvalues, Cexp,
+    DP4outp = DP4.DP4(Clabels, OptCvalues, Hlabels, OptHvalues, Cexp,
                        Hexp, settings)
 
     return '\n'.join(DP4outp) + '\n'
@@ -103,8 +112,9 @@ def ReadExpNMR(ExpNMR):
     for line in ExpNMR_file:
         if not 'OMIT' in line and len(line) > 1:
             equivalents.append(line[:-1].split(','))
-        else:
-            omits.append(line[5:-1].split(','))
+        elif 'OMIT' in line:
+            omits.extend(line[5:-1].split(','))
+            
     ExpNMR_file.close()
     
     return Cexp, Hexp, equivalents, omits
@@ -203,6 +213,90 @@ def RemoveEquivalents(Noutp, equivs, OldCval, OldHval, OldClabels, OldHlabels):
                     
     return Cvalues, Hvalues, Clabels, Hlabels
     
+
+def ZeroSmallJvalues(mat):
+    
+    newmat = list(mat)
+    for ds in range(len(newmat)):
+        for row in range(len(newmat[ds])):
+            for column in range(len(newmat[ds])):
+                if abs(newmat[ds][row][column])<J_THRESHOLD:
+                    newmat[ds][row][column] = 0.0
+    return newmat
+
+
+def ZeroEquivJ(mat, matlabels, equivs, omits):
+    
+    #Zeros mutual coupling constants of equivalent atoms
+    newmat = list(mat)
+    toRemove = []
+    for eqAtoms in equivs:
+        if eqAtoms[0][0] == 'H':
+            indexes = [matlabels.index(x[1:]) for x in eqAtoms]
+            
+            #Zero out mutual
+            for row in indexes:
+                for column in indexes:
+                    for ds in range(len(newmat)):
+                        newmat[ds][row][column] = 0.0
+            
+            #Average between equivalent
+            first = indexes[0]
+            for ds in range(len(newmat)):
+                #Average the equivs in rows
+                for row in range(len(newmat[ds])):
+                    newmat[ds][row][first] = \
+                        mean([newmat[ds][row][x] for x in indexes])
+                #Average the equivs in columns
+                for column in range(len(newmat[ds])):
+                    newmat[ds][first][column] = \
+                        mean([newmat[ds][x][column] for x in indexes])
+            
+            #Save the indexes to be removed from the matrix
+            #for e in indexes[1:]: toRemove.append(e)
+            toRemove.extend(indexes[1:])
+    
+    toRemove.extend([matlabels.index(x[1:]) for x in omits])
+    
+    PrunedMats = []
+    for ds in range(len(newmat)):
+        PrunedMat, PrunedLabels = RemoveAtomsMatrix(newmat[ds], matlabels,
+                                                    toRemove)
+        PrunedMats.append(PrunedMat)
+    
+    return PrunedMats, PrunedLabels
+
+
+def RemoveAtomsMatrix(mat, matlabels, ToRemove):
+    
+    if len(mat) < 2:
+        return mat, matlabels
+
+    PrunedMatrix = []
+    PrunedLabels = []
+    for y in range(len(mat)):
+        row = []
+        if y not in ToRemove:
+            PrunedLabels.append(matlabels[y])
+            for x in range(len(mat)):
+                if x not in ToRemove:
+                    row.append(mat[y][x])
+            PrunedMatrix.append(row)
+    return PrunedMatrix, PrunedLabels
+
+def PrintJMatrix(mat, labels):
+    
+    for l, row in zip(labels, mat):
+        formattedJ = ["{:4.1f}".format(x) for x in row]
+        print l + ': ' + ', '.join(formattedJ)
+
+
+def PrintJMatrixLim(mat, labels):
+    
+    for l, row in zip(labels, mat):
+        formattedJ = ["{:4.1f}".format(x) for x in row if abs(x)>J_THRESHOLD]
+        print l + ': ' + ', '.join(formattedJ)
+
 
 def OptTautPop(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp):
     #Pairwise match exp signals to computed ones based on assignments first,

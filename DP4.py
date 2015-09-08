@@ -21,7 +21,7 @@ stdevH = 0.18731058105269952
 output = []
 
 
-def main(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, settings):
+def DP4(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, settings):
 
     Print(str(Cexp))
     Print(str(Hexp))
@@ -92,7 +92,8 @@ def AssignExpNMR(labels, calcShifts, exp):
             Jvalues.append([float(x) for x in (d.split(';')[1]).split(',')])
         else:
             Jvalues.append([0])
-
+    
+    print Jvalues
     #Remove assignments and get shifts
     ShiftData = (re.sub(r"\(.*?\)", "", exp, flags=re.DOTALL)).split(',')
     expShifts = [float(x) for x in ShiftData]
