@@ -80,16 +80,16 @@ def main(numDS, settings, *args):
             OptHvalues.append(BuffH)
             tstart = tstart + Ntaut[tindex]
     
-    NewBoltzmannJs, NewJlabels = ZeroEquivJ(BoltzmannJs, Jlabels, equivs, omits)
+    NewBJs, NewJlabels = ZeroEquivJ(BoltzmannJs, Jlabels, equivs, omits)
     print "\n J value matrixes after pruning: \n"
-    for i, Jvals in enumerate(NewBoltzmannJs):
+    for i, Jvals in enumerate(NewBJs):
         print "Isomer " + str(i) + ":"
         PrintJMatrixLim(Jvals, NewJlabels)
     
     import DP4
     #Run DP4 (or alternative, if set in settings) analysis and collect output
-    DP4outp = DP4.DP4(Clabels, OptCvalues, Hlabels, OptHvalues, Cexp,
-                       Hexp, settings)
+    DP4outp = DP4.DP4j(Clabels, OptCvalues, Hlabels, OptHvalues, Cexp,
+                       Hexp, NewBJs, NewJlabels, settings)
 
     return '\n'.join(DP4outp) + '\n'
 

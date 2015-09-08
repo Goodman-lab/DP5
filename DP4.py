@@ -74,6 +74,61 @@ def DP4(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, settings):
     return output
 
 
+def DP4j(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, Jvals, Jlabels,
+         settings):
+
+    Print(str(Cexp))
+    Print(str(Hexp))
+
+    C_cdp4 = []
+    H_cdp4 = []
+    Comb_cdp4 = []
+
+    for isomer in range(0, len(Cvalues)):
+
+        sortedClabels, sortedCvalues, sortedCexp, _ =\
+            AssignExpNMR(Clabels, Cvalues[isomer], Cexp)
+        scaledC = ScaleNMR(sortedCvalues, sortedCexp)
+
+        sortedHlabels, sortedHvalues, sortedHexp, sortedExpJvalues = \
+            AssignExpNMR(Hlabels, Hvalues[isomer], Hexp)
+        scaledH = ScaleNMR(sortedHvalues, sortedHexp)
+
+        ScaledErrorsC = [sortedCexp[i] - scaledC[i]
+                         for i in range(0, len(scaledC))]
+        ScaledErrorsH = [sortedHexp[i] - scaledH[i]
+                         for i in range(0, len(scaledH))]
+
+        Print("\nAssigned shifts for isomer " + str(isomer+1) + ": ")
+        PrintNMR('C', sortedClabels, sortedCvalues, scaledC, sortedCexp)
+        Print("Max C error: " + format(max(ScaledErrorsC, key=abs), "6.2f"))
+        PrintNMRj('H', sortedHlabels, sortedHvalues, scaledH, sortedHexp,
+                  sortedExpJvalues)
+        Print("Max H error: " + format(max(ScaledErrorsH, key=abs), "6.2f"))
+
+        if settings.PDP4:
+            C_cdp4.append(CalculateCDP4(ScaledErrorsC, meanC, stdevC))
+            H_cdp4.append(CalculateCDP4(ScaledErrorsH, meanH, stdevH))
+        elif settings.EP5:
+            C_cdp4.append(CalculatePDP4(ScaledErrorsC, meanC, stdevC))
+            #C_cdp4.append(CalculateKDE(ScaledErrorsC, settings.ScriptDir + '/NucCErr.pkl'))
+            H_cdp4.append(CalculatePDP4(ScaledErrorsH, meanH, stdevH))
+            #H_cdp4.append(CalculateKDE(ScaledErrorsH, settings.ScriptDir + '/NucHErr.pkl'))
+        Comb_cdp4.append(C_cdp4[-1]*H_cdp4[-1])
+        Print("\nDP4 based on C: " + format(C_cdp4[-1], "6.2e"))
+        Print("DP4 based on H: " + format(H_cdp4[-1], "6.2e"))
+
+    relCDP4 = [(100*x)/sum(C_cdp4) for x in C_cdp4]
+    relHDP4 = [(100*x)/sum(H_cdp4) for x in H_cdp4]
+    relCombDP4 = [(100*x)/sum(Comb_cdp4) for x in Comb_cdp4]
+
+    PrintRelDP4('both carbon and proton data', relCombDP4)
+    PrintRelDP4('carbon data only', relCDP4)
+    PrintRelDP4('proton data only', relHDP4)
+    
+    return output
+
+
 def AssignExpNMR(labels, calcShifts, exp):
 
     #Replace all 'or' and 'OR' with ',', remove all spaces and 'any'
@@ -87,11 +142,12 @@ def AssignExpNMR(labels, calcShifts, exp):
     #Get J value data (if any)
     Jdata = re.findall(r"(?<=\().*?(?=\))", exp, flags=re.DOTALL)
     Jvalues = []
+    
     for d in Jdata:
         if ';' in d:
             Jvalues.append([float(x) for x in (d.split(';')[1]).split(',')])
         else:
-            Jvalues.append([0])
+            Jvalues.append([0.0])
     
     print Jvalues
     #Remove assignments and get shifts
@@ -103,12 +159,17 @@ def AssignExpNMR(labels, calcShifts, exp):
     sortedExp = sorted(expShifts)
     sortedExpLabels = SortExpAssignments(expShifts, ExpLabels)
     sortedCalcLabels = []
+    sortedJvalues = []
+    for v in sortedExp:
+        index = expShifts.index(v)
+        sortedJvalues.append(Jvalues[index])
+    
     for v in sortedCalc:
         index = calcShifts.index(v)
         sortedCalcLabels.append(labels[index])
 
     assignedExpLabels = ['' for i in range(0, len(sortedExp))]
-
+    
     #First pass - assign the unambiguous shifts
     for v in range(0, len(sortedExp)):
         if len(sortedExpLabels[v]) == 1 and sortedExpLabels[v][0] != '':
@@ -139,7 +200,7 @@ def AssignExpNMR(labels, calcShifts, exp):
         index = labels.index(l)
         sortedCalc.append(calcShifts[index])
 
-    return assignedExpLabels, sortedCalc, sortedExp, Jvalues
+    return assignedExpLabels, sortedCalc, sortedExp, sortedJvalues
 
 
 def SortExpAssignments(shifts, assignments):
@@ -170,6 +231,13 @@ def PrintNMR(nucleus, labels, values, scaled, exp):
             + format(scaled[i], "6.2f") + ' ' + format(exp[i], "6.2f") + ' ' +
             format(exp[i]-scaled[i], "6.2f"))
 
+def PrintNMRj(nucleus, labels, values, scaled, exp, expJ):
+    Print("\nAssigned " + nucleus +
+          " shifts: (label, calc, corrected, exp, error, Jvalues)")
+    for i in range(0, len(labels)):
+        Print(format(labels[i], "6s") + ' ' + format(values[i], "6.2f") + ' '
+            + format(scaled[i], "6.2f") + ' ' + format(exp[i], "6.2f") + ' ' +
+            format(exp[i]-scaled[i], "6.2f") + '   ' + str(expJ[i]))
 
 def PrintRelDP4(title, RelDP4):
     Print("\nResults of DP4 using " + title + ":")
