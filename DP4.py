@@ -74,7 +74,7 @@ def DP4(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, settings):
     return output
 
 
-def DP4j(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, Jvals, Jlabels,
+def DP4j(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, cJvals, cJlabels,
          settings):
 
     Print(str(Cexp))
@@ -90,20 +90,20 @@ def DP4j(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, Jvals, Jlabels,
             AssignExpNMR(Clabels, Cvalues[isomer], Cexp)
         scaledC = ScaleNMR(sortedCvalues, sortedCexp)
 
-        sortedHlabels, sortedHvalues, sortedHexp, sortedExpJvalues = \
-            AssignExpNMR(Hlabels, Hvalues[isomer], Hexp)
-        scaledH = ScaleNMR(sortedHvalues, sortedHexp)
+        sHlabels, sHvalues, sHexp, sExpJvalues, sCalcJvalues = \
+            AssignExpNMRj(Hlabels, Hvalues[isomer], Hexp, cJvals[isomer], cJlabels)
+        scaledH = ScaleNMR(sHvalues, sHexp)
 
         ScaledErrorsC = [sortedCexp[i] - scaledC[i]
                          for i in range(0, len(scaledC))]
-        ScaledErrorsH = [sortedHexp[i] - scaledH[i]
+        ScaledErrorsH = [sHexp[i] - scaledH[i]
                          for i in range(0, len(scaledH))]
 
         Print("\nAssigned shifts for isomer " + str(isomer+1) + ": ")
         PrintNMR('C', sortedClabels, sortedCvalues, scaledC, sortedCexp)
         Print("Max C error: " + format(max(ScaledErrorsC, key=abs), "6.2f"))
-        PrintNMRj('H', sortedHlabels, sortedHvalues, scaledH, sortedHexp,
-                  sortedExpJvalues)
+        PrintNMRj('H', sHlabels, sHvalues, scaledH, sHexp,
+                  sExpJvalues, sCalcJvalues)
         Print("Max H error: " + format(max(ScaledErrorsH, key=abs), "6.2f"))
 
         if settings.PDP4:
@@ -203,6 +203,84 @@ def AssignExpNMR(labels, calcShifts, exp):
     return assignedExpLabels, sortedCalc, sortedExp, sortedJvalues
 
 
+def AssignExpNMRj(labels, calcShifts, exp, cJvalues, cJlabels):
+
+    #Replace all 'or' and 'OR' with ',', remove all spaces and 'any'
+    exp = re.sub(r"or|OR", ',', exp, flags=re.DOTALL)
+    exp = re.sub(r" |any", '', exp, flags=re.DOTALL)
+
+    #Get all assignments, split mulitassignments
+    ExpLabels = re.findall(r"(?<=\().*?(?=\)|;)", exp, flags=re.DOTALL)
+    ExpLabels = [x.split(',') for x in ExpLabels]
+    
+    #Get J value data (if any)
+    Jdata = re.findall(r"(?<=\().*?(?=\))", exp, flags=re.DOTALL)
+    Jvalues = []
+    
+    for d in Jdata:
+        if ';' in d:
+            Jvalues.append([float(x) for x in (d.split(';')[1]).split(',')])
+        else:
+            Jvalues.append([0.0])
+    
+    print Jvalues
+    #Remove assignments and get shifts
+    ShiftData = (re.sub(r"\(.*?\)", "", exp, flags=re.DOTALL)).split(',')
+    expShifts = [float(x) for x in ShiftData]
+
+    #Prepare sorted calculated data with labels and sorted exp data
+    sortedCalc = sorted(calcShifts)
+    sortedExp = sorted(expShifts)
+    sortedExpLabels = SortExpAssignments(expShifts, ExpLabels)
+    sortedCalcLabels = []
+    sortedExpJs = []
+    for v in sortedExp:
+        index = expShifts.index(v)
+        sortedExpJs.append(Jvalues[index])
+    
+    for v in sortedCalc:
+        index = calcShifts.index(v)
+        sortedCalcLabels.append(labels[index])
+
+    assignedExpLabels = ['' for i in range(0, len(sortedExp))]
+    
+    #First pass - assign the unambiguous shifts
+    for v in range(0, len(sortedExp)):
+        if len(sortedExpLabels[v]) == 1 and sortedExpLabels[v][0] != '':
+            #Check that assignment exists in computational data
+            if sortedExpLabels[v][0] in labels:
+                assignedExpLabels[v] = sortedExpLabels[v][0]
+            else:
+                Print("Label " + sortedExpLabels[v][0] +
+                " not found in among computed shifts, please check NMR assignment.")
+                quit()
+    #Second pass - assign shifts from a limited set
+    for v in range(0, len(sortedExp)):
+        if len(sortedExpLabels[v]) != 1 and sortedExpLabels[v][0] != '':
+            for l in sortedCalcLabels:
+                if l in sortedExpLabels[v] and l not in assignedExpLabels:
+                    assignedExpLabels[v] = l
+                    break
+    #Final pass - assign unassigned shifts in order
+    for v in range(0, len(sortedExp)):
+        if sortedExpLabels[v][0] == '':
+            for l in sortedCalcLabels:  # Take the first free label
+                if l not in assignedExpLabels:
+                    assignedExpLabels[v] = l
+                    break
+    sortedCalc = []
+    sortedCJs = [[0.0] for x in assignedExpLabels]
+    
+    #Rearrange calc values to match the assigned labels
+    for i, l in enumerate(assignedExpLabels):
+        index = labels.index(l)
+        sortedCalc.append(calcShifts[index])
+        if l[1:] in cJlabels:
+            sortedCJs[i] = cJvalues[cJlabels.index(l[1:])]
+
+    return assignedExpLabels, sortedCalc, sortedExp, sortedExpJs, sortedCJs
+
+
 def SortExpAssignments(shifts, assignments):
     tempshifts = list(shifts)
     tempassignments = list(assignments)
@@ -231,13 +309,19 @@ def PrintNMR(nucleus, labels, values, scaled, exp):
             + format(scaled[i], "6.2f") + ' ' + format(exp[i], "6.2f") + ' ' +
             format(exp[i]-scaled[i], "6.2f"))
 
-def PrintNMRj(nucleus, labels, values, scaled, exp, expJ):
+def PrintNMRj(nucleus, labels, values, scaled, exp, expJ, calcJ):
     Print("\nAssigned " + nucleus +
           " shifts: (label, calc, corrected, exp, error, Jvalues)")
     for i in range(0, len(labels)):
+        if expJ[i] != [0.0]:
+            expJstring = ", ".join(["{:4.1f}".format(x) for x in expJ[i]])
+            calcJstring = ", ".join(["{:4.1f}".format(x) for x in calcJ[i] if abs(x)>0.4])
+            Jinfo = expJstring + ' || ' + calcJstring
+        else:
+            Jinfo = ''
         Print(format(labels[i], "6s") + ' ' + format(values[i], "6.2f") + ' '
             + format(scaled[i], "6.2f") + ' ' + format(exp[i], "6.2f") + ' ' +
-            format(exp[i]-scaled[i], "6.2f") + '   ' + str(expJ[i]))
+            format(exp[i]-scaled[i], "6.2f") + '   ' + Jinfo)
 
 def PrintRelDP4(title, RelDP4):
     Print("\nResults of DP4 using " + title + ":")
