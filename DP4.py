@@ -82,6 +82,7 @@ def DP4j(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, cJvals, cJlabels,
 
     C_cdp4 = []
     H_cdp4 = []
+    J_dp4 = []
     Comb_cdp4 = []
 
     for isomer in range(0, len(Cvalues)):
@@ -99,7 +100,7 @@ def DP4j(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, cJvals, cJlabels,
                          for i in range(0, len(scaledC))]
         ScaledErrorsH = [sHexp[i] - scaledH[i]
                          for i in range(0, len(scaledH))]
-
+        
         Print("\nAssigned shifts for isomer " + str(isomer+1) + ": ")
         PrintNMR('C', sortedClabels, sortedCvalues, scaledC, sortedCexp)
         Print("Max C error: " + format(max(ScaledErrorsC, key=abs), "6.2f"))
@@ -115,6 +116,7 @@ def DP4j(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, cJvals, cJlabels,
             #C_cdp4.append(CalculateKDE(ScaledErrorsC, settings.ScriptDir + '/NucCErr.pkl'))
             H_cdp4.append(CalculatePDP4(ScaledErrorsH, meanH, stdevH))
             #H_cdp4.append(CalculateKDE(ScaledErrorsH, settings.ScriptDir + '/NucHErr.pkl'))
+        J_dp4.append(CalculateJerrors(sExpJvalues, assignedCJs))
         Comb_cdp4.append(C_cdp4[-1]*H_cdp4[-1])
         Print("\nDP4 based on C: " + format(C_cdp4[-1], "6.2e"))
         Print("DP4 based on H: " + format(H_cdp4[-1], "6.2e"))
@@ -126,6 +128,7 @@ def DP4j(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, cJvals, cJlabels,
     PrintRelDP4('both carbon and proton data', relCombDP4)
     PrintRelDP4('carbon data only', relCDP4)
     PrintRelDP4('proton data only', relHDP4)
+    PrintJrms(J_dp4)
     
     return output
 
@@ -313,7 +316,7 @@ def ScaleNMR(calcShifts, expShifts):
 def PrintNMR(nucleus, labels, values, scaled, exp):
     Print("\nAssigned " + nucleus +
           " shifts: (label, calc, corrected, exp, error)")
-    for i in range(0, len(labels)):
+    for i in range(len(labels)):
         Print(format(labels[i], "6s") + ' ' + format(values[i], "6.2f") + ' '
             + format(scaled[i], "6.2f") + ' ' + format(exp[i], "6.2f") + ' ' +
             format(exp[i]-scaled[i], "6.2f"))
@@ -321,7 +324,7 @@ def PrintNMR(nucleus, labels, values, scaled, exp):
 def PrintNMRj(nucleus, labels, values, scaled, exp, expJ, calcJ):
     Print("\nAssigned " + nucleus +
           " shifts: (label, calc, corrected, exp, error, Jvalues)")
-    for i in range(0, len(labels)):
+    for i in range(len(labels)):
         if expJ[i] != [0.0]:
             expJstring = ", ".join(["{:4.1f}".format(x) for x in expJ[i]])
             calcJstring = ", ".join(["{:4.1f}".format(x) for x in calcJ[i] if abs(x)>0.4])
@@ -334,8 +337,20 @@ def PrintNMRj(nucleus, labels, values, scaled, exp, expJ, calcJ):
 
 def PrintRelDP4(title, RelDP4):
     Print("\nResults of DP4 using " + title + ":")
-    for i in range(0, len(RelDP4)):
+    for i in range(len(RelDP4)):
         Print("Isomer " + str(i+1) + ": " + format(RelDP4[i], "4.1f") + "%")
+
+def PrintJ(Jerrors):
+    Print("\nMean absolute errors of J values:")
+    for i, Jerr in enumerate(Jerrors):
+        Print("Isomer " + str(i+1) + ": " + format(sum(Jerr)/len(Jerr), "5.3f"))
+
+
+def PrintJrms(Jerrors):
+    from numpy import sqrt, mean, square
+    Print("\nMean absolute errors of J values:")
+    for i, Jerr in enumerate(Jerrors):
+        Print("Isomer " + str(i+1) + ": " + format(sqrt(mean(square(Jerr))), "5.3f"))
 
 
 def Print(s):
@@ -398,3 +413,12 @@ def CalculateRKDE(errors, shifts, PickleFile):
         region = bisect.bisect_left(regions, shifts[i])
         ep5 = ep5*float((kdes[region])(e)[0])
     return ep5
+
+
+def CalculateJerrors(expJ, calcJ):
+    
+    errors = []
+    for eJ, cJ in zip(expJ, calcJ):
+        errors.extend([abs(eJ[i] - cJ[i]) for i in range(len(eJ))])
+    
+    return errors
