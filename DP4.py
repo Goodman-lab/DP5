@@ -93,6 +93,7 @@ def DP4j(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, cJvals, cJlabels,
         sHlabels, sHvalues, sHexp, sExpJvalues, sCalcJvalues = \
             AssignExpNMRj(Hlabels, Hvalues[isomer], Hexp, cJvals[isomer], cJlabels)
         scaledH = ScaleNMR(sHvalues, sHexp)
+        assignedCJs = AssignJvals(sExpJvalues, sCalcJvalues)
 
         ScaledErrorsC = [sortedCexp[i] - scaledC[i]
                          for i in range(0, len(scaledC))]
@@ -103,7 +104,7 @@ def DP4j(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, cJvals, cJlabels,
         PrintNMR('C', sortedClabels, sortedCvalues, scaledC, sortedCexp)
         Print("Max C error: " + format(max(ScaledErrorsC, key=abs), "6.2f"))
         PrintNMRj('H', sHlabels, sHvalues, scaledH, sHexp,
-                  sExpJvalues, sCalcJvalues)
+                  sExpJvalues, assignedCJs)
         Print("Max H error: " + format(max(ScaledErrorsH, key=abs), "6.2f"))
 
         if settings.PDP4:
@@ -131,38 +132,17 @@ def DP4j(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, cJvals, cJlabels,
 
 def AssignExpNMR(labels, calcShifts, exp):
 
-    #Replace all 'or' and 'OR' with ',', remove all spaces and 'any'
-    exp = re.sub(r"or|OR", ',', exp, flags=re.DOTALL)
-    exp = re.sub(r" |any", '', exp, flags=re.DOTALL)
-
-    #Get all assignments, split mulitassignments
-    ExpLabels = re.findall(r"(?<=\().*?(?=\)|;)", exp, flags=re.DOTALL)
-    ExpLabels = [x.split(',') for x in ExpLabels]
-    
-    #Get J value data (if any)
-    Jdata = re.findall(r"(?<=\().*?(?=\))", exp, flags=re.DOTALL)
-    Jvalues = []
-    
-    for d in Jdata:
-        if ';' in d:
-            Jvalues.append([float(x) for x in (d.split(';')[1]).split(',')])
-        else:
-            Jvalues.append([0.0])
-    
-    print Jvalues
-    #Remove assignments and get shifts
-    ShiftData = (re.sub(r"\(.*?\)", "", exp, flags=re.DOTALL)).split(',')
-    expShifts = [float(x) for x in ShiftData]
+    expLabels, expShifts, expJs = ReadExp(exp)
 
     #Prepare sorted calculated data with labels and sorted exp data
     sortedCalc = sorted(calcShifts)
     sortedExp = sorted(expShifts)
-    sortedExpLabels = SortExpAssignments(expShifts, ExpLabels)
+    sortedExpLabels = SortExpAssignments(expShifts, expLabels)
     sortedCalcLabels = []
     sortedJvalues = []
     for v in sortedExp:
         index = expShifts.index(v)
-        sortedJvalues.append(Jvalues[index])
+        sortedJvalues.append(expJs[index])
     
     for v in sortedCalc:
         index = calcShifts.index(v)
@@ -204,39 +184,17 @@ def AssignExpNMR(labels, calcShifts, exp):
 
 
 def AssignExpNMRj(labels, calcShifts, exp, cJvalues, cJlabels):
-
-    #Replace all 'or' and 'OR' with ',', remove all spaces and 'any'
-    exp = re.sub(r"or|OR", ',', exp, flags=re.DOTALL)
-    exp = re.sub(r" |any", '', exp, flags=re.DOTALL)
-
-    #Get all assignments, split mulitassignments
-    ExpLabels = re.findall(r"(?<=\().*?(?=\)|;)", exp, flags=re.DOTALL)
-    ExpLabels = [x.split(',') for x in ExpLabels]
     
-    #Get J value data (if any)
-    Jdata = re.findall(r"(?<=\().*?(?=\))", exp, flags=re.DOTALL)
-    Jvalues = []
-    
-    for d in Jdata:
-        if ';' in d:
-            Jvalues.append([float(x) for x in (d.split(';')[1]).split(',')])
-        else:
-            Jvalues.append([0.0])
-    
-    print Jvalues
-    #Remove assignments and get shifts
-    ShiftData = (re.sub(r"\(.*?\)", "", exp, flags=re.DOTALL)).split(',')
-    expShifts = [float(x) for x in ShiftData]
-
+    expLabels, expShifts, expJs = ReadExp(exp)
     #Prepare sorted calculated data with labels and sorted exp data
     sortedCalc = sorted(calcShifts)
     sortedExp = sorted(expShifts)
-    sortedExpLabels = SortExpAssignments(expShifts, ExpLabels)
+    sortedExpLabels = SortExpAssignments(expShifts, expLabels)
     sortedCalcLabels = []
     sortedExpJs = []
     for v in sortedExp:
         index = expShifts.index(v)
-        sortedExpJs.append(Jvalues[index])
+        sortedExpJs.append(expJs[index])
     
     for v in sortedCalc:
         index = calcShifts.index(v)
@@ -280,6 +238,57 @@ def AssignExpNMRj(labels, calcShifts, exp, cJvalues, cJlabels):
 
     return assignedExpLabels, sortedCalc, sortedExp, sortedExpJs, sortedCJs
 
+
+def ReadExp(exp):
+    
+    #Replace all 'or' and 'OR' with ',', remove all spaces and 'any'
+    texp = re.sub(r"or|OR", ',', exp, flags=re.DOTALL)
+    texp = re.sub(r" |any", '', texp, flags=re.DOTALL)
+
+    #Get all assignments, split mulitassignments
+    expLabels = re.findall(r"(?<=\().*?(?=\)|;)", texp, flags=re.DOTALL)
+    expLabels = [x.split(',') for x in expLabels]
+    
+    #Get J value data (if any)
+    Jdata = re.findall(r"(?<=\().*?(?=\))", texp, flags=re.DOTALL)
+    expJs = []
+    
+    for d in Jdata:
+        if ';' in d:
+            expJs.append([float(x) for x in (d.split(';')[1]).split(',')])
+        else:
+            expJs.append([0.0])
+    
+    print expJs
+    #Remove assignments and get shifts
+    ShiftData = (re.sub(r"\(.*?\)", "", exp, flags=re.DOTALL)).split(',')
+    expShifts = [float(x) for x in ShiftData]
+    
+    return expLabels, expShifts, expJs
+
+
+def AssignJvals(expJ, calcJ):
+    
+    import itertools
+    prunedCJs = []
+    for i in calcJ:
+        prunedCJs.append([abs(j) for j in i if abs(j)>0.4])
+    
+    assignedCalcJ = []
+    for eJ, cJ in zip(expJ, prunedCJs):
+        if eJ != [0.0]:
+            minerror = 10000
+            minassign = []
+            for assign in itertools.permutations(cJ, len(eJ)):
+                error = sum([abs(assign[i]-eJ[i]) for i in range(len(eJ))])
+                if error<minerror:
+                    minerror = error
+                    minassign = assign
+            assignedCalcJ.append(list(minassign))
+        else:
+            assignedCalcJ.append([0.0])
+    
+    return assignedCalcJ
 
 def SortExpAssignments(shifts, assignments):
     tempshifts = list(shifts)
