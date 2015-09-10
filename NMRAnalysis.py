@@ -21,7 +21,7 @@ import os
 TMS_SC_C13 = 191.69255
 TMS_SC_H1 = 31.7518583
 
-J_THRESHOLD = 0.4
+J_THRESHOLD = 0.1
 
 
 def main(numDS, settings, *args):
@@ -256,7 +256,7 @@ def ZeroEquivJ(mat, matlabels, equivs, omits):
             #for e in indexes[1:]: toRemove.append(e)
             toRemove.extend(indexes[1:])
     
-    toRemove.extend([matlabels.index(x[1:]) for x in omits])
+    toRemove.extend([matlabels.index(x[1:]) for x in omits if x[0]=='H'])
     
     PrunedMats = []
     for ds in range(len(newmat)):

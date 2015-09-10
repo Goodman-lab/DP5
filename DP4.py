@@ -19,7 +19,7 @@ meanH = 0.0
 stdevC = 2.269372270818724
 stdevH = 0.18731058105269952
 output = []
-
+J_THRESH = 0.2
 
 def DP4(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, settings):
 
@@ -275,7 +275,7 @@ def AssignJvals(expJ, calcJ):
     import itertools
     prunedCJs = []
     for i in calcJ:
-        prunedCJs.append([abs(j) for j in i if abs(j)>0.4])
+        prunedCJs.append([abs(j) for j in i if abs(j)>J_THRESH])
     
     assignedCalcJ = []
     for eJ, cJ in zip(expJ, prunedCJs):
@@ -327,14 +327,19 @@ def PrintNMRj(nucleus, labels, values, scaled, exp, expJ, calcJ):
     for i in range(len(labels)):
         if expJ[i] != [0.0]:
             expJstring = ", ".join(["{:4.1f}".format(x) for x in expJ[i]])
-            calcJstring = ", ".join(["{:4.1f}".format(x) for x in calcJ[i] if abs(x)>0.4])
+            calcJstring = ", ".join(["{:4.1f}".format(x) for x in calcJ[i] if abs(x)>J_THRESH])
             Jinfo = expJstring + ' || ' + calcJstring
         else:
             Jinfo = ''
         Print(format(labels[i], "6s") + ' ' + format(values[i], "6.2f") + ' '
             + format(scaled[i], "6.2f") + ' ' + format(exp[i], "6.2f") + ' ' +
             format(exp[i]-scaled[i], "6.2f") + '   ' + Jinfo)
-
+    Print("Direct J comparison table (exp, calc):")
+    for i in range(len(labels)):
+        if expJ[i] != [0.0]:
+            for e, c in zip(expJ[i], calcJ[i]):
+                print "{:4.1f}".format(e) + "   " + "{:4.1f}".format(c)
+            
 def PrintRelDP4(title, RelDP4):
     Print("\nResults of DP4 using " + title + ":")
     for i in range(len(RelDP4)):
