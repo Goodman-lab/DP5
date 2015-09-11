@@ -18,8 +18,12 @@ meanC = 0.0
 meanH = 0.0
 stdevC = 2.269372270818724
 stdevH = 0.18731058105269952
+meanJ = 0.090938977003506477
+stdevJ = 1.0248035401896827
 output = []
 J_THRESH = 0.2
+J_INTERCEPT = -0.04348759
+J_SLOPE = 1.1624096399
 
 def DP4(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, settings):
 
@@ -84,6 +88,7 @@ def DP4j(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, cJvals, cJlabels,
     H_cdp4 = []
     J_dp4 = []
     Comb_cdp4 = []
+    Super_dp4 = []
 
     for isomer in range(0, len(Cvalues)):
 
@@ -94,12 +99,15 @@ def DP4j(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, cJvals, cJlabels,
         sHlabels, sHvalues, sHexp, sExpJvalues, sCalcJvalues = \
             AssignExpNMRj(Hlabels, Hvalues[isomer], Hexp, cJvals[isomer], cJlabels)
         scaledH = ScaleNMR(sHvalues, sHexp)
+        
         assignedCJs = AssignJvals(sExpJvalues, sCalcJvalues)
+        ScaledJ = ScaleJvals(assignedCJs)
 
         ScaledErrorsC = [sortedCexp[i] - scaledC[i]
                          for i in range(0, len(scaledC))]
         ScaledErrorsH = [sHexp[i] - scaledH[i]
                          for i in range(0, len(scaledH))]
+        ScaledErrorsJ = CalculateJerrors(sExpJvalues, ScaledJ)
         
         Print("\nAssigned shifts for isomer " + str(isomer+1) + ": ")
         PrintNMR('C', sortedClabels, sortedCvalues, scaledC, sortedCexp)
@@ -116,18 +124,24 @@ def DP4j(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, cJvals, cJlabels,
             #C_cdp4.append(CalculateKDE(ScaledErrorsC, settings.ScriptDir + '/NucCErr.pkl'))
             H_cdp4.append(CalculatePDP4(ScaledErrorsH, meanH, stdevH))
             #H_cdp4.append(CalculateKDE(ScaledErrorsH, settings.ScriptDir + '/NucHErr.pkl'))
-        J_dp4.append(CalculateJerrors(sExpJvalues, assignedCJs))
+        J_dp4.append(CalculatePDP4(ScaledErrorsJ, meanJ, stdevJ))
         Comb_cdp4.append(C_cdp4[-1]*H_cdp4[-1])
+        Super_dp4.append(C_cdp4[-1]*H_cdp4[-1]*J_dp4[-1])
         Print("\nDP4 based on C: " + format(C_cdp4[-1], "6.2e"))
         Print("DP4 based on H: " + format(H_cdp4[-1], "6.2e"))
+        Print("DP4 based on J: " + format(J_dp4[-1], "6.2e"))
 
     relCDP4 = [(100*x)/sum(C_cdp4) for x in C_cdp4]
     relHDP4 = [(100*x)/sum(H_cdp4) for x in H_cdp4]
+    relJDP4 = [(100*x)/sum(J_dp4) for x in J_dp4]
     relCombDP4 = [(100*x)/sum(Comb_cdp4) for x in Comb_cdp4]
+    relSuperDP4 = [(100*x)/sum(Super_dp4) for x in Super_dp4]
 
+    PrintRelDP4('all available data', relSuperDP4)
     PrintRelDP4('both carbon and proton data', relCombDP4)
     PrintRelDP4('carbon data only', relCDP4)
     PrintRelDP4('proton data only', relHDP4)
+    PrintRelDP4('J value data only', relJDP4)
     PrintJrms(J_dp4)
     
     return output
@@ -292,6 +306,14 @@ def AssignJvals(expJ, calcJ):
             assignedCalcJ.append([0.0])
     
     return assignedCalcJ
+
+def ScaleJvals(calcJ):
+    scaledJs = []
+    
+    for cJ in calcJ:
+        scaledJs.append([(j-J_INTERCEPT)/J_SLOPE for j in cJ])
+    
+    return scaledJs
 
 def SortExpAssignments(shifts, assignments):
     tempshifts = list(shifts)
