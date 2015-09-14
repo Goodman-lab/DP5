@@ -22,7 +22,7 @@ def main(f, settings):
     Find the axis atoms
     Find all the atoms to be rotated
 
-    Rotate it and the substiuents to the other side of the plane
+    Rotate it and the substituents to the other side of the plane
     """
     obconversion = OBConversion()
     obconversion.SetInFormat("sdf")
