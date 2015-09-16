@@ -216,7 +216,7 @@ def FindPlane(atom1, atom2, atom3):
     vector2 = [atom3.x() - atom1.x(), atom3.y() - atom1.y(),
                atom3.z() - atom1.z()]
     cross_product = [vector1[1] * vector2[2] - vector1[2] * vector2[1],
-                     -1 * vector1[0] * vector2[2] - vector1[2] * vector2[0],
+                     -1 * vector1[0] * vector2[2] + vector1[2] * vector2[0],
                      vector1[0] * vector2[1] - vector1[1] * vector2[0]]
 
     d = cross_product[0] * atom1.x() - cross_product[1] * atom1.y() + \

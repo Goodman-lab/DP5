@@ -10,7 +10,7 @@ Tetrahedron 36 2783-2792 (1980)
 """
 
 import numpy as np
-from math import sqrt, pi, cos, sin, acos
+from math import sqrt, pi, cos, sin, acos, atan2
 import sys
 sys.path.append(
     '/home/ke291/Tools/openbabel-install/lib/python2.7/site-packages/')
@@ -51,19 +51,12 @@ def Karplus(f):
             if DihedNeighbours!=0:
                 DihedralHs.append([atom.GetIdx()] + DihedNeighbours)                
     
-    print DihedralHs
-    
-    DihedralMatrix, labels = CalcDihedralMatrix(obmol, DihedralHs)
-    
-    print labels
-    for x in DihedralMatrix:
-        print x
-
     Jmatrix, Jlabels = CalcJMatrix(obmol, DihedralHs)
     
     print "\n\n"
+    print ", ".join(['H' + str(x) for x in Jlabels])
     for x in Jmatrix:
-        print x
+        print ", ".join([format(val, "4.1f") for val in x])
     
     #return Jlabels, Jmatrix
 
@@ -97,23 +90,6 @@ def GetDihedralHs(atom):
         return nHs
 
 
-def CalcDihedralMatrix(obmol, DihedralHs):
-    mat = [[0.0 for x in range(len(DihedralHs))] for y in range(len(DihedralHs))]
-    labels = [x[0] for x in DihedralHs]
-    
-    for x, row in enumerate(DihedralHs):
-        atom1 = row[0]
-        for atom2 in row[1:]:
-            y = labels.index(atom2)
-            #angle = CalcDihedral(atom1, atom2)
-            angle = 57.2957795*CalcDihedral(obmol.GetAtom(atom1),
-                                            obmol.GetAtom(atom2))
-            mat[x][y] = angle
-            mat[y][x] = angle
-    
-    return mat, labels
-
-
 def CalcJMatrix(obmol, DihedralHs):
     mat = [[0.0 for x in range(len(DihedralHs))] for y in range(len(DihedralHs))]
     labels = [x[0] for x in DihedralHs]
@@ -122,32 +98,11 @@ def CalcJMatrix(obmol, DihedralHs):
         atom1 = row[0]
         for atom2 in row[1:]:
             y = labels.index(atom2)
-            #angle = CalcDihedral(atom1, atom2)
             J = CalcJ(obmol.GetAtom(atom1), obmol.GetAtom(atom2))
             mat[x][y] = J
             mat[y][x] = J
     
     return mat, labels
-
-
-def CalcDihedral(atom1, atom2):
-    
-    #Get the 2 carbon atoms joining the protons
-    for NbrAtom in OBAtomAtomIter(atom1):
-        if NbrAtom.GetAtomicNum() == 6 and NbrAtom.GetHyb() == 3:
-            carbon1 = NbrAtom
-            break
-    for NbrAtom in OBAtomAtomIter(atom2):
-        if NbrAtom.GetAtomicNum() == 6 and NbrAtom.GetHyb() == 3:
-            carbon2 = NbrAtom
-            break
-    #Get the 2 planes formed by the carbons and each of the protons
-    normal1, d = FindPlane(atom1, carbon1, carbon2)
-    normal2, d = FindPlane(atom2, carbon1, carbon2)
-    
-    sign = VectAngleSign(BondVect(carbon1, atom1), BondVect(carbon2, atom2),
-                         BondVect(carbon1, carbon2))
-    return VectorAngle(normal1, normal2)*sign
 
 
 def CalcJ(atom1, atom2):
@@ -162,12 +117,17 @@ def CalcJ(atom1, atom2):
             carbon2 = NbrAtom
             break
     #Get the 2 planes formed by the carbons and each of the protons
-    normal1, d = FindPlane(atom1, carbon1, carbon2)
-    normal2, d = FindPlane(atom2, carbon1, carbon2)
+    normal1, d = FindPlane(carbon1, atom1, carbon2)
+    normal2, d = FindPlane(carbon2, atom2, carbon1)
     
     sign = VectAngleSign(BondVect(carbon1, atom1), BondVect(carbon2, atom2),
                          BondVect(carbon1, carbon2))
-    dihedral = VectorAngle(normal1, normal2)*sign
+    angle = VectorAngle(normal1, normal2)
+    if dotproduct(BondVect(carbon1, atom1), BondVect(carbon2, atom2)) > 0 and \
+        angle < 0.5*pi:
+        dihedral = angle*sign
+    else:
+        dihedral = (pi-angle)*sign
     
     #Count the substituents, get their electronegativities
     nSubst = 0
@@ -191,7 +151,8 @@ def CalcJ(atom1, atom2):
             signs.append(VectAngleSign(BondVect(carbon2, atom2),
                                        BondVect(carbon2, NbrAtom),
                                        BondVect(carbon2, carbon1)))
-                        
+    print "Atoms " + str(atom1.GetIdx()) + " " + str(atom2.GetIdx())
+    print "Dihedral angle: " + format(dihedral*180/pi, "6.2f")
     SubstEffects = 0
     if nSubst < 2:
         for relEN, sign in zip(relENs, signs):
@@ -210,10 +171,18 @@ def SubstEffect(dihedral, relEN, sign, pset):
     return relEN*(Params[pset][3] + Params[pset][4]*
                   cos(sign*dihedral + Deg2Rad(Params[pset][5])*abs(relEN))**2)
 
+
 def BondVect(atom1, atom2):
     return [atom2.x() - atom1.x(),atom2.y() - atom1.y(),atom2.z() - atom1.z()]
+
+
+def VectorAngle(v1, v2):
     
-def VectorAngle(normal1, normal2):
+    cp = crossproduct(v1, v2)
+    return atan2(length(cp),dotproduct(v1, v2))
+
+
+def VectorAngle2(normal1, normal2):
     
     dotprod = sum((a*b) for a, b in zip(normal1, normal2))
     length1 = sqrt(sum([x**2 for x in normal1]))
@@ -226,9 +195,7 @@ def VectAngleSign(v1, v2, axis):
     
     crossprod = crossproduct(v1, v2)
     return np.sign(dotproduct(crossprod, axis))
-    
-    """crossprod = crossproduct(BondVect(c1, atom1), BondVect(c1, atom2))
-    return np.sign(dotproduct(crossprod, BondVect(c1, c2)))"""
+
 
 def GetUnitVector(Atom1, Atom2):
     vector = []
@@ -247,13 +214,10 @@ def FindPlane(atom1, atom2, atom3):
                atom2.z() - atom1.z()]
     vector2 = [atom3.x() - atom1.x(), atom3.y() - atom1.y(),
                atom3.z() - atom1.z()]
-    cross_product = [vector1[1] * vector2[2] - vector1[2] * vector2[1],
-                     -1 * vector1[0] * vector2[2] - vector1[2] * vector2[0],
-                     vector1[0] * vector2[1] - vector1[1] * vector2[0]]
-
+    cross_product = crossproduct(vector1, vector2)
     d = cross_product[0] * atom1.x() - cross_product[1] * atom1.y() + \
         cross_product[2] * atom1.z()
-
+    
     return cross_product, d
 
 def Deg2Rad(x):
@@ -269,7 +233,6 @@ def crossproduct(v1, v2):
 
 def dotproduct(v1, v2):
         return sum((a*b) for a, b in zip(v1, v2))
-
 
 def length(v):
     return sqrt(dotproduct(v, v))
