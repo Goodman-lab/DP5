@@ -32,11 +32,11 @@ ENs = [2.20,0.00,0.98,1.57,2.04,2.55,3.04,3.44,3.98,0.00,
        1.60,2.16,1.90,2.20,2.28,2.20,1.93,1.69,1.78,1.96,
        2.05,2.10,2.66]
 
-
-def Karplus(f):
+#input format - "g09" for gaussian, "nwo" for NWChem
+def Karplus(f, inputformat):
 
     obconversion = OBConversion()
-    obconversion.SetInFormat("sdf")
+    obconversion.SetInFormat("g09")
     obmol = OBMol()
 
     obconversion.ReadFile(obmol, f)
@@ -132,13 +132,16 @@ def CalcJ(atom1, atom2):
     #Count the substituents, get their electronegativities
     nSubst = 0
     relENs = []
+    ENcorrs = []
     signs = []
     
     for NbrAtom in OBAtomAtomIter(carbon1):
         ANum = NbrAtom.GetAtomicNum()
         if NbrAtom.GetIdx() != carbon2.GetIdx() and ANum != 1:
             nSubst += 1
-            relENs.append(ENs[ANum-1]-ENs[0])
+            relEN, ENcorr = GetENCorrection(NbrAtom, carbon1)
+            relENs.append(relEN)
+            ENcorrs.append(ENcorr)
             signs.append(VectAngleSign(BondVect(carbon1, atom1),
                                        BondVect(carbon1, NbrAtom),
                                        BondVect(carbon1, carbon2)))
@@ -147,7 +150,9 @@ def CalcJ(atom1, atom2):
         ANum = NbrAtom.GetAtomicNum()
         if NbrAtom.GetIdx() != carbon1.GetIdx() and ANum != 1:
             nSubst += 1
-            relENs.append(ENs[ANum-1]-ENs[0])
+            relEN, ENcorr = GetENCorrection(NbrAtom, carbon2)
+            relENs.append(relEN)
+            ENcorrs.append(ENcorr)
             signs.append(VectAngleSign(BondVect(carbon2, atom2),
                                        BondVect(carbon2, NbrAtom),
                                        BondVect(carbon2, carbon1)))
@@ -155,16 +160,34 @@ def CalcJ(atom1, atom2):
     print "Dihedral angle: " + format(dihedral*180/pi, "6.2f")
     SubstEffects = 0
     if nSubst < 2:
-        for relEN, sign in zip(relENs, signs):
-            SubstEffects += SubstEffect(dihedral, relEN, sign, 0)
+        for relEN, ENcorr, sign in zip(relENs, ENcorrs, signs):
+            corrRelEN = relEN - (Params[0][6])*ENcorr
+            SubstEffects += SubstEffect(dihedral, corrRelEN, sign, 0)
+            print relEN, corrRelEN, Params[0][6]*ENcorr, ENcorr
         J = Params[0][0]*cos(dihedral)**2 + Params[0][1]*cos(dihedral)
     else:
         for relEN, sign in zip(relENs, signs):
-            SubstEffects += SubstEffect(dihedral, relEN, sign, nSubst-1)
+            corrRelEN = relEN - (Params[nSubst-1][6])*ENcorr
+            SubstEffects += SubstEffect(dihedral, corrRelEN, sign, nSubst-1)
+            print relEN, corrRelEN, (Params[nSubst-1][6])*ENcorr, ENcorr
         J = Params[nSubst-1][0]*cos(dihedral)**2 + Params[nSubst-1][1]*cos(dihedral)
     
+    print J, SubstEffects
     return J + SubstEffects
 
+
+def GetENCorrection(atom, satom):
+    Anum = atom.GetAtomicNum()
+    if Anum != 6:
+        return ENs[Anum-1]-ENs[0], 0.0
+    else:
+        ENcorr = 0.0
+        for NbrAtom in OBAtomAtomIter(atom):
+            if NbrAtom.GetIdx() != satom.GetIdx():
+                neighbAnum = NbrAtom.GetAtomicNum()
+                ENcorr += ENs[neighbAnum-1]-ENs[0]
+        
+        return ENs[Anum-1]-ENs[0], ENcorr
 
 def SubstEffect(dihedral, relEN, sign, pset):
     
