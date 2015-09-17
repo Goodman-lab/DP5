@@ -32,11 +32,12 @@ def main(numDS, settings, *args):
 
     if settings.DFT == 'z' or settings.DFT == 'g':
         (RelEs, populations, labels, BoltzmannShieldings, Jlabels, BoltzmannFCs,
-            BoltzmannJs, Ntaut) =  Gaussian.RunNMRPredict(numDS, *args)
+            BoltzmannJs, Ntaut) =  Gaussian.RunNMRPredict(numDS, settings, *args)
     elif settings.DFT == 'n' or settings.DFT == 'w':
         (RelEs, populations, labels, BoltzmannShieldings, Ntaut) = \
                                             NWChem.RunNMRPredict(numDS, *args)
-    
+    print Jlabels
+    print BoltzmannJs
     #Reads the experimental NMR data from the file
     Cexp, Hexp, equivs, omits = ReadExpNMR(args[-1])
     
@@ -230,8 +231,12 @@ def ZeroEquivJ(mat, matlabels, equivs, omits):
     #Zeros mutual coupling constants of equivalent atoms
     newmat = list(mat)
     toRemove = []
+    print equivs
+    print matlabels
     for eqAtoms in equivs:
-        if eqAtoms[0][0] == 'H':
+        AllAtomsPresent = False
+        AllAtomsPresent = all([x[1:] in matlabels for x in eqAtoms])
+        if eqAtoms[0][0] == 'H' and AllAtomsPresent:
             indexes = [matlabels.index(x[1:]) for x in eqAtoms]
             
             #Zero out mutual
@@ -256,7 +261,8 @@ def ZeroEquivJ(mat, matlabels, equivs, omits):
             #for e in indexes[1:]: toRemove.append(e)
             toRemove.extend(indexes[1:])
     
-    toRemove.extend([matlabels.index(x[1:]) for x in omits if x[0]=='H'])
+    toRemove.extend([matlabels.index(x[1:]) for x in omits if x[0]=='H' and
+                     x[1:] in matlabels])
     
     PrunedMats = []
     for ds in range(len(newmat)):

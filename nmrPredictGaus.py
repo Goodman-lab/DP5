@@ -8,12 +8,13 @@ Extracts NMR shifts from NWChem output files
 """
 
 import math
+import Karplus
 
 gasConstant = 8.3145
 temperature = 298.15
 hartreeEnergy = 2625.499629554010
 
-def main(*args):
+def main(settings, *args):
 
     labels = []
     allshieldings = []
@@ -29,9 +30,14 @@ def main(*args):
         (labels, shieldings, energy) = ReadShieldings(f)
         allshieldings.append(shieldings)
         energies.append(energy)
-        FCmat, Jmat, Jlabels = ReadCouplingConstants(f, labels)
-        FCmatrices.append(FCmat)
-        Jmatrices.append(Jmat)
+        if settings.jKarplus:
+            Jmat, Jlabels = Karplus.Karplus(f + ".out", "g09")
+            Jmatrices.append(Jmat)
+            FCmatrices.append(Jmat) #Jmat used as a placeholder value for FCmat
+        else:
+            FCmat, Jmat, Jlabels = ReadCouplingConstants(f, labels)
+            FCmatrices.append(FCmat)
+            Jmatrices.append(Jmat)
 
     minE = min(energies)
 
@@ -64,21 +70,23 @@ def main(*args):
                 populations[conformer]
         BoltzmannShieldings.append(shielding)
 
-    if len(Jlabels) < 2:
+    if len(Jlabels) < 2 or not \
+        any([settings.jJ, settings.jFC, settings.jKarplus]):
         return (relEs, populations, labels, BoltzmannShieldings, [""], [0], [0])
     else:
         #Calculate Boltzmann weighed coupling constants (FC and J)
         Natoms = len(Jlabels)
         BoltzmannFC = [[0.0 for i in range(Natoms)] for i in range(Natoms)]
         BoltzmannJ = [[0.0 for i in range(Natoms)] for i in range(Natoms)]
-
-        for a1 in range(Natoms):
-            for a2 in range(Natoms):
-                coupling = 0.0
-                for conf in range(len(FCmatrices)):
-                    coupling = coupling + FCmatrices[conf][a1][a2] * \
-                        populations[conf]
-                    BoltzmannFC[a1][a2] = coupling
+        
+        if settings.jJ or settings.jFC:
+            for a1 in range(Natoms):
+                for a2 in range(Natoms):
+                    coupling = 0.0
+                    for conf in range(len(FCmatrices)):
+                        coupling = coupling + FCmatrices[conf][a1][a2] * \
+                            populations[conf]
+                        BoltzmannFC[a1][a2] = coupling
 
         for a1 in range(Natoms):
             for a2 in range(Natoms):

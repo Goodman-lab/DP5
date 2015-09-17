@@ -36,7 +36,7 @@ ENs = [2.20,0.00,0.98,1.57,2.04,2.55,3.04,3.44,3.98,0.00,
 def Karplus(f, inputformat):
 
     obconversion = OBConversion()
-    obconversion.SetInFormat("g09")
+    obconversion.SetInFormat(inputformat)
     obmol = OBMol()
 
     obconversion.ReadFile(obmol, f)
@@ -52,13 +52,8 @@ def Karplus(f, inputformat):
                 DihedralHs.append([atom.GetIdx()] + DihedNeighbours)                
     
     Jmatrix, Jlabels = CalcJMatrix(obmol, DihedralHs)
-    
-    print "\n\n"
-    print ", ".join(['H' + str(x) for x in Jlabels])
-    for x in Jmatrix:
-        print ", ".join([format(val, "4.1f") for val in x])
-    
-    #return Jlabels, Jmatrix
+    Jlabels = [str(x) for x in Jlabels]
+    return Jmatrix, Jlabels
 
 
 def GetDihedralHs(atom):
@@ -156,23 +151,21 @@ def CalcJ(atom1, atom2):
             signs.append(VectAngleSign(BondVect(carbon2, atom2),
                                        BondVect(carbon2, NbrAtom),
                                        BondVect(carbon2, carbon1)))
-    print "Atoms " + str(atom1.GetIdx()) + " " + str(atom2.GetIdx())
-    print "Dihedral angle: " + format(dihedral*180/pi, "6.2f")
+    
     SubstEffects = 0
     if nSubst < 2:
         for relEN, ENcorr, sign in zip(relENs, ENcorrs, signs):
             corrRelEN = relEN - (Params[0][6])*ENcorr
             SubstEffects += SubstEffect(dihedral, corrRelEN, sign, 0)
-            print relEN, corrRelEN, Params[0][6]*ENcorr, ENcorr
+            
         J = Params[0][0]*cos(dihedral)**2 + Params[0][1]*cos(dihedral)
     else:
         for relEN, sign in zip(relENs, signs):
             corrRelEN = relEN - (Params[nSubst-1][6])*ENcorr
             SubstEffects += SubstEffect(dihedral, corrRelEN, sign, nSubst-1)
-            print relEN, corrRelEN, (Params[nSubst-1][6])*ENcorr, ENcorr
+            
         J = Params[nSubst-1][0]*cos(dihedral)**2 + Params[nSubst-1][1]*cos(dihedral)
     
-    print J, SubstEffects
     return J + SubstEffects
 
 
@@ -188,6 +181,7 @@ def GetENCorrection(atom, satom):
                 ENcorr += ENs[neighbAnum-1]-ENs[0]
         
         return ENs[Anum-1]-ENs[0], ENcorr
+
 
 def SubstEffect(dihedral, relEN, sign, pset):
     
@@ -243,8 +237,10 @@ def FindPlane(atom1, atom2, atom3):
     
     return cross_product, d
 
+
 def Deg2Rad(x):
     return x*0.0174532925
+
 
 def crossproduct(v1, v2):
     product = [0, 0, 0]
@@ -256,6 +252,7 @@ def crossproduct(v1, v2):
 
 def dotproduct(v1, v2):
         return sum((a*b) for a, b in zip(v1, v2))
+
 
 def length(v):
     return sqrt(dotproduct(v, v))

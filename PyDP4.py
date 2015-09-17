@@ -64,6 +64,9 @@ class Settings:
     DFTOpt = False
     PDP4 = False
     EP5 = False
+    jKarplus = False
+    jFC = False
+    jJ = False
     queue = 's1'
     TinkerPath = '~/tinker7/bin/scan '
     OBPath = '/home/ke291/Tools/openbabel-install/lib/python2.7/site-packages/'
@@ -358,8 +361,12 @@ if __name__ == '__main__':
     performed", type=int, default=100)
     parser.add_argument("-r", "--rot5", help="Manually generate conformers for\
     5-memebered rings", action="store_true")
-    parser.add_argument("-j", "--CouplingConstants", help="Calculate coupling\
-    constants and use in analysis", action="store_true")
+    parser.add_argument("--jJ", help="Calculate coupling constants at DFT\
+    level and use in analysis", action="store_true")
+    parser.add_argument("--jFC", help="Calculate Fermi contact term of\
+    coupling constants at DFT level level and use in analysis", action="store_true")
+    parser.add_argument("--jK", help="Use Karplus-type equation to calculate\
+    coupling constants and use in analysis", action="store_true")
     parser.add_argument('--ra', help="Specify ring atoms, for the ring to be\
     rotated, useful for molecules with several 5-membered rings")
     parser.add_argument("--AssumeDFTDone", help="Assume RMSD pruning, DFT setup\
@@ -372,7 +379,6 @@ if __name__ == '__main__':
     tautomers", action="store_true")
     parser.add_argument('-o', '--DFTOpt', help="Optimize geometries at DFT\
     level before NMR prediction", action="store_true")
-    parser.add_argument('--pd', help="Use python port of DP4", action="store_true")
     parser.add_argument('--ep5', help="Use EP5", action="store_true")
     parser.add_argument('-n', '--Charge', help="Specify\
     charge of the molecule. Do not use when input files have different charges")
@@ -390,18 +396,25 @@ if __name__ == '__main__':
     settings.ScriptDir = getScriptPath()
     settings.ForceField = args.ff
     settings.PerStructConfLimit = args.ConfLimit
-
-    if args.pd:
-        settings.PDP4 = True
-        settings.EP5 = False
-    else:
-        settings.PDP4 = False
-
+    
+    if args.jJ:
+        settings.jJ = True
+        settings.jFC = False
+        settings.jKarplus = False
+    if args.jFC:
+        settings.jFC = True
+        settings.jJ = False
+        settings.jKarplus = False
+    if args.jK:
+        settings.jKarplus = True
+        settings.jJ = False
+        settings.jFC = False
     if args.ep5:
         settings.EP5 = True
         settings.PDP4 = False
     else:
         settings.EP5 = False
+        settings.PDP4 = True
 
     if args.mm == 't':
         settings.MMTinker = True
@@ -432,8 +445,6 @@ if __name__ == '__main__':
         settings.Solvent = args.solvent
     if args.rot5:
         settings.Rot5Cycle = True
-    if args.CouplingConstants:
-        settings.CouplingConstants = True
     if args.ra is not None:
         settings.RingAtoms =\
             [int(x) for x in (args.ra).split(',')]

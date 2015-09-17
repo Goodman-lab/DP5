@@ -76,7 +76,7 @@ def WriteGausFile(Gausinp, conformer, atoms, charge, settings):
     f.write('%mem=2800MB\n%chk='+Gausinp + '.chk\n')
     
     CompSettings = '# b3lyp/6-31g(d,p) nmr='
-    if settings.CouplingConstants:
+    if settings.jJ or settings.jFC:
         CompSettings += '(giao,spinspin,mixed)'
     else:
         CompSettings += 'giao'
@@ -396,7 +396,7 @@ def IsZiggyGComplete(f, folder, settings):
     return False
 
 
-def RunNMRPredict(numDS, *args):
+def RunNMRPredict(numDS, settings, *args):
 
     GausNames = []
     NTaut = []
@@ -421,7 +421,8 @@ def RunNMRPredict(numDS, *args):
         GausFiles = [x[:-4] for x in GausFiles]
         
         #Runs nmrPredictGaus Name001, ... and collects output
-        Es, Pops, ls, BSs, Jls, BFCs, BJs = nmrPredictGaus.main(*GausFiles)
+        Es, Pops, ls, BSs, Jls, BFCs, BJs = nmrPredictGaus.main(settings,
+                                                                *GausFiles)
         RelEs.append(Es)
         populations.append(Pops)
         BoltzmannShieldings.append(BSs)
