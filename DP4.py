@@ -14,18 +14,28 @@ import pickle
 import re
 import bisect
 
+#Standard DP4 parameters
 meanC = 0.0
 meanH = 0.0
 stdevC = 2.269372270818724
 stdevH = 0.18731058105269952
+
+#Preliminary DFT J value parameters
 meanJ = 0.090938977003506477
 stdevJ = 1.0248035401896827
+
+#Karplus J value parameters
+meanKJ = 0.015779860851173257
+stdevKJ = 1.5949855401519151
+
 output = []
 J_THRESH = 0.2
+
+#Linear correction parameters for DFT and Karplus J values
 J_INTERCEPT = -0.04348759
 J_SLOPE = 1.1624096399
-KARPLUS_INTERCEPT = 0.0
-KARPLUS_SLOPE = 1.0
+KARPLUS_INTERCEPT = -0.316665406
+KARPLUS_SLOPE = 0.97767834
 
 
 def DP4(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, settings):
@@ -112,8 +122,12 @@ def DP4j(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, cJvals, cJlabels,
 
         ScaledErrorsC = [sortedCexp[i] - scaledC[i]
                          for i in range(0, len(scaledC))]
+        ErrorsC = [sortedCvalues[i] - sortedCexp[i]
+                         for i in range(0, len(sortedCvalues))]
         ScaledErrorsH = [sHexp[i] - scaledH[i]
                          for i in range(0, len(scaledH))]
+        ErrorsH = [sHvalues[i] - sHexp[i]
+                         for i in range(0, len(sHvalues))]
                             
         ScaledErrorsJ = CalculateJerrors(assignedExpJs, ScaledJ)
         
@@ -125,14 +139,26 @@ def DP4j(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, cJvals, cJlabels,
         Print("Max H error: " + format(max(ScaledErrorsH, key=abs), "6.2f"))
 
         if settings.PDP4:
-            C_cdp4.append(CalculateCDP4(ScaledErrorsC, meanC, stdevC))
-            H_cdp4.append(CalculateCDP4(ScaledErrorsH, meanH, stdevH))
-        elif settings.EP5:
-            C_cdp4.append(CalculatePDP4(ScaledErrorsC, meanC, stdevC))
+            #C_cdp4.append(CalculateCDP4(ScaledErrorsC, meanC, stdevC))
             #C_cdp4.append(CalculateKDE(ScaledErrorsC, settings.ScriptDir + '/NucCErr.pkl'))
-            H_cdp4.append(CalculatePDP4(ScaledErrorsH, meanH, stdevH))
+            C_cdp4.append(CalculateRKDE(ErrorsC, sortedCexp,
+                                        settings.ScriptDir + '/URKDECnuc.pkl'))
+            #H_cdp4.append(CalculateCDP4(ScaledErrorsH, meanH, stdevH))
             #H_cdp4.append(CalculateKDE(ScaledErrorsH, settings.ScriptDir + '/NucHErr.pkl'))
-        J_dp4.append(CalculatePDP4(ScaledErrorsJ, meanJ, stdevJ))
+            H_cdp4.append(CalculateRKDE(ErrorsH, sHexp,
+                                        settings.ScriptDir + '/URKDEHnuc.pkl'))
+        elif settings.EP5:
+            #C_cdp4.append(CalculatePDP4(ScaledErrorsC, meanC, stdevC))
+            C_cdp4.append(CalculateKDE(ScaledErrorsC, settings.ScriptDir + '/NucCErr.pkl'))
+            #H_cdp4.append(CalculatePDP4(ScaledErrorsH, meanH, stdevH))
+            H_cdp4.append(CalculateKDE(ScaledErrorsH, settings.ScriptDir + '/NucHErr.pkl'))
+        
+        if settings.jKarplus:
+            #J_dp4.append(CalculatePDP4(ScaledErrorsJ, meanKJ, stdevKJ))
+            J_dp4.append(CalculateKDE(ScaledErrorsJ, settings.ScriptDir + '/KarplusKDE.pkl'))
+        else:
+            J_dp4.append(CalculatePDP4(ScaledErrorsJ, meanJ, stdevJ))
+        
         Comb_cdp4.append(C_cdp4[-1]*H_cdp4[-1])
         Super_dp4.append(C_cdp4[-1]*H_cdp4[-1]*J_dp4[-1])
         Print("\nDP4 based on C: " + format(C_cdp4[-1], "6.2e"))
@@ -448,7 +474,8 @@ def CalculateKDE(errors, PickleFile):
 #use as CalculateRKDE(errors, 'RKDEC.pkl') for C or
 #CalculateKDE(errors, 'RKDEH.pkl') for H
 #load empirical error data from file and use KDE to construct several pdfs,
-#one for each chemical shift region
+#one for each chemical shift region, can be used both for scaled and unscaled
+#errors with the appropriate data
 def CalculateRKDE(errors, shifts, PickleFile):
     
     #Load the data
