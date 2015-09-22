@@ -20,9 +20,13 @@ meanH = 0.0
 stdevC = 2.269372270818724
 stdevH = 0.18731058105269952
 
-#Preliminary DFT J value parameters
-meanJ = 0.090938977003506477
-stdevJ = 1.0248035401896827
+#DFT J value parameters
+meanJ = -0.13133138905769429
+stdevJ = 0.79315485469419067
+
+#DFT FC value parameters
+meanFC = -0.15436128540661589
+stdevFC = 0.92117647579294348
 
 #Karplus J value parameters
 meanKJ = 0.015779860851173257
@@ -32,10 +36,13 @@ output = []
 J_THRESH = 0.2
 
 #Linear correction parameters for DFT and Karplus J values
-J_INTERCEPT = -0.04348759
-J_SLOPE = 1.1624096399
+J_INTERCEPT = -0.365587317
+J_SLOPE = 1.1598043367
+FC_INTERCEPT = -0.438405757
+FC_SLOPE = 1.1701625846
 KARPLUS_INTERCEPT = -0.316665406
 KARPLUS_SLOPE = 0.97767834
+
 
 
 def DP4(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, settings):
@@ -117,8 +124,10 @@ def DP4j(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, cJvals, cJlabels,
         
         if settings.jKarplus:
             ScaledJ = ScaleKarplusJvals(assignedCJs)
-        else:
+        elif settings.jJ:
             ScaledJ = ScaleJvals(assignedCJs)
+        elif settings.jFC:
+            ScaledJ = ScaleFCvals(assignedCJs)
 
         ScaledErrorsC = [sortedCexp[i] - scaledC[i]
                          for i in range(0, len(scaledC))]
@@ -156,8 +165,12 @@ def DP4j(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, cJvals, cJlabels,
         if settings.jKarplus:
             #J_dp4.append(CalculatePDP4(ScaledErrorsJ, meanKJ, stdevKJ))
             J_dp4.append(CalculateKDE(ScaledErrorsJ, settings.ScriptDir + '/KarplusKDE.pkl'))
-        else:
+        elif settings.jJ:
             J_dp4.append(CalculatePDP4(ScaledErrorsJ, meanJ, stdevJ))
+            #J_dp4.append(CalculateKDE(ScaledErrorsJ, settings.ScriptDir + '/JKDE.pkl'))
+        elif settings.jFC:
+            #J_dp4.append(CalculatePDP4(ScaledErrorsJ, meanFC, stdevFC))
+            J_dp4.append(CalculateKDE(ScaledErrorsJ, settings.ScriptDir + '/FCKDE.pkl'))
         
         Comb_cdp4.append(C_cdp4[-1]*H_cdp4[-1])
         Super_dp4.append(C_cdp4[-1]*H_cdp4[-1]*J_dp4[-1])
@@ -353,6 +366,15 @@ def ScaleJvals(calcJ):
     
     for cJ in calcJ:
         scaledJs.append([(j-J_INTERCEPT)/J_SLOPE for j in cJ])
+    
+    return scaledJs
+
+
+def ScaleFCvals(calcJ):
+    scaledJs = []
+    
+    for cJ in calcJ:
+        scaledJs.append([(j-FC_INTERCEPT)/FC_SLOPE for j in cJ])
     
     return scaledJs
 

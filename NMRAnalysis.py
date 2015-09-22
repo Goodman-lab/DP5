@@ -82,15 +82,25 @@ def main(numDS, settings, *args):
             tstart = tstart + Ntaut[tindex]
     
     NewBJs, NewJlabels = ZeroEquivJ(BoltzmannJs, Jlabels, equivs, omits)
+    NewFCs, NewFClabels = ZeroEquivJ(BoltzmannFCs, Jlabels, equivs, omits)
     print "\n J value matrixes after pruning: \n"
-    for i, Jvals in enumerate(NewBJs):
-        print "Isomer " + str(i) + ":"
-        PrintJMatrixLim(Jvals, NewJlabels)
-    
+    if settings.jFC:
+        for i, Jvals in enumerate(NewFCs):
+            print "Isomer " + str(i) + ":"
+            PrintJMatrixLim(Jvals, NewFClabels)
+    else:
+        for i, Jvals in enumerate(NewBJs):
+            print "Isomer " + str(i) + ":"
+            PrintJMatrixLim(Jvals, NewJlabels)
+        
     import DP4
     #Run DP4 (or alternative, if set in settings) analysis and collect output
-    DP4outp = DP4.DP4j(Clabels, OptCvalues, Hlabels, OptHvalues, Cexp,
-                       Hexp, NewBJs, NewJlabels, settings)
+    if settings.jFC:
+        DP4outp = DP4.DP4j(Clabels, OptCvalues, Hlabels, OptHvalues, Cexp,
+                           Hexp, NewFCs, NewFClabels, settings)
+    else:
+        DP4outp = DP4.DP4j(Clabels, OptCvalues, Hlabels, OptHvalues, Cexp,
+                           Hexp, NewBJs, NewJlabels, settings)
 
     return '\n'.join(DP4outp) + '\n'
 
