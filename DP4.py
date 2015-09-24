@@ -66,8 +66,12 @@ def DP4(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, settings):
 
         ScaledErrorsC = [sortedCexp[i] - scaledC[i]
                          for i in range(0, len(scaledC))]
+        ErrorsC = [sortedCvalues[i] - sortedCexp[i]
+                         for i in range(0, len(sortedCvalues))]
         ScaledErrorsH = [sortedHexp[i] - scaledH[i]
                          for i in range(0, len(scaledH))]
+        ErrorsH = [sortedHvalues[i] - sortedHexp[i]
+                         for i in range(0, len(sortedHvalues))]
 
         Print("\nAssigned shifts for isomer " + str(isomer+1) + ": ")
         PrintNMR('C', sortedClabels, sortedCvalues, scaledC, sortedCexp)
@@ -76,8 +80,12 @@ def DP4(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, settings):
         Print("Max H error: " + format(max(ScaledErrorsH, key=abs), "6.2f"))
 
         if settings.PDP4:
-            C_cdp4.append(CalculateCDP4(ScaledErrorsC, meanC, stdevC))
-            H_cdp4.append(CalculateCDP4(ScaledErrorsH, meanH, stdevH))
+            #C_cdp4.append(CalculateCDP4(ScaledErrorsC, meanC, stdevC))
+            C_cdp4.append(CalculateRKDE(ErrorsC, sortedCexp,
+                                        settings.ScriptDir + '/NucleoMMURKDEC.pkl'))
+            #H_cdp4.append(CalculateCDP4(ScaledErrorsH, meanH, stdevH))
+            H_cdp4.append(CalculateRKDE(ErrorsH, sortedHexp,
+                                        settings.ScriptDir + '/NucleoMMURKDEH.pkl'))
         elif settings.EP5:
             C_cdp4.append(CalculatePDP4(ScaledErrorsC, meanC, stdevC))
             #C_cdp4.append(CalculateKDE(ScaledErrorsC, settings.ScriptDir + '/NucCErr.pkl'))

@@ -62,7 +62,7 @@ class Settings:
     GenProt = False
     Solvent = ''
     DFTOpt = False
-    PDP4 = False
+    PDP4 = True
     EP5 = False
     jKarplus = False
     jFC = False
@@ -88,7 +88,7 @@ class Settings:
     charge = None
     BasicAtoms = []
     ForceField = 'mmff'
-    CouplingConstants = False
+    BasisSet = "6-31g(d,p)"
 
 settings = Settings()
 
@@ -314,16 +314,7 @@ def main(filename, ExpNMR, nfiles):
         allargs.append(ExpNMR)
         DP4outp = NMRAnalysis.main(numDS, settings, *allargs)
         print '\nWriting the DP4 output to DP4outp'
-        if not settings.EP5:
-            if nfiles == 1:
-                DP4_ofile = open(filename + '.dp4', 'w')
-            else:
-                DP4_ofile = open(filename[0] + '.dp4', 'w')
-        else:
-            if nfiles == 1:
-                DP4_ofile = open(filename + '_emp.dp4', 'w')
-            else:
-                DP4_ofile = open(filename[0] + '_emp.dp4', 'w')
+        DP4_ofile = open(allargs[-1] + '.dp4', 'w')
         DP4_ofile.write(DP4outp)
         DP4_ofile.close()
         print 'DP4 process completed successfully.'
@@ -384,6 +375,8 @@ if __name__ == '__main__':
     charge of the molecule. Do not use when input files have different charges")
     parser.add_argument('-b', '--BasicAtoms', help="Generate protonated states\
     on the specified atoms and consider as tautomers")
+    parser.add_argument('-B', '--BasisSet', help="Selects the basis set for\
+    DFT calculations", default='6-31g(d,p)')
     parser.add_argument('-f', '--ff', help="Selects force field for the \
     conformational search, implemented options 'mmff' and 'opls' (2005\
     version)", choices=['mmff', 'opls'], default='mmff')
@@ -396,6 +389,7 @@ if __name__ == '__main__':
     settings.ScriptDir = getScriptPath()
     settings.ForceField = args.ff
     settings.PerStructConfLimit = args.ConfLimit
+    settings.BasisSet = args.BasisSet
     
     if args.jJ:
         settings.jJ = True
