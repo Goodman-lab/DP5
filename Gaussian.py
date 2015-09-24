@@ -75,7 +75,8 @@ def WriteGausFile(Gausinp, conformer, atoms, charge, settings):
     f = file(Gausinp + '.com', 'w')
     f.write('%mem=2800MB\n%chk='+Gausinp + '.chk\n')
     
-    CompSettings = '# b3lyp/' + settings.BasisSet + ' nmr='
+    CompSettings = '# ' + settings.Functional + '/' + settings.BasisSet +\
+        ' nmr='
     if settings.jJ or settings.jFC:
         CompSettings += '(giao,spinspin,mixed)'
     else:

@@ -89,6 +89,7 @@ class Settings:
     BasicAtoms = []
     ForceField = 'mmff'
     BasisSet = "6-31g(d,p)"
+    Functional = "b3lyp"
 
 settings = Settings()
 
@@ -377,6 +378,8 @@ if __name__ == '__main__':
     on the specified atoms and consider as tautomers")
     parser.add_argument('-B', '--BasisSet', help="Selects the basis set for\
     DFT calculations", default='6-31g(d,p)')
+    parser.add_argument('-F', '--Functional', help="Selects the functional for\
+    DFT calculations", default='b3lyp')
     parser.add_argument('-f', '--ff', help="Selects force field for the \
     conformational search, implemented options 'mmff' and 'opls' (2005\
     version)", choices=['mmff', 'opls'], default='mmff')
@@ -390,6 +393,7 @@ if __name__ == '__main__':
     settings.ForceField = args.ff
     settings.PerStructConfLimit = args.ConfLimit
     settings.BasisSet = args.BasisSet
+    settings.Functional = args.Functional
     
     if args.jJ:
         settings.jJ = True
