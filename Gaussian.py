@@ -75,11 +75,11 @@ def WriteGausFile(Gausinp, conformer, atoms, charge, settings):
     f = file(Gausinp + '.com', 'w')
     f.write('%mem=2800MB\n%chk='+Gausinp + '.chk\n')
     
-    if (settings.Functional).lower == 'wp04':
+    if (settings.Functional).lower() == 'wp04':
         CompSettings = '# blyp/' + settings.BasisSet +\
             ' iop(3/76=1000001189,3/77=0961409999,3/78=0000109999)' + \
             ' nmr='
-    elif (settings.Functional).lower == 'm062x':
+    elif (settings.Functional).lower() == 'm062x':
         CompSettings = '# ' + settings.Functional + '/' + settings.BasisSet +\
             'int=ultrafine nmr='
     else:

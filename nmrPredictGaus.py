@@ -8,7 +8,6 @@ Extracts NMR shifts from NWChem output files
 """
 
 import math
-import Karplus
 
 gasConstant = 8.3145
 temperature = 298.15
@@ -31,6 +30,7 @@ def main(settings, *args):
         allshieldings.append(shieldings)
         energies.append(energy)
         if settings.jKarplus:
+            import Karplus
             Jmat, Jlabels = Karplus.Karplus(f + ".out", "g09")
             Jmatrices.append(Jmat)
             FCmatrices.append(Jmat) #Jmat used as a placeholder value for FCmat
