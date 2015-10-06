@@ -73,7 +73,7 @@ def AdaptiveRMSD(MMoutp, settings):
 def WriteGausFile(Gausinp, conformer, atoms, charge, settings):
 
     f = file(Gausinp + '.com', 'w')
-    f.write('%mem=2800MB\n%chk='+Gausinp + '.chk\n')
+    f.write('%mem=6000MB\n%chk='+Gausinp + '.chk\n')
     
     if (settings.Functional).lower() == 'wp04':
         CompSettings = '# blyp/' + settings.BasisSet +\
@@ -116,7 +116,7 @@ def WriteGausFileOpt(Gausinp, conformer, atoms, charge, settings):
 
     #write the initial DFT geometry optimisation input file first
     f1 = file(Gausinp + 'a.com', 'w')
-    f1.write('%mem=2800MB\n%chk='+Gausinp + '.chk\n')
+    f1.write('%mem=6000MB\n%chk='+Gausinp + '.chk\n')
 
     if settings.Solvent != '':
         f1.write('# b3lyp/6-31g(d,p) Opt=(maxcycles=30) scrf=(solvent=' +
