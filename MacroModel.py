@@ -17,7 +17,8 @@ import time
 
 def SetupMacromodel(numDS, settings, *args):
 
-    for f in args:
+    for f in args[0]:
+        
         if settings.Rot5Cycle is True:
             if not os.path.exists(f+'rot.sdf'):
                 import FiveConf
@@ -94,7 +95,7 @@ def RunMacromodel(numDS, settings, *args):
     #Run Macromodel conformation search for all diastereomeric inputs
     NCompleted = 0
 
-    for ds in args:
+    for ds in args[0]:
         if not os.path.exists(ds+'.log'):
             print settings.SCHRODINGER + '/bmin ' + ds
             outp = subprocess.check_output(settings.SCHRODINGER + '/bmin ' +

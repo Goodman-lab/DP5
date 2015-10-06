@@ -298,33 +298,29 @@ def WriteSubScript(GausJob, queue, ZiggyJobFolder, settings):
     #define cwd and scratch folder and ask the machine
     #to make it before running the job
     QSub.write('HERE=/home/' + settings.user +'/' + ZiggyJobFolder + '\n')
-    QSub.write('SCRATCH=/sharedscratch/' + settings.user + '/' +
+    QSub.write('LSCRATCH=/scratch/' + settings.user + '/' +
                GausJob + '\n')
-    QSub.write('mkdir ${SCRATCH}\n')
+    QSub.write('mkdir ${LSCRATCH}\n')
 
     #Setup GAUSSIAN environment variables
     QSub.write('set OMP_NUM_THREADS=1\n')
     QSub.write('export GAUSS_EXEDIR=/usr/local/shared/gaussian/em64t/09-D01/g09\n')
     QSub.write('export g09root=/usr/local/shared/gaussian/em64t/09-D01\n')
     QSub.write('export PATH=/usr/local/shared/gaussian/em64t/09-D01/g09:$PATH\n')
-    QSub.write('export GAUSS_SCRDIR=$SCRATCH\n')
+    QSub.write('export GAUSS_SCRDIR=$LSCRATCH\n')
 
     #copy the input file to scratch
-    QSub.write('cp ${HERE}/${inpfile}  $SCRATCH\ncd $SCRATCH\n')
+    QSub.write('cp ${HERE}/${inpfile}  $LSCRATCH\ncd $LSCRATCH\n')
 
     #write useful info to the job output file (not the gaussian)
     QSub.write('echo "Starting job $PBS_JOBID"\necho\n')
     QSub.write('echo "PBS assigned me this node:"\ncat $PBS_NODEFILE\necho\n')
 
-    QSub.write('ln -s $HERE/$outfile $SCRATCH/$outfile\n')
+    QSub.write('ln -s $HERE/$outfile $LSCRATCH/$outfile\n')
     QSub.write('$GAUSS_EXEDIR/g09 < $inpfile > $outfile\n')
 
     #Cleanup
-    QSub.write('mkdir ${HERE}/${file}\n')
-    QSub.write('cp ${SCRATCH}/*.chk  $HERE/${file}/\n')
-    QSub.write('rm -f ${SCRATCH}/*\n')
-    QSub.write('cp $HERE/${file}/*.chk ${SCRATCH}/\n')
-    QSub.write('rm -r ${HERE}/${file}\n')
+    QSub.write('rm -rf ${LSCRATCH}/\n')
     QSub.write('qstat -f $PBS_JOBID\n')
 
     QSub.close()
