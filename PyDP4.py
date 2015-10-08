@@ -73,7 +73,7 @@ class Settings:
     SCHRODINGER = '/usr/local/shared/schrodinger/current'
     ScriptDir = ''
     user = 'ke291'
-    MMstepcount = 6000
+    MMstepcount = 10000
     MMfactor = 500  # nsteps = MMfactor*degrees of freedom
     HardConfLimit = 10000
     MaxConcurrentJobs = 75
@@ -173,7 +173,7 @@ def main(filename, ExpNMR, nfiles):
                 MMRun = False
                 mminpfiles.append(f)
     else:
-        #Check if there already are Tinker output files with the right names
+        #Check if there already are MacroModel output files with the right names
         mmfiles = glob.glob('*.log')
         mminpfiles = []
         for f in inpfiles:

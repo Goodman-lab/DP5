@@ -272,12 +272,6 @@ def RunOnZiggy(folder, queue, GausFiles, settings):
                                    '/' + folder + '/*.out ' + socket.getfqdn()
                                    + ':' + os.getcwd(), shell=True)
 
-    #Delete the *.chk files from /sharedscratch/
-    print "\nCleaning up - deleting the *.chk files form /sharedscratch/"
-    for f in GausFiles:
-        outp = subprocess.check_output('ssh ziggy rm -r /sharedscratch/' +
-                                       settings.user + '/' + f[:-4], shell=True)
-
 
 def WriteSubScript(GausJob, queue, ZiggyJobFolder, settings):
 

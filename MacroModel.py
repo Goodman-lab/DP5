@@ -13,6 +13,7 @@ import sys
 import subprocess
 import shutil
 import time
+import re
 
 
 def SetupMacromodel(numDS, settings, *args):
@@ -192,8 +193,10 @@ def ReadMacromodel(MMoutp, settings):
             index = block+1
             atom = 0
             while not ':::' in MaeInp[index]:
-                line = MaeInp[index].split(' ')
-                line = [word for word in line if word != '']
+                #Replace quoted fields with x
+                line = (re.sub(r"\".*?\"", "x", MaeInp[index],
+                                    flags=re.DOTALL)).split(' ')
+                line = [word for word in line[:-1] if word != '']
                 conformers[conformer].append([])
                 if conformer == 0:
                     atoms.append(GetMacromodelSymbol(int(line[1])))
@@ -201,7 +204,8 @@ def ReadMacromodel(MMoutp, settings):
                     conformers[0][atom].append(line[2])  # add X
                     conformers[0][atom].append(line[3])  # add Y
                     conformers[0][atom].append(line[4])  # add Z
-                    charge = charge + int(line[21])
+                    charge = charge + int(line[16])
+                    
                 else:
                     if blocks.index(block) == 0:
                         conformers[conformer][atom].append(line[0])  # add atom number
