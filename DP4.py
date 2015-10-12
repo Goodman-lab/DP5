@@ -477,8 +477,29 @@ def Print(s):
     print s
     output.append(s)
 
-def ReadParamFile(f):
-    pass
+
+def ReadParamFile(f, t):
+    
+    infile = open(f, 'r')
+    inp = infile.readlines()
+    infile.close()
+    
+    if t not in inp[0]:
+        print "Wrong parameter file type, exiting..."
+        quit()
+    
+    if t == 'g':
+        [Cmean, Cstdev] = [float(x) for x in inp[1].split(',')]
+        [Hmean, Hstdev] = [float(x) for x in inp[2].split(',')]
+        return Cmean, Cstdev, Hmean, Hstdev
+    
+    elif t == 'k':
+        Cerrors = [float(x) for x in inp[1].split(',')]
+        Herrors = [float(x) for x in inp[1].split(',')]
+        return Cerrors, Herrors
+    
+    elif t == 'r' or t == 'u':
+        pass
 
 def CalculateCDP4(errors, expect, stdev):
     cdp4 = 1.0
@@ -501,12 +522,15 @@ def CalculatePDP4(errors, expect, stdev):
 #use as CalculateKDE(errors, 'NucCErr.pkl') for C or
 #CalculateKDE(errors, 'NucHErr.pkl') for H
 #load empirical error data from file and use KDE to construct pdf
-def CalculateKDE(errors, PickleFile):
+def CalculateKDE(errors, ParamFile, t, nucleus):
 
     #pkl_file = open(PickleFile, 'rb')
-    t, Cerrors, Herrors, Jerrors = ReadParamFile(PickleFile)
-    ErrorData = pickle.load(pkl_file)
-    kde = stats.gaussian_kde(ErrorData)
+    Cerrors, Herrors = ReadParamFile(ParamFile, t)
+        
+    if nucleus == 'C':
+        kde = stats.gaussian_kde(Cerrors)
+    elif nucleus == 'H':
+        kde = stats.gaussian_kde(Herrors)
 
     ep5 = 1.0
     for e in errors:
@@ -521,12 +545,17 @@ def CalculateKDE(errors, PickleFile):
 #load empirical error data from file and use KDE to construct several pdfs,
 #one for each chemical shift region, can be used both for scaled and unscaled
 #errors with the appropriate data
-def CalculateRKDE(errors, shifts, PickleFile):
+def CalculateRKDE(errors, shifts, ParamFile, t, nucleus):
     
     #Load the data
-    pkl_file = open(PickleFile, 'rb')
-    regions, RErrors = pickle.load(pkl_file)
-    
+    Cregions, Cerrors, Hregions, Herrors = ReadParamFile(ParamFile, t)
+    if nucleus == 'C':
+        regions = Cregions
+        RErrors = Cerrors
+    elif nucleus == 'H':
+        regions = Hregions
+        RErrors = Herrors
+        
     #Reconstruct the distributions for each region
     kdes = []
     for es in RErrors:

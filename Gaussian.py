@@ -139,12 +139,31 @@ def WriteGausFileOpt(Gausinp, conformer, atoms, charge, settings):
     #Write the nmr prediction input file,
     #using the geometry from checkpoint file
     f2 = file(Gausinp + 'b.com', 'w')
-    f2.write('%mem=2800MB\n%chk='+Gausinp + '.chk\n')
-    if settings.Solvent != '':
-        f2.write('# b3lyp/6-31g(d,p) nmr=giao geom=checkpoint scrf=(solvent=' +
-                 settings.Solvent+')\n')
+    f2.write('%mem=6000MB\n%chk='+Gausinp + '.chk\n')
+    if (settings.Functional).lower() == 'wp04':
+        CompSettings = '# blyp/' + settings.BasisSet +\
+            ' iop(3/76=1000001189,3/77=0961409999,3/78=0000109999)' + \
+            ' geom=checkpoint nmr='
+    elif (settings.Functional).lower() == 'm062x':
+        CompSettings = '# ' + settings.Functional + '/' + settings.BasisSet +\
+            'int=ultrafine geom=checkpoint nmr='
     else:
-        f2.write('# b3lyp/6-31g(d,p) nmr=giao geom=checkpoint\n')
+        CompSettings = '# ' + settings.Functional + '/' + settings.BasisSet +\
+            ' geom=checkpoint nmr='
+    
+    if settings.jJ or settings.jFC:
+        CompSettings += '(giao,spinspin,mixed)'
+    else:
+        CompSettings += 'giao'
+    
+    if settings.Solvent != '':
+        CompSettings += ' scrf=(solvent=' + settings.Solvent+')\n'
+        #f.write('# b3lyp/6-31g(d,p) nmr=giao scrf=(solvent=' +
+        #        settings.Solvent+')\n')
+    else:
+        CompSettings += '\n'
+        #f.write('# b3lyp/6-31g(d,p) nmr=giao\n')
+    f2.write(CompSettings)
     f2.write('\n'+Gausinp+'\n\n')
     f2.write(str(charge) + ' 1\n')
     f2.write('\n')
@@ -343,7 +362,7 @@ def WriteSubScriptOpt(GausJob, queue, ZiggyJobFolder, settings):
     #define cwd and scratch folder and ask the machine
     #to make it before running the job
     QSub.write('HERE=/home/' + settings.user +'/' + ZiggyJobFolder + '\n')
-    QSub.write('SCRATCH=/sharedscratch/' + settings.user + '/' + GausJob + '\n')
+    QSub.write('SCRATCH=/sharedscratch/' + settings.user + '/' + GausJob + ZiggyJobFolder +'\n')
     QSub.write('mkdir ${SCRATCH}\n')
 
     #Setup GAUSSIAN environment variables
