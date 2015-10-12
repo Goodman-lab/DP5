@@ -84,6 +84,8 @@ class Settings:
     LogFile = 'PyDP4.log'
     AssumeDone = False
     GenOnly = False
+    StatsModel = 'g'
+    StatsParamFile = ''
     SelectedStereocentres = []
     charge = None
     BasicAtoms = []
@@ -361,6 +363,8 @@ if __name__ == '__main__':
     coupling constants and use in analysis", action="store_true")
     parser.add_argument('--ra', help="Specify ring atoms, for the ring to be\
     rotated, useful for molecules with several 5-membered rings")
+    parser.add_argument('-S', '--Stats', help="Specify the stats model and\
+    parameters")
     parser.add_argument("--AssumeDFTDone", help="Assume RMSD pruning, DFT setup\
     and DFT calculations have been run already", action="store_true")
     parser.add_argument("-g", "--GenOnly", help="Only generate diastereomers\
@@ -413,7 +417,10 @@ if __name__ == '__main__':
     else:
         settings.EP5 = False
         settings.PDP4 = True
-
+    
+    if args.Stats is not None:
+        settings.StatsModel = (args.Stats)[0]
+        settings.StatsParamFile = (args.Stats)[1:]
     if args.mm == 't':
         settings.MMTinker = True
         settings.MMMacromodel = False
