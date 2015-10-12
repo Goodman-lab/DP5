@@ -74,7 +74,7 @@ class Settings:
     ScriptDir = ''
     user = 'ke291'
     MMstepcount = 10000
-    MMfactor = 500  # nsteps = MMfactor*degrees of freedom
+    MMfactor = 1000  # nsteps = MMfactor*degrees of freedom
     HardConfLimit = 10000
     MaxConcurrentJobs = 75
     PerStructConfLimit = 100
