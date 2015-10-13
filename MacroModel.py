@@ -152,7 +152,8 @@ def ReadMacromodel(MMoutp, settings):
         AbsEOffsets = []
         #find conformer description blocks
         blocks = []
-        for i in range(0, len(MaeInp)):
+        DataIndexes = []
+        for i in range(len(MaeInp)):
             if 'f_m_ct' in MaeInp[i]:
                 blocks.append(i)
             if 'p_m_ct' in MaeInp[i]:
@@ -166,28 +167,42 @@ def ReadMacromodel(MMoutp, settings):
                     break
 
         #Get absolute energies for conformers
-        for i in range(0, len(blocks)):
+        for i in range(len(blocks)):
             for line in range(blocks[i], len(MaeInp)):
                 if ':::' in MaeInp[line]:
                     AbsEs.append(float(MaeInp[line+AbsEOffsets[i]]))
                     break
 
         #find geometry descriptions for each block
-        for i in range(0, len(blocks)):
+        for i in range(len(blocks)):
             for line in (MaeInp[blocks[i]:]):
                 if 'm_atom' in line:
                     blocks[i] = blocks[i] + MaeInp[blocks[i]:].index(line)
                     break
 
         #find start of atom coordinates for each block
-        for i in range(0, len(blocks)):
-            for line in (MaeInp[blocks[i]:]):
+        for i in range(len(blocks)):
+            #Save the locations of atom number, xyz and charge
+            DataIndex = [0, 0, 0, 0, 0]
+            for offset, line in enumerate(MaeInp[blocks[i]:]):
+                if 'i_m_mmod_type' in line:
+                    DataIndex[0] = offset-1
+                if 'r_m_x_coord' in line:
+                    DataIndex[1] = offset-1
+                if 'r_m_y_coord' in line:
+                    DataIndex[2] = offset-1
+                if 'r_m_z_coord' in line:
+                    DataIndex[3] = offset-1
+                if 'i_m_formal_charge' in line:
+                    DataIndex[4] = offset-1
                 if ':::' in line:
                     blocks[i] = blocks[i] + MaeInp[blocks[i]:].index(line)
                     break
+            print DataIndex
+            DataIndexes.append(DataIndex)
 
         #Read the atom numbers and coordinates
-        for block in blocks:
+        for i, block in enumerate(blocks):
             conformers.append([])
             conformer = conformer + 1
             index = block+1
@@ -199,25 +214,19 @@ def ReadMacromodel(MMoutp, settings):
                 line = [word for word in line[:-1] if word != '']
                 conformers[conformer].append([])
                 if conformer == 0:
-                    atoms.append(GetMacromodelSymbol(int(line[1])))
+                    atoms.append(GetMacromodelSymbol(int(line[DataIndexes[i][0]])))
                     conformers[0][atom].append(line[0])  # add atom number
-                    conformers[0][atom].append(line[2])  # add X
-                    conformers[0][atom].append(line[3])  # add Y
-                    conformers[0][atom].append(line[4])  # add Z
-                    charge = charge + int(line[16])
+                    conformers[0][atom].append(line[DataIndexes[i][1]])  # add X
+                    conformers[0][atom].append(line[DataIndexes[i][2]])  # add Y
+                    conformers[0][atom].append(line[DataIndexes[i][3]])  # add Z
+                    charge = charge + int(line[DataIndexes[i][4]])
                     
                 else:
-                    if blocks.index(block) == 0:
-                        conformers[conformer][atom].append(line[0])  # add atom number
-                        conformers[conformer][atom].append(line[2])  # add X
-                        conformers[conformer][atom].append(line[3])  # add Y
-                        conformers[conformer][atom].append(line[4])  # add Z
-                    else:
-                        conformers[conformer][atom].append(line[0])  # add atom number
-                        conformers[conformer][atom].append(line[1])  # add X
-                        conformers[conformer][atom].append(line[2])  # add Y
-                        conformers[conformer][atom].append(line[3])  # add Z
-
+                    conformers[conformer][atom].append(line[0])  # add atom number
+                    conformers[conformer][atom].append(line[DataIndexes[i][1]])  # add X
+                    conformers[conformer][atom].append(line[DataIndexes[i][2]])  # add Y
+                    conformers[conformer][atom].append(line[DataIndexes[i][3]])  # add Z
+                    
                 index = index + 1   # Move to next line
                 atom = atom + 1     # Move to next atom
     #Pick only the conformers in the energy window
