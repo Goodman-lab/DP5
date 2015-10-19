@@ -57,6 +57,7 @@ class Settings:
     DFT = 'z'
     Rot5Cycle = False
     RingAtoms = []
+    ConfPrune = True
     GenDS = True
     GenTaut = False
     GenProt = False
@@ -74,7 +75,7 @@ class Settings:
     ScriptDir = ''
     user = 'ke291'
     MMstepcount = 10000
-    MMfactor = 1000  # nsteps = MMfactor*degrees of freedom
+    MMfactor = 2000  # nsteps = MMfactor*degrees of freedom
     HardConfLimit = 10000
     MaxConcurrentJobs = 75
     PerStructConfLimit = 100
@@ -214,11 +215,15 @@ def main(filename, ExpNMR, nfiles):
             MacroModel.RunMacromodel(len(inpfiles), settings, *mminpfiles)
 
     if not settings.AssumeDone:
-        if settings.DFT == 'z' or settings.DFT == 'g':
-            adjRMSDcutoff = Gaussian.AdaptiveRMSD(inpfiles[0], settings)
-        elif settings.DFT == 'n' or settings.DFT == 'w':
-            adjRMSDcutoff = NWChem.AdaptiveRMSD(inpfiles[0], settings)
-        print 'RMSD cutoff adjusted to ' + str(adjRMSDcutoff)
+        if settings.ConfPrune:
+            if settings.DFT == 'z' or settings.DFT == 'g':
+                adjRMSDcutoff = Gaussian.AdaptiveRMSD(inpfiles[0], settings)
+            elif settings.DFT == 'n' or settings.DFT == 'w':
+                adjRMSDcutoff = NWChem.AdaptiveRMSD(inpfiles[0], settings)
+            print 'RMSD cutoff adjusted to ' + str(adjRMSDcutoff)
+        else:
+            adjRMSDcutoff = settings.InitialRMSDcutoff
+        
         #Run NWChem setup script for every diastereomer
         print '\nRunning DFT setup...'
         i = 1
@@ -367,6 +372,8 @@ if __name__ == '__main__':
     parameters")
     parser.add_argument("--AssumeDFTDone", help="Assume RMSD pruning, DFT setup\
     and DFT calculations have been run already", action="store_true")
+    parser.add_argument("--NoConfPrune", help="Skip RMSD pruning, use all\
+    conformers in the energy window", action="store_true")
     parser.add_argument("-g", "--GenOnly", help="Only generate diastereomers\
     and tinker input files, but don't run any calculations", action="store_true")
     parser.add_argument('-c', '--StereoCentres', help="Specify\
@@ -444,6 +451,8 @@ if __name__ == '__main__':
             [int(x) for x in (args.StereoCentres).split(',')]
     if args.GenOnly:
         settings.GenOnly = True
+    if args.NoConfPrune:
+        settings.ConfPrune = False
     if args.AssumeDFTDone:
         settings.AssumeDone = True
     if args.solvent:
