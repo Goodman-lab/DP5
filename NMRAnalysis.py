@@ -18,9 +18,6 @@ from numpy import mean
 import math
 import os
 
-TMS_SC_C13 = 191.69255
-TMS_SC_H1 = 31.7518583
-
 J_THRESHOLD = 0.1
 
 
@@ -50,7 +47,7 @@ def main(numDS, settings, *args):
     
     #Convert shielding constants in chemical shifts and sort labels by nuclei
     Cvalues, Hvalues, Clabels, Hlabels = \
-        GetCalcShiftsLabels(numDS, BoltzmannShieldings, labels, omits)
+        GetCalcShiftsLabels(numDS, BoltzmannShieldings, labels, omits, settings)
     
     Noutp = len(BoltzmannShieldings)
     
@@ -136,7 +133,7 @@ def ReadExpNMR(ExpNMR):
     return Cexp, Hexp, equivalents, omits
 
 
-def GetCalcShiftsLabels(numDS, BShieldings, labels, omits):
+def GetCalcShiftsLabels(numDS, BShieldings, labels, omits, settings):
     
     Clabels = []
     Hlabels = []
@@ -158,16 +155,16 @@ def GetCalcShiftsLabels(numDS, BShieldings, labels, omits):
                 # only read labels once, i.e. the first diastereomer
                 if DS == 0:
                     Clabels.append(labels[atom])
-                shift = (TMS_SC_C13-BShieldings[DS][atom]) / \
-                    (1-(TMS_SC_C13/10**6))
+                shift = (settings.TMS_SC_C13-BShieldings[DS][atom]) / \
+                    (1-(settings.TMS_SC_C13/10**6))
                 Cvalues[DS].append(shift)
 
             if labels[atom][0] == 'H' and not labels[atom] in flatomits:
                 # only read labels once, i.e. the first diastereomer
                 if DS == 0:
                     Hlabels.append(labels[atom])
-                shift = (TMS_SC_H1-BShieldings[DS][atom]) / \
-                    (1-(TMS_SC_H1/10**6))
+                shift = (settings.TMS_SC_H1-BShieldings[DS][atom]) / \
+                    (1-(settings.TMS_SC_H1/10**6))
                 Hvalues[DS].append(shift)
 
     return Cvalues, Hvalues, Clabels, Hlabels

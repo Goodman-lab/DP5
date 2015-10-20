@@ -82,7 +82,7 @@ def WriteGausFile(Gausinp, conformer, atoms, charge, settings):
             ' nmr='
     elif (settings.Functional).lower() == 'm062x':
         CompSettings = '# ' + settings.Functional + '/' + settings.BasisSet +\
-            'int=ultrafine nmr='
+            ' int=ultrafine nmr='
     else:
         CompSettings = '# ' + settings.Functional + '/' + settings.BasisSet +\
             ' nmr='
@@ -147,7 +147,7 @@ def WriteGausFileOpt(Gausinp, conformer, atoms, charge, settings):
             ' geom=checkpoint nmr='
     elif (settings.Functional).lower() == 'm062x':
         CompSettings = '# ' + settings.Functional + '/' + settings.BasisSet +\
-            'int=ultrafine geom=checkpoint nmr='
+            ' int=ultrafine geom=checkpoint nmr='
     else:
         CompSettings = '# ' + settings.Functional + '/' + settings.BasisSet +\
             ' geom=checkpoint nmr='

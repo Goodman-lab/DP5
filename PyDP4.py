@@ -81,6 +81,8 @@ class Settings:
     PerStructConfLimit = 100
     InitialRMSDcutoff = 0.75
     MaxCutoffEnergy = 10.0
+    TMS_SC_C13 = 191.69255
+    TMS_SC_H1 = 31.7518583
     NTaut = 1
     LogFile = 'PyDP4.log'
     AssumeDone = False
@@ -110,7 +112,9 @@ def main(filename, ExpNMR, nfiles):
         print "Invalid number of tautomers/input files - number of input files\
         must be a multiple of number of tautomers"
         quit()
-
+    
+    SetTMSConstants()
+    
     #Check the number of input files, generate some if necessary
     if nfiles == 1:
         import InchiGen
@@ -330,6 +334,29 @@ def main(filename, ExpNMR, nfiles):
 
 def getScriptPath():
     return os.path.dirname(os.path.realpath(sys.argv[0]))
+
+
+def SetTMSConstants():
+    
+    TMSfile = open(settings.ScriptDir + '/TMSdata', 'r')
+    TMSdata = TMSfile.readlines()
+    TMSfile.close()
+    
+    for i, line in enumerate(TMSdata):
+        buf = line.split(' ')
+        if len(buf)>1:
+            if buf[0].lower() == settings.Functional.lower() and \
+               buf[1].lower() == settings.BasisSet.lower() and \
+               buf[2].lower() == settings.Solvent.lower():
+                
+                print "Setting TMS references to " + buf[3] + " and " + \
+                    buf[4] + "\n"
+                settings.TMS_SC_C13 = float(buf[3])
+                settings.TMS_SC_H1 = float(buf[4])
+                return
+    
+    print "No TMS reference data found for these conditions, using defaults\n"
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='PyDP4 script to setup\
