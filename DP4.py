@@ -64,11 +64,11 @@ def DP4(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, settings):
             AssignExpNMR(Hlabels, Hvalues[isomer], Hexp)
         scaledH = ScaleNMR(sortedHvalues, sortedHexp)
 
-        ScaledErrorsC = [sortedCexp[i] - scaledC[i]
+        ScaledErrorsC = [scaledC[i] - sortedCexp[i]
                          for i in range(0, len(scaledC))]
         ErrorsC = [sortedCvalues[i] - sortedCexp[i]
                          for i in range(0, len(sortedCvalues))]
-        ScaledErrorsH = [sortedHexp[i] - scaledH[i]
+        ScaledErrorsH = [scaledH[i] - sortedHexp[i]
                          for i in range(0, len(scaledH))]
         ErrorsH = [sortedHvalues[i] - sortedHexp[i]
                          for i in range(0, len(sortedHvalues))]
@@ -88,18 +88,24 @@ def DP4(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, settings):
                 #H_cdp4.append(CalculateRKDE(ErrorsH, sortedHexp,
                 #                            settings.ScriptDir + '/NucleoMMURKDEH.pkl'))
         elif settings.StatsModel == 'k':
-            C_cdp4.append(CalculateKDE(ScaledErrorsC, settings.StatsParamFile))
-            H_cdp4.append(CalculateKDE(ScaledErrorsH, settings.StatsParamFile))
+            C_cdp4.append(CalculateKDE(ScaledErrorsC, settings.StatsParamFile,
+                                       settings.StatsModel, 'C'))
+            H_cdp4.append(CalculateKDE(ScaledErrorsH, settings.StatsParamFile,
+                                       settings.StatsModel, 'H'))
             #C_cdp4.append(CalculateKDE(ScaledErrorsC, settings.ScriptDir + '/NucCErr.pkl'))
             #H_cdp4.append(CalculateKDE(ScaledErrorsH, settings.ScriptDir + '/NucHErr.pkl'))
         elif settings.StatsModel == 'r':
-            C_cdp4.append(CalculateRKDE(ScaledErrorsC, sortedCexp, settings.StatsParamFile))
-            H_cdp4.append(CalculateRKDE(ScaledErrorsH, sortedHexp, settings.StatsParamFile))
+            C_cdp4.append(CalculateRKDE(ScaledErrorsC, sortedCexp,
+                settings.StatsParamFile, settings.StatsModel, 'C'))
+            H_cdp4.append(CalculateRKDE(ScaledErrorsH, sortedHexp,
+                settings.StatsParamFile, settings.StatsModel, 'H'))
             #C_cdp4.append(CalculateKDE(ScaledErrorsC, settings.ScriptDir + '/NucCErr.pkl'))
             #H_cdp4.append(CalculateKDE(ScaledErrorsH, settings.ScriptDir + '/NucHErr.pkl'))
         elif settings.StatsModel == 'u':
-            C_cdp4.append(CalculateRKDE(ErrorsC, sortedCexp, settings.StatsParamFile))
-            H_cdp4.append(CalculateRKDE(ErrorsH, sortedHexp, settings.StatsParamFile))
+            C_cdp4.append(CalculateRKDE(ErrorsC, sortedCexp,
+                settings.StatsParamFile, settings.StatsModel, 'C'))
+            H_cdp4.append(CalculateRKDE(ErrorsH, sortedHexp,
+                settings.StatsParamFile, settings.StatsModel, 'H'))
             #C_cdp4.append(CalculateKDE(ScaledErrorsC, settings.ScriptDir + '/NucCErr.pkl'))
             #H_cdp4.append(CalculateKDE(ScaledErrorsH, settings.ScriptDir + '/NucHErr.pkl'))
         
@@ -495,11 +501,19 @@ def ReadParamFile(f, t):
     
     elif t == 'k':
         Cerrors = [float(x) for x in inp[1].split(',')]
-        Herrors = [float(x) for x in inp[1].split(',')]
+        Herrors = [float(x) for x in inp[2].split(',')]
         return Cerrors, Herrors
     
     elif t == 'r' or t == 'u':
-        pass
+        buf = inp[1].split(';')
+        Cregions = [float(x) for x in buf[0].split(',')]
+        Cerrors = [[float(x) for x in y.split(',')] for y in buf[1:]]
+        
+        buf = inp[2].split(';')
+        Hregions = [float(x) for x in buf[0].split(',')]
+        Herrors = [[float(x) for x in y.split(',')] for y in buf[1:]]
+        
+        return Cregions, Cerrors, Hregions, Herrors
 
 def CalculateCDP4(errors, expect, stdev):
     cdp4 = 1.0

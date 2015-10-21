@@ -356,6 +356,8 @@ def SetTMSConstants():
                 return
     
     print "No TMS reference data found for these conditions, using defaults\n"
+    print "Unscaled shifts might be inaccurate, use of unscaled models is" + \
+        " not recommended."
 
 
 if __name__ == '__main__':
