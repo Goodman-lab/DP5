@@ -225,7 +225,6 @@ def DP4j(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, cJvals, cJlabels,
 def AssignExpNMR(labels, calcShifts, exp):
 
     expLabels, expShifts, expJs = ReadExp(exp)
-
     #Prepare sorted calculated data with labels and sorted exp data
     sortedCalc = sorted(calcShifts)
     sortedExp = sorted(expShifts)
@@ -236,9 +235,12 @@ def AssignExpNMR(labels, calcShifts, exp):
         index = expShifts.index(v)
         sortedJvalues.append(expJs[index])
     
+    tempCalcShifts = list(calcShifts)
     for v in sortedCalc:
-        index = calcShifts.index(v)
+        index = tempCalcShifts.index(v)
         sortedCalcLabels.append(labels[index])
+        #Remove the value to avoid duplicate labels
+        tempCalcShifts[index] = -100
 
     assignedExpLabels = ['' for i in range(0, len(sortedExp))]
     
@@ -252,6 +254,7 @@ def AssignExpNMR(labels, calcShifts, exp):
                 Print("Label " + sortedExpLabels[v][0] +
                 " not found in among computed shifts, please check NMR assignment.")
                 quit()
+                
     #Second pass - assign shifts from a limited set
     for v in range(0, len(sortedExp)):
         if len(sortedExpLabels[v]) != 1 and sortedExpLabels[v][0] != '':
@@ -259,6 +262,7 @@ def AssignExpNMR(labels, calcShifts, exp):
                 if l in sortedExpLabels[v] and l not in assignedExpLabels:
                     assignedExpLabels[v] = l
                     break
+    
     #Final pass - assign unassigned shifts in order
     for v in range(0, len(sortedExp)):
         if sortedExpLabels[v][0] == '':
@@ -266,7 +270,9 @@ def AssignExpNMR(labels, calcShifts, exp):
                 if l not in assignedExpLabels:
                     assignedExpLabels[v] = l
                     break
+    
     sortedCalc = []
+
     #Rearrange calc values to match the assigned labels
     for l in assignedExpLabels:
         index = labels.index(l)
