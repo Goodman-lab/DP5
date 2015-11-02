@@ -77,16 +77,30 @@ def WriteGausFile(Gausinp, conformer, atoms, charge, settings):
     f.write('%mem=6000MB\n%chk='+Gausinp + '.chk\n')
     
     if (settings.Functional).lower() == 'wp04':
-        CompSettings = '# blyp/' + settings.BasisSet +\
-            ' iop(3/76=1000001189,3/77=0961409999,3/78=0000109999)' + \
+        func1 = '# blyp/'
+        func2 = ' iop(3/76=1000001189,3/77=0961409999,3/78=0000109999)' + \
             ' nmr='
+        #CompSettings = '# blyp/' + settings.BasisSet +\
+        #    ' iop(3/76=1000001189,3/77=0961409999,3/78=0000109999)' + \
+        #    ' nmr='
     elif (settings.Functional).lower() == 'm062x':
-        CompSettings = '# ' + settings.Functional + '/' + settings.BasisSet +\
-            ' int=ultrafine nmr='
+        func1 = '# m062x/'
+        func2 = ' int=ultrafine nmr='
+        #CompSettings = '# ' + settings.Functional + '/' + settings.BasisSet +\
+        #    ' int=ultrafine nmr='
     else:
-        CompSettings = '# ' + settings.Functional + '/' + settings.BasisSet +\
-            ' nmr='
+        func1 = '# ' + settings.Functional + '/'
+        func2 = ' nmr='
+        #CompSettings = '# ' + settings.Functional + '/' + settings.BasisSet +\
+        #    ' nmr='
     
+    if (settings.BasisSet).lower()[:3] == 'pcs':
+        basis1 = 'gen'
+    else:
+        basis1 = settings.BasisSet
+        #CompSettings = '# ' + settings.Functional + '/gen nmr='
+    
+    CompSettings = func1 + basis1 + func2
     if settings.jJ or settings.jFC:
         CompSettings += '(giao,spinspin,mixed)'
     else:
@@ -110,6 +124,14 @@ def WriteGausFile(Gausinp, conformer, atoms, charge, settings):
                 atom[3] + '\n')
         natom = natom + 1
     f.write('\n')
+    if (settings.BasisSet).lower()[:3] == 'pcs':
+        basisfile = file(settings.ScriptDir + '/' + 
+                         (settings.BasisSet).lower(), 'r')
+        inp = basisfile.readlines()
+        basisfile.close()
+        for line in inp:
+            f.write(line)
+        f.write('\n')
     f.close()
 
 
@@ -291,6 +313,77 @@ def RunOnZiggy(folder, queue, GausFiles, settings):
     outp = subprocess.check_output('ssh ziggy scp /home/' + settings.user +
                                    '/' + folder + '/*.out ' + socket.getfqdn()
                                    + ':' + os.getcwd(), shell=True)
+
+def RunOnDarwin(GausJobs, folder, settings):
+    
+    print "Darwin GAUSSIAN job submission script\n"
+
+    #Check that folder does not exist, create job folder on ziggy
+    outp = subprocess.check_output('ssh darwin ls', shell=True)
+    if folder in outp:
+        print "Folder exists on Darwin, choose another folder name."
+        return
+
+    outp = subprocess.check_output('ssh darwin mkdir ' + folder, shell=True)
+
+    #Write the qsub scripts
+    SubFiles = WriteDarwinScripts(GausFiles, folder, settings)
+        
+    print str(len(SubFiles)) + 'slurm scripts generated'
+
+    #Upload .com files and .qsub files to directory
+    print "Uploading files to darwin..."
+    for f in GausFiles:
+        outp = subprocess.check_output('scp ' + f +' darwin:~/' + folder,
+                                           shell=True)
+    for f in SubFiles:
+        outp = subprocess.check_output('scp ' + f[:-4] +'slurm ziggy:~/' +
+                                       folder, shell=True)
+
+    print str(len(GausFiles)) + ' .com and ' + str(len(SubFiles)) +\
+        ' slurm files uploaded to darwin'
+
+    #Launch the calculations
+    for f in SubFiles:
+        outp = subprocess.check_output('ssh darwin sbatch ' + f, shell=True)
+
+    print str(len(SubFiles)) + ' jobs submitted to the queue on darwin ' + \
+        'containing ' + str(len(GausFiles)) + ' Gaussian jobs'
+
+    Jobs2Complete = list(GausFiles)
+    n2complete = len(Jobs2Complete)
+
+    #Check and report on the progress of calculations
+    while len(Jobs2Complete) > 0:
+        JobFinished = IsDarwinComplete(Jobs2Complete, folder, settings)
+        
+        Jobs2Complete[:] = [job for job in Jobs2Complete if
+             not JobFinished[job[:-3] + 'out']]
+        if n2complete != len(Jobs2Complete):
+            n2complete = len(Jobs2Complete)
+            print str(n2complete) + " remaining."
+
+        time.sleep(60)
+
+    #When done, copy the results back
+    print "\nCopying the output files back to localhost..."
+    print 'ssh darwin scp /home/' + settings.user + '/' + folder + '/*.out ' +\
+        socket.getfqdn() + ':' + os.getcwd()
+    outp = subprocess.check_output('ssh darwin scp /home/' + settings.user +
+                                   '/' + folder + '/*.out ' + socket.getfqdn()
+                                   + ':' + os.getcwd(), shell=True)
+
+    print "\nDeleting checkpoint files..."
+    print 'ssh darwin rm /home/' + settings.user + '/' + folder + '/*.chk'
+    outp = subprocess.check_output('ssh darwin rm /home/' + settings.user +
+                                   '/' + folder + '/*.chk', shell=True)
+
+def WriteDarwinScript(GausJobs, settings):
+    pass
+
+
+def IsDarwinComplete(GausJob):
+    pass
 
 
 def WriteSubScript(GausJob, queue, ZiggyJobFolder, settings):

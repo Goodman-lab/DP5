@@ -68,6 +68,7 @@ class Settings:
     jKarplus = False
     jFC = False
     jJ = False
+    TimeLimit = 24
     queue = 's1'
     TinkerPath = '~/tinker7/bin/scan '
     OBPath = '/home/ke291/Tools/openbabel-install/lib/python2.7/site-packages/'
@@ -228,7 +229,7 @@ def main(filename, ExpNMR, nfiles):
         else:
             adjRMSDcutoff = settings.InitialRMSDcutoff
         
-        #Run NWChem setup script for every diastereomer
+        #Run DFT setup script for every diastereomer
         print '\nRunning DFT setup...'
         i = 1
         for ds in inpfiles:
@@ -258,7 +259,7 @@ def main(filename, ExpNMR, nfiles):
     if len(Files2Run) > settings.HardConfLimit:
         print "Hard conformation count limit exceeded, DFT calculations aborted."
         quit()
-
+    
     if QRun:
         print 'DFT has already been run for these inputs. Skipping...'
     else:
