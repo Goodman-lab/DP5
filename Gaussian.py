@@ -20,6 +20,7 @@ import os
 import time
 import sys
 import glob
+import shutil
 import pyximport
 pyximport.install()
 import ConfPrune
@@ -314,48 +315,64 @@ def RunOnZiggy(folder, queue, GausFiles, settings):
                                    '/' + folder + '/*.out ' + socket.getfqdn()
                                    + ':' + os.getcwd(), shell=True)
 
-def RunOnDarwin(GausJobs, folder, settings):
+def RunOnDarwin(folder, GausJobs, settings):
     
     print "Darwin GAUSSIAN job submission script\n"
-
+    
     #Check that folder does not exist, create job folder on ziggy
-    outp = subprocess.check_output('ssh darwin ls', shell=True)
+    outp = subprocess.Popen(['ssh', 'darwin', 'ls'], \
+      stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
+    print folder
+    
     if folder in outp:
         print "Folder exists on Darwin, choose another folder name."
         return
 
-    outp = subprocess.check_output('ssh darwin mkdir ' + folder, shell=True)
+    outp = subprocess.Popen(['ssh', 'darwin', 'mkdir', folder], \
+      stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
 
-    #Write the qsub scripts
-    SubFiles = WriteDarwinScripts(GausFiles, folder, settings)
+    #Write the slurm scripts
+    SubFiles = WriteDarwinScripts(GausJobs, settings)
         
-    print str(len(SubFiles)) + 'slurm scripts generated'
+    print str(len(SubFiles)) + ' slurm scripts generated'
 
-    #Upload .com files and .qsub files to directory
+    #Upload .com files and slurm files to directory
     print "Uploading files to darwin..."
-    for f in GausFiles:
-        outp = subprocess.check_output('scp ' + f +' darwin:~/' + folder,
-                                           shell=True)
+    for f in GausJobs:
+        #outp = subprocess.check_output('scp ' + f +' darwin:~/' + folder,
+        #                                   shell=True)
+        outp = subprocess.Popen(['scp', f,
+            'darwin:/home/' + settings.user + '/' + folder],
+            stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
+    
     for f in SubFiles:
-        outp = subprocess.check_output('scp ' + f[:-4] +'slurm ziggy:~/' +
-                                       folder, shell=True)
+        
+        outp = subprocess.Popen(['scp', f,
+            'darwin:/home/' + settings.user + '/' + folder], \
+            stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
 
-    print str(len(GausFiles)) + ' .com and ' + str(len(SubFiles)) +\
+    print str(len(GausJobs)) + ' .com and ' + str(len(SubFiles)) +\
         ' slurm files uploaded to darwin'
-
+    
+    fullfolder = '/home/' + settings.user + '/' + folder
     #Launch the calculations
     for f in SubFiles:
-        outp = subprocess.check_output('ssh darwin sbatch ' + f, shell=True)
+        #outp = subprocess.check_output('ssh darwin sbatch ' + f, shell=True)
+        outp = subprocess.Popen(['ssh', 'darwin', 'cd ' + fullfolder + ';sbatch', f], \
+            stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
+        print "\n".split(outp)[-2:]
 
     print str(len(SubFiles)) + ' jobs submitted to the queue on darwin ' + \
-        'containing ' + str(len(GausFiles)) + ' Gaussian jobs'
-
-    Jobs2Complete = list(GausFiles)
+        'containing ' + str(len(GausJobs)) + ' Gaussian jobs'
+    
+    quit()
+    
+    Jobs2Complete = list(GausJobs)
     n2complete = len(Jobs2Complete)
 
     #Check and report on the progress of calculations
     while len(Jobs2Complete) > 0:
-        JobFinished = IsDarwinComplete(Jobs2Complete, folder, settings)
+        JobFinished = IsDarwinGComplete(Jobs2Complete, folder, settings)
         
         Jobs2Complete[:] = [job for job in Jobs2Complete if
              not JobFinished[job[:-3] + 'out']]
@@ -377,13 +394,57 @@ def RunOnDarwin(GausJobs, folder, settings):
     print 'ssh darwin rm /home/' + settings.user + '/' + folder + '/*.chk'
     outp = subprocess.check_output('ssh darwin rm /home/' + settings.user +
                                    '/' + folder + '/*.chk', shell=True)
+    
 
-def WriteDarwinScript(GausJobs, settings):
-    pass
+def WriteDarwinScripts(GausJobs, settings):
+    
+    cwd = os.getcwd()
+    
+    SubFiles = []
+    
+    if len(GausJobs) <= settings.DarwinNodeSize:
+        shutil.copyfile(settings.ScriptDir + '/Defaultslurm',
+                        cwd + '/' + settings.Title + 'slurm')
+        slurmf = open(settings.Title + 'slurm', 'r+')
+        slurm = slurmf.readlines()
+        slurm[12] = '#SBATCH -J ' + settings.Title + '\n'
+        slurm[18] = '#SBATCH --ntasks=' + str(len(GausJobs)) + '\n'
+        slurm[20] = '#SBATCH --time=' + format(settings.TimeLimit,"02") +\
+            ':00:00\n'
+        
+        for f in GausJobs:
+            
+            slurm.append('srun --exclusive -n 1 $application < ' + f[:-3] + \
+                'com > ' + f[:-3] + 'out 2> error &\n')
+                
+        slurm.append('wait\n')
+        slurmf.truncate(0)
+        slurmf.seek(0)
+        slurmf.writelines(slurm)
+        
+        SubFiles.append(settings.Title + 'slurm')
+    
+    return SubFiles
 
 
-def IsDarwinComplete(GausJob):
-    pass
+def IsDarwinGComplete(GausJobs, folder, settings):
+
+    path = '/home/' + settings.user + '/' + folder + '/'
+    results = {}
+    
+    for f in GausJobs:
+        try:
+            outp = subprocess.check_output('ssh darwin cat ' + path + f,
+                                            shell=True)
+        except subprocess.CalledProcessError, e:
+            print "ssh darwin cat failed: " + str(e.output)
+            results[f] = False
+        if "Normal termination" in outp[-90:]:
+            results[f] = True
+        else:
+            results[f] = False
+    
+    return results
 
 
 def WriteSubScript(GausJob, queue, ZiggyJobFolder, settings):

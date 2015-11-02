@@ -56,6 +56,8 @@ class Settings:
     MMMacromodel = False
     DFT = 'z'
     Rot5Cycle = False
+    Title = 'DP4molecule'
+    DarwinNodeSize = 16
     RingAtoms = []
     ConfPrune = True
     GenDS = True
@@ -221,7 +223,7 @@ def main(filename, ExpNMR, nfiles):
 
     if not settings.AssumeDone:
         if settings.ConfPrune:
-            if settings.DFT == 'z' or settings.DFT == 'g':
+            if settings.DFT == 'z' or settings.DFT == 'g' or settings.DFT == 'd':
                 adjRMSDcutoff = Gaussian.AdaptiveRMSD(inpfiles[0], settings)
             elif settings.DFT == 'n' or settings.DFT == 'w':
                 adjRMSDcutoff = NWChem.AdaptiveRMSD(inpfiles[0], settings)
@@ -233,7 +235,7 @@ def main(filename, ExpNMR, nfiles):
         print '\nRunning DFT setup...'
         i = 1
         for ds in inpfiles:
-            if settings.DFT == 'z' or settings.DFT == 'g':
+            if settings.DFT == 'z' or settings.DFT == 'g' or settings.DFT == 'd':
                 print "\nGaussian setup for file " + ds + " (" + str(i) +\
                     " of " +  str(len(inpfiles)) + ")"
                 Gaussian.SetupGaussian(ds, ds + 'ginp', 3, settings,
@@ -248,7 +250,7 @@ def main(filename, ExpNMR, nfiles):
     else:
         QRun = True
 
-    if settings.DFT == 'z' or settings.DFT == 'g':
+    if settings.DFT == 'z' or settings.DFT == 'g' or settings.DFT == 'd':
         Files2Run = Gaussian.GetFiles2Run(inpfiles, settings)
     elif settings.DFT == 'n' or 'w':
         Files2Run = NWChem.GetFiles2Run(inpfiles, settings)
@@ -275,24 +277,41 @@ def main(filename, ExpNMR, nfiles):
                 for i in range(len(Files2Run)):
                     Files2Run[i] = Files2Run[i][:-5] + '.com'
             if len(Files2Run) < MaxCon:
-                Gaussian.RunOnZiggy(now.strftime('%d%b%H%M'), settings.queue,
-                                    Files2Run, settings)
+                Gaussian.RunOnZiggy(now.strftime('%d%b%H%M') + settings.Title,
+                                    settings.queue, Files2Run, settings)
             else:
                 print "The DFT calculations will be done in " +\
                     str(math.ceil(len(Files2Run)/MaxCon)) + " batches"
                 i = 0
                 while (i+1)*MaxCon < len(Files2Run):
                     print "Starting batch nr " + str(i+1)
-                    Gaussian.RunOnZiggy(now.strftime('%d%b%H%M')+str(i+1),
-                        settings.queue, Files2Run[(i*MaxCon):((i+1)*MaxCon)], settings)
+                    Gaussian.RunOnZiggy(now.strftime('%d%b%H%M')+str(i+1) +
+                        settings.Title, settings.queue,
+                        Files2Run[(i*MaxCon):((i+1)*MaxCon)], settings)
                     i += 1
                 print "Starting batch nr " + str(i+1)
-                Gaussian.RunOnZiggy(now.strftime('%d%b%H%M')+str(i+1),
-                    settings.queue, Files2Run[(i*MaxCon):], settings)
+                Gaussian.RunOnZiggy(now.strftime('%d%b%H%M')+str(i+1) + 
+                    settings.Title, settings.queue, Files2Run[(i*MaxCon):],
+                    settings)
+
+        elif settings.DFT == 'd':
+            print '\nRunning Gaussian on Darwin...'
+
+            #Run Gaussian jobs on Darwin cluster in folder named after date
+            #and title and wait until the last file is completed
+            now = datetime.datetime.now()
+            
+            if settings.DFTOpt:
+                for i in range(len(Files2Run)):
+                    Files2Run[i] = Files2Run[i][:-5] + '.com'
+            
+            Gaussian.RunOnDarwin(now.strftime('%d%b%H%M') + settings.Title,
+                                 Files2Run, settings)
 
         elif settings.DFT == 'n':
             print '\nRunning NWChem locally...'
             NWChem.RunNWChem(Files2Run, settings)
+
         elif settings.DFT == 'w':
             print '\nRunning NWChem on Ziggy...'
 
@@ -368,8 +387,9 @@ if __name__ == '__main__':
     t for tinker or m for macromodel, default is t", choices=['t', 'm'],
     default='t')
     parser.add_argument('-d', '--dft', help="Select DFT program, j for Jaguar,\
-    g for Gaussian, n for NWChem, z for Gaussian on ziggy, w for NWChem on\
-    ziggy, default is z", choices=['j', 'g', 'n', 'z', 'w'], default='z')
+    g for Gaussian, n for NWChem, z for Gaussian on ziggy, d for Gaussian on \
+    Darwin, w for NWChem on ziggy, default is z",
+        choices=['j', 'g', 'n', 'z', 'w', 'd'], default='z')
     parser.add_argument('--StepCount', help="Specify\
     stereocentres for diastereomer generation")
     parser.add_argument('StructureFiles', nargs='+', default=['-'], help=
@@ -382,6 +402,8 @@ if __name__ == '__main__':
     for dft calculations")
     parser.add_argument("-q", "--queue", help="Specify queue for job submission\
     on ziggy", default='s1')
+    parser.add_argument("--TimeLimit", help="Specify job time limit for jobs\
+    on ziggy or darwin", type=int)
     parser.add_argument("-t", "--ntaut", help="Specify number of explicit\
     tautomers per diastereomer given in structure files, must be a multiple\
     of structure files", type=int, default=1)
@@ -427,6 +449,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     print args.StructureFiles
     print args.ExpNMR
+    settings.Title = args.ExpNMR[:-3]
     settings.NTaut = args.ntaut
     settings.DFT = args.dft
     settings.queue = args.queue
@@ -436,6 +459,12 @@ if __name__ == '__main__':
     settings.BasisSet = args.BasisSet
     settings.Functional = args.Functional
     
+    if settings.DFT == 'd' and not args.TimeLimit:
+        print "For calculations on Darwin explicit time limit in hours " + \
+            "be specified, exiting..."
+        quit()
+    if args.TimeLimit:
+        settings.TimeLimit = args.TimeLimit
     if args.jJ:
         settings.jJ = True
         settings.jFC = False
