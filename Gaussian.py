@@ -339,8 +339,6 @@ def RunOnDarwin(folder, GausJobs, settings):
     #Upload .com files and slurm files to directory
     print "Uploading files to darwin..."
     for f in GausJobs:
-        #outp = subprocess.check_output('scp ' + f +' darwin:~/' + folder,
-        #                                   shell=True)
         outp = subprocess.Popen(['scp', f,
             'darwin:/home/' + settings.user + '/' + folder],
             stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
@@ -357,7 +355,6 @@ def RunOnDarwin(folder, GausJobs, settings):
     fullfolder = '/home/' + settings.user + '/' + folder
     #Launch the calculations
     for f in SubFiles:
-        #outp = subprocess.check_output('ssh darwin sbatch ' + f, shell=True)
         outp = subprocess.Popen(['ssh', 'darwin', 'cd ' + fullfolder + ';sbatch', f], \
             stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
         print "\n".split(outp)[-2:]
@@ -365,11 +362,9 @@ def RunOnDarwin(folder, GausJobs, settings):
     print str(len(SubFiles)) + ' jobs submitted to the queue on darwin ' + \
         'containing ' + str(len(GausJobs)) + ' Gaussian jobs'
     
-    quit()
-    
     Jobs2Complete = list(GausJobs)
     n2complete = len(Jobs2Complete)
-
+    
     #Check and report on the progress of calculations
     while len(Jobs2Complete) > 0:
         JobFinished = IsDarwinGComplete(Jobs2Complete, folder, settings)
@@ -380,20 +375,25 @@ def RunOnDarwin(folder, GausJobs, settings):
             n2complete = len(Jobs2Complete)
             print str(n2complete) + " remaining."
 
-        time.sleep(60)
+        time.sleep(180)
 
     #When done, copy the results back
     print "\nCopying the output files back to localhost..."
-    print 'ssh darwin scp /home/' + settings.user + '/' + folder + '/*.out ' +\
-        socket.getfqdn() + ':' + os.getcwd()
-    outp = subprocess.check_output('ssh darwin scp /home/' + settings.user +
-                                   '/' + folder + '/*.out ' + socket.getfqdn()
-                                   + ':' + os.getcwd(), shell=True)
-
+    print 'scp darwin:' + fullfolder + '/*.out ' + os.getcwd() + '/'
+    #outp = subprocess.check_output('ssh darwin scp /home/' + settings.user +
+    #                               '/' + folder + '/*.out ' + socket.getfqdn()
+    #                               + ':' + os.getcwd(), shell=True)
+        
+    outp = subprocess.Popen(['scp', 'darwin:' + fullfolder + '/*.out ',
+            os.getcwd() + '/'], \
+            stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
+    
     print "\nDeleting checkpoint files..."
-    print 'ssh darwin rm /home/' + settings.user + '/' + folder + '/*.chk'
-    outp = subprocess.check_output('ssh darwin rm /home/' + settings.user +
-                                   '/' + folder + '/*.chk', shell=True)
+    print 'ssh darwin rm ' + fullfolder + '/*.chk'
+    #outp = subprocess.check_output('ssh darwin rm /home/' + settings.user +
+    #                               '/' + folder + '/*.chk', shell=True)
+    outp = subprocess.Popen(['ssh', 'darwin', 'rm', fullfolder + '/*.chk'], \
+            stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
     
 
 def WriteDarwinScripts(GausJobs, settings):
@@ -424,6 +424,9 @@ def WriteDarwinScripts(GausJobs, settings):
         
         SubFiles.append(settings.Title + 'slurm')
     
+    else:
+        quit()
+    
     return SubFiles
 
 
@@ -433,16 +436,14 @@ def IsDarwinGComplete(GausJobs, folder, settings):
     results = {}
     
     for f in GausJobs:
-        try:
-            outp = subprocess.check_output('ssh darwin cat ' + path + f,
-                                            shell=True)
-        except subprocess.CalledProcessError, e:
-            print "ssh darwin cat failed: " + str(e.output)
-            results[f] = False
+        outp = subprocess.Popen(['ssh', 'darwin', 'cat', path + f[:-3] + 'out'], \
+            stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
+        #outp = subprocess.check_output('ssh darwin cat ' + path + f,
+        #                                    shell=True)
         if "Normal termination" in outp[-90:]:
-            results[f] = True
+            results[f[:-3] + 'out'] = True
         else:
-            results[f] = False
+            results[f[:-3] + 'out'] = False
     
     return results
 

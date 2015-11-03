@@ -27,7 +27,7 @@ def main(numDS, settings, *args):
     #the outputs
     print '\nRunning NMRpredict script...'
 
-    if settings.DFT == 'z' or settings.DFT == 'g':
+    if settings.DFT == 'z' or settings.DFT == 'g' or settings.DFT == 'd':
         (RelEs, populations, labels, BoltzmannShieldings, Jlabels, BoltzmannFCs,
             BoltzmannJs, Ntaut) =  Gaussian.RunNMRPredict(numDS, settings, *args)
     elif settings.DFT == 'n' or settings.DFT == 'w':
