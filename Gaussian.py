@@ -21,6 +21,7 @@ import time
 import sys
 import glob
 import shutil
+import math
 import pyximport
 pyximport.install()
 import ConfPrune
@@ -398,36 +399,58 @@ def RunOnDarwin(folder, GausJobs, settings):
 
 def WriteDarwinScripts(GausJobs, settings):
     
-    cwd = os.getcwd()
-    
     SubFiles = []
+    NodeSize = settings.DarwinNodeSize
     
-    if len(GausJobs) <= settings.DarwinNodeSize:
-        shutil.copyfile(settings.ScriptDir + '/Defaultslurm',
-                        cwd + '/' + settings.Title + 'slurm')
-        slurmf = open(settings.Title + 'slurm', 'r+')
-        slurm = slurmf.readlines()
-        slurm[12] = '#SBATCH -J ' + settings.Title + '\n'
-        slurm[18] = '#SBATCH --ntasks=' + str(len(GausJobs)) + '\n'
-        slurm[20] = '#SBATCH --time=' + format(settings.TimeLimit,"02") +\
-            ':00:00\n'
-        
-        for f in GausJobs:
-            
-            slurm.append('srun --exclusive -n 1 $application < ' + f[:-3] + \
-                'com > ' + f[:-3] + 'out 2> error &\n')
-                
-        slurm.append('wait\n')
-        slurmf.truncate(0)
-        slurmf.seek(0)
-        slurmf.writelines(slurm)
-        
-        SubFiles.append(settings.Title + 'slurm')
+    if len(GausJobs) <= NodeSize:
+
+        SubFiles.append(WriteSlurm(GausJobs, settings))
     
     else:
-        quit()
-    
+        print "The Gaussian calculations will be submitted as " +\
+                    str(math.ceil(len(GausJobs)/NodeSize)) + \
+                    " jobs"
+        i = 0
+        while (i+1)*NodeSize < len(GausJobs):
+            PartGausJobs = list(GausJobs[(i*NodeSize):((i+1)*NodeSize)])
+            print "Writing script nr " + str(i+1)
+            
+            SubFiles.append(WriteSlurm(PartGausJobs, settings, str(i+1)))
+            
+            i += 1
+        
+        PartGausJobs = list(GausJobs[(i*NodeSize):])
+        print "Writing script nr " + str(i+1)
+        SubFiles.append(WriteSlurm(PartGausJobs, settings, str(i+1)))
+        
     return SubFiles
+
+
+def WriteSlurm(GausJobs, settings, index=''):
+    
+    cwd = os.getcwd()
+    filename = settings.Title + 'slurm' + index
+    
+    shutil.copyfile(settings.ScriptDir + '/Defaultslurm',
+                    cwd + '/' + filename)
+    slurmf = open(filename, 'r+')
+    slurm = slurmf.readlines()
+    slurm[12] = '#SBATCH -J ' + settings.Title + '\n'
+    slurm[18] = '#SBATCH --ntasks=' + str(len(GausJobs)) + '\n'
+    slurm[20] = '#SBATCH --time=' + format(settings.TimeLimit,"02") +\
+        ':00:00\n'
+    
+    for f in GausJobs:
+        
+        slurm.append('srun --exclusive -n 1 $application < ' + f[:-3] + \
+            'com > ' + f[:-3] + 'out 2> error &\n')
+            
+    slurm.append('wait\n')
+    slurmf.truncate(0)
+    slurmf.seek(0)
+    slurmf.writelines(slurm)
+    
+    return filename
 
 
 def IsDarwinGComplete(GausJobs, folder, settings):
