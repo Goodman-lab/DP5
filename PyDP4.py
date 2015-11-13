@@ -75,10 +75,11 @@ class Settings:
     TinkerPath = '~/tinker7/bin/scan '
     OBPath = '/home/ke291/Tools/openbabel-install/lib/python2.7/site-packages/'
     SCHRODINGER = '/usr/local/shared/schrodinger/current'
+    RenumberFile = ''
     ScriptDir = ''
     user = 'ke291'
     MMstepcount = 10000
-    MMfactor = 2000  # nsteps = MMfactor*degrees of freedom
+    MMfactor = 2500  # nsteps = MMfactor*degrees of freedom
     HardConfLimit = 10000
     MaxConcurrentJobs = 75
     PerStructConfLimit = 100
@@ -426,6 +427,9 @@ if __name__ == '__main__':
     and DFT calculations have been run already", action="store_true")
     parser.add_argument("--NoConfPrune", help="Skip RMSD pruning, use all\
     conformers in the energy window", action="store_true")
+    parser.add_argument("--Renumber", help="Renumber the atoms in\
+    diastereomers according to renumbering map in the specified file. Useful\
+    when analysing manually drawn input structures")
     parser.add_argument("-g", "--GenOnly", help="Only generate diastereomers\
     and tinker input files, but don't run any calculations", action="store_true")
     parser.add_argument('-c', '--StereoCentres', help="Specify\
@@ -463,6 +467,8 @@ if __name__ == '__main__':
         print "For calculations on Darwin explicit time limit in hours " + \
             "be specified, exiting..."
         quit()
+    if args.Renumber is not None:
+        settings.RenumberFile = args.Renumber
     if args.TimeLimit:
         settings.TimeLimit = args.TimeLimit
     if args.jJ:

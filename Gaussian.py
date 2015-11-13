@@ -82,26 +82,20 @@ def WriteGausFile(Gausinp, conformer, atoms, charge, settings):
         func1 = '# blyp/'
         func2 = ' iop(3/76=1000001189,3/77=0961409999,3/78=0000109999)' + \
             ' nmr='
-        #CompSettings = '# blyp/' + settings.BasisSet +\
-        #    ' iop(3/76=1000001189,3/77=0961409999,3/78=0000109999)' + \
-        #    ' nmr='
+        
     elif (settings.Functional).lower() == 'm062x':
         func1 = '# m062x/'
         func2 = ' int=ultrafine nmr='
-        #CompSettings = '# ' + settings.Functional + '/' + settings.BasisSet +\
-        #    ' int=ultrafine nmr='
+        
     else:
         func1 = '# ' + settings.Functional + '/'
         func2 = ' nmr='
-        #CompSettings = '# ' + settings.Functional + '/' + settings.BasisSet +\
-        #    ' nmr='
-    
+            
     if (settings.BasisSet).lower()[:3] == 'pcs':
         basis1 = 'gen'
     else:
         basis1 = settings.BasisSet
-        #CompSettings = '# ' + settings.Functional + '/gen nmr='
-    
+            
     CompSettings = func1 + basis1 + func2
     if settings.jJ or settings.jFC:
         CompSettings += '(giao,spinspin,mixed)'
@@ -110,11 +104,9 @@ def WriteGausFile(Gausinp, conformer, atoms, charge, settings):
     
     if settings.Solvent != '':
         CompSettings += ' scrf=(solvent=' + settings.Solvent+')\n'
-        #f.write('# b3lyp/6-31g(d,p) nmr=giao scrf=(solvent=' +
-        #        settings.Solvent+')\n')
     else:
         CompSettings += '\n'
-        #f.write('# b3lyp/6-31g(d,p) nmr=giao\n')
+        
     f.write(CompSettings)
     f.write('\n'+Gausinp+'\n\n')
     f.write(str(charge) + ' 1\n')
@@ -166,16 +158,24 @@ def WriteGausFileOpt(Gausinp, conformer, atoms, charge, settings):
     f2 = file(Gausinp + 'b.com', 'w')
     f2.write('%mem=6000MB\n%chk='+Gausinp + '.chk\n')
     if (settings.Functional).lower() == 'wp04':
-        CompSettings = '# blyp/' + settings.BasisSet +\
-            ' iop(3/76=1000001189,3/77=0961409999,3/78=0000109999)' + \
+        func1 = '# blyp/'
+        func2 = ' iop(3/76=1000001189,3/77=0961409999,3/78=0000109999)' + \
             ' geom=checkpoint nmr='
+        
     elif (settings.Functional).lower() == 'm062x':
-        CompSettings = '# ' + settings.Functional + '/' + settings.BasisSet +\
-            ' int=ultrafine geom=checkpoint nmr='
+        func1 = '# m062x/'
+        func2 = ' int=ultrafine geom=checkpoint nmr='
+        
     else:
-        CompSettings = '# ' + settings.Functional + '/' + settings.BasisSet +\
-            ' geom=checkpoint nmr='
-    
+        func1 = '# ' + settings.Functional + '/'
+        func2 = ' geom=checkpoint nmr='
+            
+    if (settings.BasisSet).lower()[:3] == 'pcs':
+        basis1 = 'gen'
+    else:
+        basis1 = settings.BasisSet
+            
+    CompSettings = func1 + basis1 + func2
     if settings.jJ or settings.jFC:
         CompSettings += '(giao,spinspin,mixed)'
     else:
@@ -183,15 +183,20 @@ def WriteGausFileOpt(Gausinp, conformer, atoms, charge, settings):
     
     if settings.Solvent != '':
         CompSettings += ' scrf=(solvent=' + settings.Solvent+')\n'
-        #f.write('# b3lyp/6-31g(d,p) nmr=giao scrf=(solvent=' +
-        #        settings.Solvent+')\n')
     else:
         CompSettings += '\n'
-        #f.write('# b3lyp/6-31g(d,p) nmr=giao\n')
     f2.write(CompSettings)
     f2.write('\n'+Gausinp+'\n\n')
     f2.write(str(charge) + ' 1\n')
     f2.write('\n')
+    if (settings.BasisSet).lower()[:3] == 'pcs':
+        basisfile = file(settings.ScriptDir + '/' + 
+                         (settings.BasisSet).lower(), 'r')
+        inp = basisfile.readlines()
+        basisfile.close()
+        for line in inp:
+            f2.write(line)
+        f2.write('\n')
     f2.close()
 
 
