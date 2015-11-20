@@ -289,7 +289,7 @@ def RunOnZiggy(folder, queue, GausFiles, settings):
     #Launch the calculations
     for f in GausFiles:
         job = '~/' + folder + '/' + f[:-4]
-        outp = subprocess.check_output('ssh ziggy qsub -q ' + queue + ' -o ' +
+        outp = subprocess.check_output('ssh ziggy qsub -l mem=6000mb -q ' + queue + ' -o ' +
             job + '.log -e ' + job + '.err ' + job + '.qsub', shell=True)
 
     print str(len(GausFiles)) + ' jobs submitted to the queue on ziggy'
@@ -618,7 +618,7 @@ def RunNMRPredict(numDS, settings, *args):
     print NTaut
     #This loop runs nmrPredict for each diastereomer and collects
     #the outputs    
-    for isomer in GausNames:
+    for i, isomer in enumerate(GausNames):
 
         GausFiles = glob.glob(isomer + 'ginp*.out')
         GausFiles = [x[:-4] for x in GausFiles]
@@ -626,13 +626,16 @@ def RunNMRPredict(numDS, settings, *args):
         #Runs nmrPredictGaus Name001, ... and collects output
         Es, Pops, ls, BSs, Jls, BFCs, BJs = nmrPredictGaus.main(settings,
                                                                 *GausFiles)
+        if i == 0:
+            labels = ls
+            
         RelEs.append(Es)
         populations.append(Pops)
         BoltzmannShieldings.append(BSs)
         BoltzmannFCs.append(BFCs)
         BoltzmannJs.append(BJs)
 
-    return (RelEs, populations, ls, BoltzmannShieldings, Jls, BoltzmannFCs,
+    return (RelEs, populations, labels, BoltzmannShieldings, Jls, BoltzmannFCs,
             BoltzmannJs, NTaut)
 
 

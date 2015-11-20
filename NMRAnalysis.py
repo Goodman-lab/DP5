@@ -33,8 +33,11 @@ def main(numDS, settings, *args):
     elif settings.DFT == 'n' or settings.DFT == 'w':
         (RelEs, populations, labels, BoltzmannShieldings, Ntaut) = \
                                             NWChem.RunNMRPredict(numDS, *args)
-    print Jlabels
-    print BoltzmannJs
+    
+    if settings.RenumberFile != '':
+        BoltzmannShieldings = ReorderShieldings(BoltzmannShieldings,
+                                                settings.RenumberFile)
+    
     #Reads the experimental NMR data from the file
     Cexp, Hexp, equivs, omits = ReadExpNMR(args[-1])
     
@@ -226,6 +229,39 @@ def RemoveEquivalents(Noutp, equivs, OldCval, OldHval, OldClabels, OldHlabels):
                     
     return Cvalues, Hvalues, Clabels, Hlabels
     
+
+def ReorderShieldings(shieldings, RenumberFile):
+    f = open(RenumberFile, 'r')
+    RenumData = f.readlines()
+    
+    RenumMaps = []
+    for line in RenumData:
+        tmp = line.split(',')
+        RenumMaps.append([int(x)-1 for x in tmp])
+    
+    print RenumMaps
+    
+    ReorderedShieldings = []
+    
+    for i, shields in enumerate(shieldings):
+        if i != 0:
+            NewShields = [0.0 for x in range(len(shields))]
+            for j in range(len(NewShields)):
+                NewShields[j] = shields[RenumMaps[i-1][j]]
+            ReorderedShieldings.append(NewShields)
+        else:
+            ReorderedShieldings.append(shields)
+    
+    print "Before reordering:"
+    for s in shieldings:
+        print ','.join([format(x, "4.2f") for x in s]) + '\n'
+    
+    print "After reordering:"
+    for s in ReorderedShieldings:
+        print ','.join([format(x, "4.2f") for x in s]) + '\n'
+        
+    return ReorderedShieldings
+
 
 def ZeroSmallJvalues(mat):
     
