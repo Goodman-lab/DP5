@@ -75,6 +75,7 @@ class Settings:
     TinkerPath = '~/tinker7/bin/scan '
     OBPath = '/home/ke291/Tools/openbabel-install/lib/python2.7/site-packages/'
     SCHRODINGER = '/usr/local/shared/schrodinger/current'
+    Nuclei = ''
     RenumberFile = ''
     ScriptDir = ''
     user = 'ke291'
@@ -82,6 +83,7 @@ class Settings:
     MMfactor = 2500  # nsteps = MMfactor*degrees of freedom
     HardConfLimit = 10000
     MaxConcurrentJobs = 75
+    MaxConcurrentJobsDarwin = 256
     PerStructConfLimit = 100
     InitialRMSDcutoff = 0.75
     MaxCutoffEnergy = 10.0
@@ -301,13 +303,28 @@ def main(filename, ExpNMR, nfiles):
             #Run Gaussian jobs on Darwin cluster in folder named after date
             #and title and wait until the last file is completed
             now = datetime.datetime.now()
+            MaxCon = settings.MaxConcurrentJobsDarwin
             
             if settings.DFTOpt:
                 for i in range(len(Files2Run)):
                     Files2Run[i] = Files2Run[i][:-5] + '.com'
-            
-            Gaussian.RunOnDarwin(now.strftime('%d%b%H%M') + settings.Title,
-                                 Files2Run, settings)
+                    
+            if len(Files2Run) < MaxCon:
+                Gaussian.RunOnDarwin(now.strftime('%d%b%H%M') + settings.Title,
+                                     Files2Run, settings)
+            else:
+                print "The DFT calculations will be done in " +\
+                    str(math.ceil(len(Files2Run)/MaxCon)) + " batches"
+                i = 0
+                while (i+1)*MaxCon < len(Files2Run):
+                    print "Starting batch nr " + str(i+1)
+                    Gaussian.RunOnDarwin(now.strftime('%d%b%H%M')+str(i+1) +
+                        settings.Title, Files2Run[(i*MaxCon):((i+1)*MaxCon)],
+                        settings)
+                    i += 1
+                print "Starting batch nr " + str(i+1)
+                Gaussian.RunOnDarwin(now.strftime('%d%b%H%M')+str(i+1) + 
+                    settings.Title, Files2Run[(i*MaxCon):], settings)
 
         elif settings.DFT == 'n':
             print '\nRunning NWChem locally...'
@@ -366,15 +383,26 @@ def SetTMSConstants():
     for i, line in enumerate(TMSdata):
         buf = line.split(' ')
         if len(buf)>1:
-            if buf[0].lower() == settings.Functional.lower() and \
-               buf[1].lower() == settings.BasisSet.lower() and \
-               buf[2].lower() == settings.Solvent.lower():
-                
-                print "Setting TMS references to " + buf[3] + " and " + \
-                    buf[4] + "\n"
-                settings.TMS_SC_C13 = float(buf[3])
-                settings.TMS_SC_H1 = float(buf[4])
-                return
+            if settings.Solvent != '':
+                if buf[0].lower() == settings.Functional.lower() and \
+                   buf[1].lower() == settings.BasisSet.lower() and \
+                   buf[2].lower() == settings.Solvent.lower():
+                    
+                    print "Setting TMS references to " + buf[3] + " and " + \
+                        buf[4] + "\n"
+                    settings.TMS_SC_C13 = float(buf[3])
+                    settings.TMS_SC_H1 = float(buf[4])
+                    return
+            else:
+                if buf[0].lower() == settings.Functional.lower() and \
+                   buf[1].lower() == settings.BasisSet.lower() and \
+                   buf[2].lower() == 'none':
+                    
+                    print "Setting TMS references to " + buf[3] + " and " + \
+                        buf[4] + "\n"
+                    settings.TMS_SC_C13 = float(buf[3])
+                    settings.TMS_SC_H1 = float(buf[4])
+                    return
     
     print "No TMS reference data found for these conditions, using defaults\n"
     print "Unscaled shifts might be inaccurate, use of unscaled models is" + \
@@ -447,6 +475,8 @@ if __name__ == '__main__':
     DFT calculations", default='6-31g(d,p)')
     parser.add_argument('-F', '--Functional', help="Selects the functional for\
     DFT calculations", default='b3lyp')
+    parser.add_argument('-x', '--OtherNuclei', help="Print predictions for\
+     other nuclei")
     parser.add_argument('-f', '--ff', help="Selects force field for the \
     conformational search, implemented options 'mmff' and 'opls' (2005\
     version)", choices=['mmff', 'opls'], default='mmff')
@@ -469,6 +499,8 @@ if __name__ == '__main__':
         quit()
     if args.Renumber is not None:
         settings.RenumberFile = args.Renumber
+    if args.OtherNuclei:
+        settings.Nuclei = args.OtherNuclei
     if args.TimeLimit:
         settings.TimeLimit = args.TimeLimit
     if args.jJ:

@@ -94,23 +94,19 @@ def DP4(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, settings):
                                        settings.StatsModel, 'C'))
             H_cdp4.append(CalculateKDE(ScaledErrorsH, settings.StatsParamFile,
                                        settings.StatsModel, 'H'))
-            #C_cdp4.append(CalculateKDE(ScaledErrorsC, settings.ScriptDir + '/NucCErr.pkl'))
-            #H_cdp4.append(CalculateKDE(ScaledErrorsH, settings.ScriptDir + '/NucHErr.pkl'))
+            
         elif settings.StatsModel == 'r':
             C_cdp4.append(CalculateRKDE(ScaledErrorsC, sortedCexp,
                 settings.StatsParamFile, settings.StatsModel, 'C'))
             H_cdp4.append(CalculateRKDE(ScaledErrorsH, sortedHexp,
                 settings.StatsParamFile, settings.StatsModel, 'H'))
-            #C_cdp4.append(CalculateKDE(ScaledErrorsC, settings.ScriptDir + '/NucCErr.pkl'))
-            #H_cdp4.append(CalculateKDE(ScaledErrorsH, settings.ScriptDir + '/NucHErr.pkl'))
+            
         elif settings.StatsModel == 'u':
             C_cdp4.append(CalculateRKDE(ErrorsC, sortedCexp,
                 settings.StatsParamFile, settings.StatsModel, 'C'))
             H_cdp4.append(CalculateRKDE(ErrorsH, sortedHexp,
                 settings.StatsParamFile, settings.StatsModel, 'H'))
-            #C_cdp4.append(CalculateKDE(ScaledErrorsC, settings.ScriptDir + '/NucCErr.pkl'))
-            #H_cdp4.append(CalculateKDE(ScaledErrorsH, settings.ScriptDir + '/NucHErr.pkl'))
-        
+                    
         Comb_cdp4.append(C_cdp4[-1]*H_cdp4[-1])
         Print("\nDP4 based on C: " + format(C_cdp4[-1], "6.2e"))
         Print("DP4 based on H: " + format(H_cdp4[-1], "6.2e"))
@@ -119,7 +115,7 @@ def DP4(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, settings):
     relHDP4 = [(100*x)/sum(H_cdp4) for x in H_cdp4]
     relCombDP4 = [(100*x)/sum(Comb_cdp4) for x in Comb_cdp4]
 
-    PrintRelDP4('both carbon and proton data', relCombDP4)
+    PrintRelDP4('all available data', relCombDP4)
     PrintRelDP4('carbon data only', relCDP4)
     PrintRelDP4('proton data only', relHDP4)
     
@@ -144,9 +140,9 @@ def DP4j(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, cJvals, cJlabels,
             AssignExpNMR(Clabels, Cvalues[isomer], Cexp)
         scaledC = ScaleNMR(sortedCvalues, sortedCexp)
 
-        sHlabels, sHvalues, sHexp, sExpJvalues, sCalcJvalues = \
+        sHlabels, sortedHvalues, sortedHexp, sExpJvalues, sCalcJvalues = \
             AssignExpNMRj(Hlabels, Hvalues[isomer], Hexp, cJvals[isomer], cJlabels)
-        scaledH = ScaleNMR(sHvalues, sHexp)
+        scaledH = ScaleNMR(sortedHvalues, sortedHexp)
         
         assignedExpJs, assignedCJs = AssignJvals(sExpJvalues, sCalcJvalues)
         
@@ -157,42 +153,55 @@ def DP4j(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, cJvals, cJlabels,
         elif settings.jFC:
             ScaledJ = ScaleFCvals(assignedCJs)
 
-        ScaledErrorsC = [sortedCexp[i] - scaledC[i]
+        ScaledErrorsC = [scaledC[i] - sortedCexp[i]
                          for i in range(0, len(scaledC))]
         ErrorsC = [sortedCvalues[i] - sortedCexp[i]
                          for i in range(0, len(sortedCvalues))]
-        ScaledErrorsH = [sHexp[i] - scaledH[i]
+        ScaledErrorsH = [scaledH[i] - sortedHexp[i]
                          for i in range(0, len(scaledH))]
-        ErrorsH = [sHvalues[i] - sHexp[i]
-                         for i in range(0, len(sHvalues))]
+        ErrorsH = [sortedHvalues[i] - sortedHexp[i]
+                         for i in range(0, len(sortedHvalues))]
                             
         ScaledErrorsJ = CalculateJerrors(assignedExpJs, ScaledJ)
         
         Print("\nAssigned shifts for isomer " + str(isomer+1) + ": ")
         PrintNMR('C', sortedClabels, sortedCvalues, scaledC, sortedCexp)
         Print("Max C error: " + format(max(ScaledErrorsC, key=abs), "6.2f"))
-        PrintNMRj('H', sHlabels, sHvalues, scaledH, sHexp,
+        PrintNMRj('H', sHlabels, sortedHvalues, scaledH, sortedHexp,
                   assignedExpJs, assignedCJs)
         Print("Max H error: " + format(max(ScaledErrorsH, key=abs), "6.2f"))
 
-        if settings.PDP4:
-            #C_cdp4.append(CalculateCDP4(ScaledErrorsC, meanC, stdevC))
-            #C_cdp4.append(CalculateKDE(ScaledErrorsC, settings.ScriptDir + '/NucCErr.pkl'))
+        if settings.StatsModel == 'g':
+            if settings.StatsParamFile == '':
+                C_cdp4.append(CalculateCDP4(ScaledErrorsC, meanC, stdevC))
+                H_cdp4.append(CalculateCDP4(ScaledErrorsH, meanH, stdevH))
+            else:
+                Cmean, Cstdev, Hmean, Hstdev =\
+                    ReadParamFile(settings.StatsParamFile, 'g')
+                C_cdp4.append(CalculatePDP4(ScaledErrorsC, Cmean, Cstdev))
+                H_cdp4.append(CalculatePDP4(ScaledErrorsH, Hmean, Hstdev))
+                
+        elif settings.StatsModel == 'k':
+            C_cdp4.append(CalculateKDE(ScaledErrorsC, settings.StatsParamFile,
+                                       settings.StatsModel, 'C'))
+            H_cdp4.append(CalculateKDE(ScaledErrorsH, settings.StatsParamFile,
+                                       settings.StatsModel, 'H'))
+            
+        elif settings.StatsModel == 'r':
+            C_cdp4.append(CalculateRKDE(ScaledErrorsC, sortedCexp,
+                settings.StatsParamFile, settings.StatsModel, 'C'))
+            H_cdp4.append(CalculateRKDE(ScaledErrorsH, sortedHexp,
+                settings.StatsParamFile, settings.StatsModel, 'H'))
+            
+        elif settings.StatsModel == 'u':
             C_cdp4.append(CalculateRKDE(ErrorsC, sortedCexp,
-                                        settings.ScriptDir + '/URKDECnuc.pkl'))
-            #H_cdp4.append(CalculateCDP4(ScaledErrorsH, meanH, stdevH))
-            #H_cdp4.append(CalculateKDE(ScaledErrorsH, settings.ScriptDir + '/NucHErr.pkl'))
-            H_cdp4.append(CalculateRKDE(ErrorsH, sHexp,
-                                        settings.ScriptDir + '/URKDEHnuc.pkl'))
-        elif settings.EP5:
-            #C_cdp4.append(CalculatePDP4(ScaledErrorsC, meanC, stdevC))
-            C_cdp4.append(CalculateKDE(ScaledErrorsC, settings.ScriptDir + '/NucCErr.pkl'))
-            #H_cdp4.append(CalculatePDP4(ScaledErrorsH, meanH, stdevH))
-            H_cdp4.append(CalculateKDE(ScaledErrorsH, settings.ScriptDir + '/NucHErr.pkl'))
+                settings.StatsParamFile, settings.StatsModel, 'C'))
+            H_cdp4.append(CalculateRKDE(ErrorsH, sortedHexp,
+                settings.StatsParamFile, settings.StatsModel, 'H'))
         
         if settings.jKarplus:
             #J_dp4.append(CalculatePDP4(ScaledErrorsJ, meanKJ, stdevKJ))
-            J_dp4.append(CalculateKDE(ScaledErrorsJ, settings.ScriptDir + '/KarplusKDE.pkl'))
+            J_dp4.append(CalculateKDE(ScaledErrorsJ, settings.ScriptDir + '/KarplusKDE.pkl', 't', 'k'))
         elif settings.jJ:
             J_dp4.append(CalculatePDP4(ScaledErrorsJ, meanJ, stdevJ))
             #J_dp4.append(CalculateKDE(ScaledErrorsJ, settings.ScriptDir + '/JKDE.pkl'))
@@ -547,7 +556,12 @@ def CalculatePDP4(errors, expect, stdev):
 def CalculateKDE(errors, ParamFile, t, nucleus):
 
     #pkl_file = open(PickleFile, 'rb')
-    Cerrors, Herrors = ReadParamFile(ParamFile, t)
+    if nucleus == 'k':
+        pkl_file = open(ParamFile, 'rb')
+        ErrorData = pickle.load(pkl_file)
+        kde = stats.gaussian_kde(ErrorData)
+    else:
+        Cerrors, Herrors = ReadParamFile(ParamFile, t)
         
     if nucleus == 'C':
         kde = stats.gaussian_kde(Cerrors)
