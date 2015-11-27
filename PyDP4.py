@@ -75,7 +75,7 @@ class Settings:
     TinkerPath = '~/tinker7/bin/scan '
     OBPath = '/home/ke291/Tools/openbabel-install/lib/python2.7/site-packages/'
     SCHRODINGER = '/usr/local/shared/schrodinger/current'
-    Nuclei = ''
+    OtherNuclei = ''
     RenumberFile = ''
     ScriptDir = ''
     user = 'ke291'
@@ -89,6 +89,7 @@ class Settings:
     MaxCutoffEnergy = 10.0
     TMS_SC_C13 = 191.69255
     TMS_SC_H1 = 31.7518583
+    CFCl3_SC_F19 = 180.9961
     NTaut = 1
     LogFile = 'PyDP4.log'
     AssumeDone = False
@@ -500,7 +501,7 @@ if __name__ == '__main__':
     if args.Renumber is not None:
         settings.RenumberFile = args.Renumber
     if args.OtherNuclei:
-        settings.Nuclei = args.OtherNuclei
+        settings.OtherNuclei = args.OtherNuclei
     if args.TimeLimit:
         settings.TimeLimit = args.TimeLimit
     if args.jJ:

@@ -49,8 +49,16 @@ def main(numDS, settings, *args):
             ', '.join(["{:4.1f}".format(float(x)*100) for x in pops])
     
     #Convert shielding constants in chemical shifts and sort labels by nuclei
-    Cvalues, Hvalues, Clabels, Hlabels = \
-        GetCalcShiftsLabels(numDS, BoltzmannShieldings, labels, omits, settings)
+    Cvalues, Hvalues, Clabels, Hlabels = GetCalcShiftsLabels(numDS,
+        BoltzmannShieldings, labels, omits, settings)
+    
+    if settings.OtherNuclei != "":
+        Xvalues, Xlabels = GetOtherNuclei(numDS, BoltzmannShieldings, labels,
+            omits, settings)
+        print Xlabels, Xvalues
+    else:
+        Xvalues = []
+        Xlabels = []
     
     Noutp = len(BoltzmannShieldings)
     
@@ -83,7 +91,10 @@ def main(numDS, settings, *args):
     
     NewBJs, NewJlabels = ZeroEquivJ(BoltzmannJs, Jlabels, equivs, omits)
     NewFCs, NewFClabels = ZeroEquivJ(BoltzmannFCs, Jlabels, equivs, omits)
-            
+    
+    print "The calculated data for other nuclei:"
+    PrintOtherNuclei(numDS, Xlabels, Xvalues)
+    
     import DP4
     #Run DP4 (or alternative, if set in settings) analysis and collect output
     if any([settings.jKarplus, settings.jJ, settings.jFC]):
@@ -172,6 +183,38 @@ def GetCalcShiftsLabels(numDS, BShieldings, labels, omits, settings):
 
     return Cvalues, Hvalues, Clabels, Hlabels
 
+
+def GetOtherNuclei(numDS, BShieldings, labels, omits, settings):
+    Xlabels = []
+    Xvalues = []
+    
+    for DS in range(numDS):
+
+        Xvalues.append([])
+
+        #loops through particular output and collects shielding constants
+        #and calculates shifts relative to TMS
+        for atom in range(len(BShieldings[DS])):
+            shift = 0
+            if labels[atom][0] in settings.OtherNuclei:
+                
+                # only read labels once, i.e. the first diastereomer
+                if DS == 0:
+                    Xlabels.append(labels[atom])
+                shift = (settings.CFCl3_SC_F19-BShieldings[DS][atom]) / \
+                    (1-(settings.CFCl3_SC_F19/10**6))
+                Xvalues[DS].append(shift)
+
+    return Xvalues, Xlabels
+
+
+def PrintOtherNuclei(numDS, Xlabels, Xvalues):
+    
+    for DS in range(numDS):
+        
+        print "\nOther nuclei results for isomer " + str(DS+1) + ":"
+        for i, label in enumerate(Xlabels):
+            print label + " " + format(Xvalues[DS][i], "4.2f")
 
 def RemoveEquivalents(Noutp, equivs, OldCval, OldHval, OldClabels, OldHlabels):
     Cvalues = list(OldCval)
