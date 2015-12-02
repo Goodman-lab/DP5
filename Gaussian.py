@@ -98,7 +98,7 @@ def WriteGausFile(Gausinp, conformer, atoms, charge, settings):
             
     CompSettings = func1 + basis1 + func2
     if settings.jJ or settings.jFC:
-        CompSettings += '(giao,spinspin,mixed)'
+        CompSettings += '(giao,spinspin,mixed,readatoms)'
     else:
         CompSettings += 'giao'
     
@@ -126,6 +126,10 @@ def WriteGausFile(Gausinp, conformer, atoms, charge, settings):
         for line in inp:
             f.write(line)
         f.write('\n')
+    
+    if settings.jJ or settings.jFC:
+        f.write('atoms=H\n')
+    
     f.close()
 
 
