@@ -29,7 +29,8 @@ def main(numDS, settings, *args):
 
     if settings.DFT == 'z' or settings.DFT == 'g' or settings.DFT == 'd':
         (RelEs, populations, labels, BoltzmannShieldings, Jlabels, BoltzmannFCs,
-            BoltzmannJs, Ntaut) =  Gaussian.RunNMRPredict(numDS, settings, *args)
+            BoltzmannJs, SigConfs, Ntaut) =  \
+            Gaussian.RunNMRPredict(numDS, settings, *args)
     elif settings.DFT == 'n' or settings.DFT == 'w':
         (RelEs, populations, labels, BoltzmannShieldings, Ntaut) = \
                                             NWChem.RunNMRPredict(numDS, *args)
@@ -94,6 +95,9 @@ def main(numDS, settings, *args):
     
     print "The calculated data for other nuclei:"
     PrintOtherNuclei(numDS, Xlabels, Xvalues)
+    
+    print "Conformation data:"
+    PrintConformationData(SigConfs)
     
     import DP4
     #Run DP4 (or alternative, if set in settings) analysis and collect output
@@ -215,6 +219,18 @@ def PrintOtherNuclei(numDS, Xlabels, Xvalues):
         print "\nOther nuclei results for isomer " + str(DS+1) + ":"
         for i, label in enumerate(Xlabels):
             print label + " " + format(Xvalues[DS][i], "4.2f")
+
+
+def PrintConformationData(AllSigConfs):
+    for i, SigConfs in enumerate(AllSigConfs):
+        print "\n" + str(len(SigConfs)) + " significant conformers for isomer "\
+            + str(i+1) + ": (pop, filename)"
+        for conf in SigConfs:
+            print "   " + format(conf[1]*100, "4.2f") + "%   " + conf[0]
+        print '----------------'
+        print "   " + format(100*sum([x[1] for x in SigConfs]), "4.2f") +\
+            "%   in total"
+
 
 def RemoveEquivalents(Noutp, equivs, OldCval, OldHval, OldClabels, OldHlabels):
     Cvalues = list(OldCval)

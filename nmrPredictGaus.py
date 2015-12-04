@@ -57,7 +57,19 @@ def main(settings, *args):
 
     for i in range(0, len(populations)):
         populations[i] = populations[i]/q
-
+    
+    #Make a list of populations and corresponding files for reporting
+    #significant conformations
+    from operator import itemgetter
+    ConfsPops = [list(x) for x in zip(args, populations)]
+    ConfsPops.sort(key=itemgetter(1), reverse=True)
+    totpop = 0
+    i = 0
+    while totpop<0.8:
+        totpop += ConfsPops[i][1]
+        i += 1
+    SigConfs = ConfsPops[:i]
+        
     #Calculate Boltzmann weighed shielding constants
     #by summing the shifts multiplied by the isomers population
     Natoms = len(labels)
@@ -72,7 +84,8 @@ def main(settings, *args):
 
     if len(Jlabels) < 2 or not \
         any([settings.jJ, settings.jFC, settings.jKarplus]):
-        return (relEs, populations, labels, BoltzmannShieldings, [""], [0], [0])
+        return (relEs, populations, labels, BoltzmannShieldings, [""],
+                [0], [0], SigConfs)
     else:
         #Calculate Boltzmann weighed coupling constants (FC and J)
         Natoms = len(Jlabels)
@@ -97,7 +110,7 @@ def main(settings, *args):
                     BoltzmannJ[a1][a2] = coupling
 
         return relEs, populations, labels, BoltzmannShieldings,\
-            Jlabels, BoltzmannFC, BoltzmannJ
+            Jlabels, BoltzmannFC, BoltzmannJ, SigConfs
 
 
 def ReadShieldings(GOutpFile):

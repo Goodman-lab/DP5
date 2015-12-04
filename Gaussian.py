@@ -617,6 +617,7 @@ def RunNMRPredict(numDS, settings, *args):
     BoltzmannShieldings = []
     BoltzmannJs = []
     BoltzmannFCs = []
+    SigConfs = []
 
     print GausNames
     print NTaut
@@ -628,7 +629,7 @@ def RunNMRPredict(numDS, settings, *args):
         GausFiles = [x[:-4] for x in GausFiles]
         
         #Runs nmrPredictGaus Name001, ... and collects output
-        Es, Pops, ls, BSs, Jls, BFCs, BJs = nmrPredictGaus.main(settings,
+        Es, Pops, ls, BSs, Jls, BFCs, BJs, SCs = nmrPredictGaus.main(settings,
                                                                 *GausFiles)
         if i == 0:
             labels = ls
@@ -638,9 +639,10 @@ def RunNMRPredict(numDS, settings, *args):
         BoltzmannShieldings.append(BSs)
         BoltzmannFCs.append(BFCs)
         BoltzmannJs.append(BJs)
+        SigConfs.append(SCs)
 
     return (RelEs, populations, labels, BoltzmannShieldings, Jls, BoltzmannFCs,
-            BoltzmannJs, NTaut)
+            BoltzmannJs, SigConfs, NTaut)
 
 
 def getScriptPath():
