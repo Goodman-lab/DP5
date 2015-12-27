@@ -70,6 +70,7 @@ class Settings:
     jKarplus = False
     jFC = False
     jJ = False
+    JDir = ''
     TimeLimit = 24
     queue = 's1'
     TinkerPath = '~/tinker7/bin/scan '
@@ -449,12 +450,15 @@ if __name__ == '__main__':
     coupling constants at DFT level level and use in analysis", action="store_true")
     parser.add_argument("--jK", help="Use Karplus-type equation to calculate\
     coupling constants and use in analysis", action="store_true")
+    parser.add_argument('-J', '--JDir', help="Specify the location for\
+    the corresponding output files containing coupling constants for the conformers.\
+    Useful when NMR and coupling constants need to be calculated at different levels.")
     parser.add_argument('--ra', help="Specify ring atoms, for the ring to be\
     rotated, useful for molecules with several 5-membered rings")
     parser.add_argument('-S', '--Stats', help="Specify the stats model and\
     parameters")
     parser.add_argument('-E', '--EnergyDir', help="Specify the location for\
-    the corresponding output files containing th energies of the conformers.\
+    the corresponding output files containing the energies of the conformers.\
     Useful when NMR and energies need to be calculated at different levels.")
     parser.add_argument("--AssumeDFTDone", help="Assume RMSD pruning, DFT setup\
     and DFT calculations have been run already", action="store_true")
@@ -520,6 +524,8 @@ if __name__ == '__main__':
         settings.jKarplus = True
         settings.jJ = False
         settings.jFC = False
+    if args.JDir is not None:
+        settings.JDir = args.JDir
     if args.ep5:
         settings.EP5 = True
         settings.PDP4 = False
