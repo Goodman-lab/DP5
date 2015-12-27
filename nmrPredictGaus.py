@@ -26,8 +26,9 @@ def main(settings, *args):
     #constants
     #Also run ReadCouplingConstants - will return empty matrices if none found
     for f in args:
-        (labels, shieldings, energy) = ReadShieldings(f)
+        (labels, shieldings) = ReadShieldings(f)
         allshieldings.append(shieldings)
+        energy = ReadEnergy(settings.EnergyDir + f)
         energies.append(energy)
         if settings.jKarplus:
             import Karplus
@@ -140,12 +141,6 @@ def ReadShieldings(GOutpFile):
     while not 'Magnetic shielding' in GOutp[index]:
         index = index + 1
 
-    for line in GOutp:
-        if 'SCF Done:' in line:
-            start = line.index(') =')
-            end = line.index('A.U.')
-            energy = float(line[start+4:end])
-
     #Read shielding constants and labels
     for line in GOutp[index:]:
         if 'Isotropic' in line:
@@ -155,7 +150,8 @@ def ReadShieldings(GOutpFile):
 
     gausfile.close()
 
-    return labels, shieldings, energy
+    return labels, shieldings
+
 
 def ReadCouplingConstants(GOutpFile, atomlabels):
     FCmat, FCmatlabels = ReadCMatrix(GOutpFile,

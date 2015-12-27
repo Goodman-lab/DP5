@@ -96,7 +96,7 @@ class Settings:
     GenOnly = False
     StatsModel = 'g'
     StatsParamFile = ''
-    EnergyFolder = ''
+    EnergyDir = ''
     SelectedStereocentres = []
     charge = None
     BasicAtoms = []
@@ -453,7 +453,7 @@ if __name__ == '__main__':
     rotated, useful for molecules with several 5-membered rings")
     parser.add_argument('-S', '--Stats', help="Specify the stats model and\
     parameters")
-    parser.add_argument('-E', '--EnergyFolder', help="Specify the location for\
+    parser.add_argument('-E', '--EnergyDir', help="Specify the location for\
     the corresponding output files containing th energies of the conformers.\
     Useful when NMR and energies need to be calculated at different levels.")
     parser.add_argument("--AssumeDFTDone", help="Assume RMSD pruning, DFT setup\
@@ -527,8 +527,8 @@ if __name__ == '__main__':
         settings.EP5 = False
         settings.PDP4 = True
     
-    if args.EnergyFolder is not None:
-        settings.EnergyFolder = args.EnergyFolder
+    if args.EnergyDir is not None:
+        settings.EnergyDir = args.EnergyDir
     else:
         settings.EnergyFolder = os.getcwd()
     if args.Stats is not None:
