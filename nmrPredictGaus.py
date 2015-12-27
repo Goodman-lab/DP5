@@ -36,7 +36,8 @@ def main(settings, *args):
             Jmatrices.append(Jmat)
             FCmatrices.append(Jmat) #Jmat used as a placeholder value for FCmat
         else:
-            FCmat, Jmat, Jlabels = ReadCouplingConstants(f, labels)
+            FCmat, Jmat, Jlabels = ReadCouplingConstants(settings.JDir + f,\
+                labels)
             FCmatrices.append(FCmat)
             Jmatrices.append(Jmat)
 
