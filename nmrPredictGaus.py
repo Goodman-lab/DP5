@@ -4,7 +4,7 @@ Created on Tue Nov  4 12:46:34 2014
 
 @author: ke291
 
-Extracts NMR shifts from NWChem output files
+Extracts NMR shifts from Gaussian output files
 """
 
 import math
@@ -84,8 +84,7 @@ def main(settings, *args):
                 populations[conformer]
         BoltzmannShieldings.append(shielding)
 
-    if len(Jlabels) < 2 or not \
-        any([settings.jJ, settings.jFC, settings.jKarplus]):
+    if len(Jlabels) < 2:# or not any([settings.jJ, settings.jFC, settings.jKarplus]):
         return (relEs, populations, labels, BoltzmannShieldings, [""],
                 [0], [0], SigConfs)
     else:
