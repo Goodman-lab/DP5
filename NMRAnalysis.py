@@ -223,8 +223,8 @@ def PrintOtherNuclei(numDS, Xlabels, Xvalues):
 
 def PrintConformationData(AllSigConfs):
     for i, SigConfs in enumerate(AllSigConfs):
-        print "\n" + str(len(SigConfs)) + " significant conformers for isomer "\
-            + str(i+1) + ": (pop, filename)"
+        print "\nNumber of significant conformers for isomer "\
+            + str(i+1) + ": " + str(len(SigConfs)) + "\n(pop, filename)"
         for conf in SigConfs:
             print "   " + format(conf[1]*100, "4.2f") + "%   " + conf[0]
         print '----------------'

@@ -113,6 +113,20 @@ def main(settings, *args):
             Jlabels, BoltzmannFC, BoltzmannJ, SigConfs
 
 
+def ReadEnergy(GOutpFile):
+    gausfile = open(GOutpFile + '.out', 'r')
+    GOutp = gausfile.readlines()
+    gausfile.close()
+    
+    for line in GOutp:
+        if 'SCF Done:' in line:
+            start = line.index(') =')
+            end = line.index('A.U.')
+            energy = float(line[start+4:end])
+    
+    return energy
+
+
 def ReadShieldings(GOutpFile):
 
     gausfile = open(GOutpFile + '.out', 'r')
