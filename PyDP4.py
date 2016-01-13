@@ -356,6 +356,24 @@ def main(filename, ExpNMR, nfiles):
                 print "Starting batch nr " + str(i+1)
                 NWChem.RunOnZiggy(now.strftime('%d%b%H%M')+str(i+1),
                     settings.queue, Files2Run[(i*MaxCon):], settings)
+        
+        elif settings.DFT == 'm':
+            print '\nRunning NWChem on Medivir cluster...'
+
+            #Run NWChem jobs on Medivir cluster
+            MaxCon = settings.MaxConcurrentJobs
+            if len(Files2Run) < MaxCon:
+                NWChem.RunOnMedivir(Files2Run, settings)
+            else:
+                print "The DFT calculations will be done in " +\
+                    str(math.ceil(len(Files2Run)/MaxCon)) + " batches"
+                i = 0
+                while (i+1)*MaxCon < len(Files2Run):
+                    print "Starting batch nr " + str(i+1)
+                    NWChem.RunOnMedivir(Files2Run[(i*MaxCon):((i+1)*MaxCon)], settings)
+                    i += 1
+                print "Starting batch nr " + str(i+1)
+                NWChem.RunOnMedivir(Files2Run[(i*MaxCon):], settings)
 
     if numDS < 2:
         print "DP4 requires at least 2 candidate structures!"
@@ -420,7 +438,7 @@ if __name__ == '__main__':
     default='t')
     parser.add_argument('-d', '--dft', help="Select DFT program, j for Jaguar,\
     g for Gaussian, n for NWChem, z for Gaussian on ziggy, d for Gaussian on \
-    Darwin, w for NWChem on ziggy, default is z",
+    Darwin, w for NWChem on ziggy, m for NWChem on Medivir cluster, default is z",
         choices=['j', 'g', 'n', 'z', 'w', 'd'], default='z')
     parser.add_argument('--StepCount', help="Specify\
     stereocentres for diastereomer generation")
@@ -504,7 +522,7 @@ if __name__ == '__main__':
     
     if settings.DFT == 'd' and not args.TimeLimit:
         print "For calculations on Darwin explicit time limit in hours " + \
-            "be specified, exiting..."
+            "must be specified, exiting..."
         quit()
     if args.Renumber is not None:
         settings.RenumberFile = args.Renumber

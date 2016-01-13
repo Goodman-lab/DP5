@@ -239,6 +239,45 @@ def RunOnZiggy(folder, queue, NWFiles, settings):
                                    + os.getcwd(), shell=True)
 
 
+def RunOnMedivir(NWFiles, settings):
+
+    print "Medivir NWChem job submission script\n"
+
+    #Write the qsub scripts
+    for f in NWFiles:
+        WriteMedivirSubScript(f[:-3], settings)
+    print str(len(NWFiles)) + ' .qsub scripts generated'
+
+    #Launch the calculations
+    for f in NWFiles:
+        job = f[:-3]
+        outp = subprocess.check_output('qsub ' + job + '.qsub', shell=True)
+        time.sleep(3)
+
+    print str(len(NWFiles)) + ' jobs submitted to the queue on ziggy'
+
+    outp = subprocess.check_output('qstat', shell=True)
+    if 'nwinp' in outp:
+        print "Jobs are running on the cluster"
+
+    Jobs2Complete = list(NWFiles)
+    n2complete = len(Jobs2Complete)
+
+    #Check and report on the progress of calculations
+    while len(Jobs2Complete) > 0:
+        JustCompleted = [job for job in Jobs2Complete if
+            IsMedivirComplete(job[:-2] + 'nwo', settings)]
+        Jobs2Complete[:] = [job for job in Jobs2Complete if
+             not IsMedivirComplete(job[:-2] + 'nwo', settings)]
+        if n2complete != len(Jobs2Complete):
+            n2complete = len(Jobs2Complete)
+            print str(n2complete) + " remaining."
+
+        time.sleep(60)
+
+    print "Calculation on the cluster done.\n"
+                                   
+                                   
 def WriteSubScript(NWJob, queue, ZiggyJobFolder, settings):
 
     if not (os.path.exists(NWJob+'.nw')):
@@ -288,6 +327,35 @@ def WriteSubScript(NWJob, queue, ZiggyJobFolder, settings):
     QSub.close()
 
 
+def WriteMedivirSubScript(NWJob, settings):
+
+    if not (os.path.exists(NWJob+'.nw')):
+        print "The input file " + NWJob + ".nw does not exist. Exiting..."
+        return
+
+    #Create the submission script
+    QSub = open(NWJob + ".qsub", 'w')
+
+    QSub.write('#PBS -S /bin/tcsh\n')
+    QSub.write('#PBS -l nodes=1:ppn=24\n#\n')
+    QSub.write('#PBS -N ' + NWJob + '\n')
+    QSub.write('#PBS -j oe\n')
+
+    QSub.write('mkdir /scr/' + NWJob + '\n')
+    QSub.write('cd /scr/' + NWJob + '\n')
+
+    #load relevant modules
+    QSub.write('module load nwchem-6.5\n')
+
+    QSub.write('mpiexec nwchem ' + os.getcwd() + '/' + NWJob + '.nw > '
+	 + os.getcwd() + '/' + NWJob + '.nwo\n')
+
+    QSub.write('cd ../\n')
+    QSub.write('rm -r /scr/' + NWJob + '\n')
+
+    QSub.close()
+    
+
 def IsZiggyGComplete(f, folder, settings):
 
     path = '/home/' + settings.user + '/' + folder + '/'
@@ -302,6 +370,24 @@ def IsZiggyGComplete(f, folder, settings):
                                             shell=True)
         except subprocess.CalledProcessError, e:
             print "ssh ziggy cat failed: " + str(e.output)
+            return False
+        if "AUTHORS" in outp2:
+            return True
+    return False
+
+
+def IsMedivirComplete(f, settings):
+
+    try:
+        outp1 = subprocess.check_output('ls ', shell=True)
+    except subprocess.CalledProcessError, e:
+        print "ls failed: " + str(e.output)
+        return False
+    if f in outp1:
+        try:
+            outp2 = subprocess.check_output('cat ' + f, shell=True)
+        except subprocess.CalledProcessError, e:
+            print "cat failed: " + str(e.output)
             return False
         if "AUTHORS" in outp2:
             return True
