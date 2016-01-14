@@ -31,8 +31,8 @@ def main(numDS, settings, *args):
         (RelEs, populations, labels, BoltzmannShieldings, Jlabels, BoltzmannFCs,
             BoltzmannJs, SigConfs, Ntaut) =  \
             Gaussian.RunNMRPredict(numDS, settings, *args)
-    elif settings.DFT == 'n' or settings.DFT == 'w':
-        (RelEs, populations, labels, BoltzmannShieldings, Ntaut) = \
+    elif settings.DFT == 'n' or settings.DFT == 'w' or settings.DFT == 'm':
+        (RelEs, populations, labels, BoltzmannShieldings, SigConfs, Ntaut) = \
                                             NWChem.RunNMRPredict(numDS, *args)
     
     if settings.RenumberFile != '':
@@ -90,8 +90,9 @@ def main(numDS, settings, *args):
             OptHvalues.append(BuffH)
             tstart = tstart + Ntaut[tindex]
     
-    NewBJs, NewJlabels = ZeroEquivJ(BoltzmannJs, Jlabels, equivs, omits)
-    NewFCs, NewFClabels = ZeroEquivJ(BoltzmannFCs, Jlabels, equivs, omits)
+    if any([settings.jKarplus, settings.jJ, settings.jFC]):
+        NewBJs, NewJlabels = ZeroEquivJ(BoltzmannJs, Jlabels, equivs, omits)
+        NewFCs, NewFClabels = ZeroEquivJ(BoltzmannFCs, Jlabels, equivs, omits)
     
     print "The calculated data for other nuclei:"
     PrintOtherNuclei(numDS, Xlabels, Xvalues)

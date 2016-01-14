@@ -83,9 +83,23 @@ def WriteNWChemFile(NWCheminp, conformer, atoms, charge, settings):
         f.write('  ' + atoms[natom] + ' ' + atom[1] + ' ' + atom[2] + ' ' +
                 atom[3] + '\n')
         natom = natom + 1
-
-    f.write('end\n\nbasis\n  * library 6-31G**\nend\n\n')
-    f.write('dft\n  xc b3lyp\n  mult 1\nend\n\n')
+    
+    basis = settings.BasisSet
+    if basis.lower() == '6-31g(d,p)':
+        basis = '6-31g**'
+    elif basis.lower() == '6-311g(d)':
+        basis = '6-311g*'
+    
+    f.write('end\n\nbasis\n  * library ' + basis + '\nend\n\n')
+    if (settings.Functional).lower() == 'b3lyp':
+        f.write('dft\n  xc b3lyp\n  mult 1\nend\n\n')
+    elif (settings.Functional).lower() == 'm062x' or\
+        (settings.Functional).lower() == 'm06-2x':
+        f.write('dft\n  xc m06-2x\n  mult 1\nend\n\n')
+    elif (settings.Functional).lower() == 'mpw1pw91':
+        f.write('dft\n  xc mpw91 0.75 HFexch 0.25 perdew91\n  mult 1\nend\n\n')
+    else:
+        f.write('dft\n  xc ' + settings.Functional + '\n  mult 1\nend\n\n')
     if settings.Solvent != "":
         f.write('cosmo\n  do_cosmo_smd true\n  solvent ' + settings.Solvent + '\n')
         f.write('end\n\n')
@@ -144,6 +158,7 @@ def RunNMRPredict(numDS, *args):
     RelEs = []
     populations = []
     BoltzmannShieldings = []
+    SigConfs = []
 
     print NWNames
     print NTaut
@@ -156,12 +171,13 @@ def RunNMRPredict(numDS, *args):
             NWFiles[f] = NWFiles[f][:-4]
 
         #Runs nmrPredictNWChem Name001, ... and collects output
-        (x, y, labels, z) = nmrPredictNWChem.main(*NWFiles)
+        (x, y, labels, z, SCs) = nmrPredictNWChem.main(*NWFiles)
         RelEs.append(x)
         populations.append(y)
         BoltzmannShieldings.append(z)
+        SigConfs.append(SCs)
 
-    return (RelEs, populations, labels, BoltzmannShieldings, NTaut)
+    return (RelEs, populations, labels, BoltzmannShieldings, SigConfs, NTaut)
 
 
 def IsNWChemCompleted(f):

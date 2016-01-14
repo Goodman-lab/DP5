@@ -46,6 +46,18 @@ def main(*args):
     for i in range(0, len(populations)):
         populations[i] = populations[i]/q
 
+    #Make a list of populations and corresponding files for reporting
+    #significant conformations
+    from operator import itemgetter
+    ConfsPops = [list(x) for x in zip(args, populations)]
+    ConfsPops.sort(key=itemgetter(1), reverse=True)
+    totpop = 0
+    i = 0
+    while totpop<0.8:
+        totpop += ConfsPops[i][1]
+        i += 1
+    SigConfs = ConfsPops[:i]
+
     #Calculate Boltzmann weighed shielding constants
     #by summing the shifts multiplied by the isomers population
     Natoms = len(labels)
@@ -58,7 +70,7 @@ def main(*args):
                 populations[conformer]
         BoltzmannShieldings.append(shielding)
 
-    return (relEs, populations, labels, BoltzmannShieldings)
+    return (relEs, populations, labels, BoltzmannShieldings, SigConfs)
 
 
 def ReadShieldings(NWOutpFile):

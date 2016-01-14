@@ -231,7 +231,7 @@ def main(filename, ExpNMR, nfiles):
         if settings.ConfPrune:
             if settings.DFT == 'z' or settings.DFT == 'g' or settings.DFT == 'd':
                 adjRMSDcutoff = Gaussian.AdaptiveRMSD(inpfiles[0], settings)
-            elif settings.DFT == 'n' or settings.DFT == 'w':
+            elif settings.DFT == 'n' or settings.DFT == 'w' or settings.DFT == 'm':
                 adjRMSDcutoff = NWChem.AdaptiveRMSD(inpfiles[0], settings)
             print 'RMSD cutoff adjusted to ' + str(adjRMSDcutoff)
         else:
@@ -439,7 +439,7 @@ if __name__ == '__main__':
     parser.add_argument('-d', '--dft', help="Select DFT program, j for Jaguar,\
     g for Gaussian, n for NWChem, z for Gaussian on ziggy, d for Gaussian on \
     Darwin, w for NWChem on ziggy, m for NWChem on Medivir cluster, default is z",
-        choices=['j', 'g', 'n', 'z', 'w', 'd'], default='z')
+        choices=['j', 'g', 'n', 'z', 'w', 'm', 'd'], default='z')
     parser.add_argument('--StepCount', help="Specify\
     stereocentres for diastereomer generation")
     parser.add_argument('StructureFiles', nargs='+', default=['-'], help=
