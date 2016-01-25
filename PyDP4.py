@@ -97,6 +97,8 @@ class Settings:
     GenOnly = False
     StatsModel = 'g'
     StatsParamFile = ''
+    JStatsModel = 'g'
+    JStatsParamFile = ''
     EnergyDir = ''
     SelectedStereocentres = []
     charge = None
@@ -475,6 +477,8 @@ if __name__ == '__main__':
     rotated, useful for molecules with several 5-membered rings")
     parser.add_argument('-S', '--Stats', help="Specify the stats model and\
     parameters")
+    parser.add_argument('--JStats', help="Specify the stats model and\
+    parameters for coupling constants")
     parser.add_argument('-E', '--EnergyDir', help="Specify the location for\
     the corresponding output files containing the energies of the conformers.\
     Useful when NMR and energies need to be calculated at different levels.")
@@ -558,6 +562,9 @@ if __name__ == '__main__':
     if args.Stats is not None:
         settings.StatsModel = (args.Stats)[0]
         settings.StatsParamFile = (args.Stats)[1:]
+    if args.JStats is not None:
+        settings.JStatsModel = (args.JStats)[0]
+        settings.JStatsParamFile = (args.JStats)[1:]
     if args.mm == 't':
         settings.MMTinker = True
         settings.MMMacromodel = False
