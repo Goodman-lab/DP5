@@ -146,12 +146,18 @@ def DP4j(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, cJvals, cJlabels,
         
         assignedExpJs, assignedCJs = AssignJvals(sExpJvalues, sCalcJvalues)
         
-        if settings.jKarplus:
-            ScaledJ = ScaleKarplusJvals(assignedCJs)
-        elif settings.jJ:
-            ScaledJ = ScaleJvals(assignedCJs)
-        elif settings.jFC:
-            ScaledJ = ScaleFCvals(assignedCJs)
+        if settings.JStatsParamFile == '':
+            if settings.jKarplus:
+                slope, intercept = KARPLUS_SLOPE, KARPLUS_INTERCEPT
+            elif settings.jJ:
+                slope, intercept = J_SLOPE, J_INTERCEPT
+            elif settings.jFC:
+                slope, intercept = FC_SLOPE, FC_INTERCEPT
+        else:
+            slope, intercept = ReadJParamFile(settings.JStatsParamFile,
+                                             settings.JStatsModel)[:2]
+        
+        ScaledJ = ScaleJvals(assignedCJs, slope, intercept)
 
         ScaledErrorsC = [scaledC[i] - sortedCexp[i]
                          for i in range(0, len(scaledC))]
@@ -199,15 +205,12 @@ def DP4j(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, cJvals, cJlabels,
             H_cdp4.append(CalculateRKDE(ErrorsH, sortedHexp,
                 settings.StatsParamFile, settings.StatsModel, 'H'))
         
-        if settings.jKarplus:
-            #J_dp4.append(CalculatePDP4(ScaledErrorsJ, meanKJ, stdevKJ))
-            J_dp4.append(CalculateKDE(ScaledErrorsJ, settings.ScriptDir + '/KarplusKDE.pkl', 't', 'k'))
-        elif settings.jJ:
+        if settings.JStatsModel == 'k':
+            J_dp4.append(CalculateJKDE(ScaledErrorsJ, settings.JStatsParamFile, 'k'))
+        else:
+            Jmean, Jstdev = ReadJParamFile(settings.JStatsParamFile,
+                                             settings.JStatsModel)[2:]
             J_dp4.append(CalculatePDP4(ScaledErrorsJ, meanJ, stdevJ))
-            #J_dp4.append(CalculateKDE(ScaledErrorsJ, settings.ScriptDir + '/JKDE.pkl'))
-        elif settings.jFC:
-            #J_dp4.append(CalculatePDP4(ScaledErrorsJ, meanFC, stdevFC))
-            J_dp4.append(CalculateKDE(ScaledErrorsJ, settings.ScriptDir + '/FCKDE.pkl'))
         
         Comb_cdp4.append(C_cdp4[-1]*H_cdp4[-1])
         Super_dp4.append(C_cdp4[-1]*H_cdp4[-1]*J_dp4[-1])
@@ -404,29 +407,11 @@ def AssignJvals(expJ, calcJ):
     
     return prunedExpJ, assignedCalcJ
 
-def ScaleJvals(calcJ):
+def ScaleJvals(calcJ, slope, intercept):
     scaledJs = []
     
     for cJ in calcJ:
-        scaledJs.append([(j-J_INTERCEPT)/J_SLOPE for j in cJ])
-    
-    return scaledJs
-
-
-def ScaleFCvals(calcJ):
-    scaledJs = []
-    
-    for cJ in calcJ:
-        scaledJs.append([(j-FC_INTERCEPT)/FC_SLOPE for j in cJ])
-    
-    return scaledJs
-
-
-def ScaleKarplusJvals(calcJ):
-    scaledJs = []
-    
-    for cJ in calcJ:
-        scaledJs.append([(j-KARPLUS_INTERCEPT)/KARPLUS_SLOPE for j in cJ])
+        scaledJs.append([(j-intercept)/slope for j in cJ])
     
     return scaledJs
 
@@ -532,6 +517,28 @@ def ReadParamFile(f, t):
         
         return Cregions, Cerrors, Hregions, Herrors
 
+
+def ReadJParamFile(f, t):
+    
+    infile = open(f, 'r')
+    inp = infile.readlines()
+    infile.close()
+    
+    if t not in inp[0]:
+        print "Wrong parameter file type, exiting..."
+        quit()
+    
+    if t == 'g': #Gaussian model for J values, includes linear scaling factors
+        [slope, intercept] = [float(x) for x in inp[1].split(',')]
+        [Jmean, Jstdev] = [float(x) for x in inp[2].split(',')]
+        return slope, intercept, Jmean, Jstdev
+    
+    elif t == 'j': #KDE model for J values, includes linear scaling factors
+        [slope, intercept] = [float(x) for x in inp[1].split(',')]
+        Jerrors = [float(x) for x in inp[2].split(',')]
+        return slope, intercept, Jerrors
+    
+        
 def CalculateCDP4(errors, expect, stdev):
     cdp4 = 1.0
     for e in errors:
@@ -550,8 +557,6 @@ def CalculatePDP4(errors, expect, stdev):
     return pdp4
 
 
-#use as CalculateKDE(errors, 'NucCErr.pkl') for C or
-#CalculateKDE(errors, 'NucHErr.pkl') for H
 #load empirical error data from file and use KDE to construct pdf
 def CalculateKDE(errors, ParamFile, t, nucleus):
 
@@ -576,8 +581,19 @@ def CalculateKDE(errors, ParamFile, t, nucleus):
     return ep5
 
 
-#use as CalculateRKDE(errors, 'RKDEC.pkl') for C or
-#CalculateKDE(errors, 'RKDEH.pkl') for H
+#load empirical error data from file and use KDE to construct pdf
+def CalculateJKDE(errors, ParamFile, t):
+
+    slope, intercept, Jerrors = ReadJParamFile(ParamFile, t)
+    kde = stats.gaussian_kde(Jerrors)
+    
+    ep5 = 1.0
+    for e in errors:
+        #z = (e-expect)/stdev
+        #pdp4 = pdp4*stats.norm.pdf(z)
+        ep5 = ep5*float(kde(e)[0])
+    return ep5
+
 #load empirical error data from file and use KDE to construct several pdfs,
 #one for each chemical shift region, can be used both for scaled and unscaled
 #errors with the appropriate data
