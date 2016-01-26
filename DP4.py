@@ -21,16 +21,16 @@ stdevC = 2.269372270818724
 stdevH = 0.18731058105269952
 
 #DFT J value parameters
-meanJ = -0.13133138905769429
-stdevJ = 0.79315485469419067
+FULLJ_MEAN = -0.13133138905769429
+FULLJ_STDEV = 0.79315485469419067
 
 #DFT FC value parameters
-meanFC = -0.15436128540661589
-stdevFC = 0.92117647579294348
+FC_MEAN = -0.15436128540661589
+FC_STDEV = 0.92117647579294348
 
 #Karplus J value parameters
-meanKJ = 0.015779860851173257
-stdevKJ = 1.5949855401519151
+KARPLUS_MEAN = 0.015779860851173257
+KARPLUS_STDEV = 1.5949855401519151
 
 output = []
 J_THRESH = 0.2
@@ -208,9 +208,17 @@ def DP4j(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, cJvals, cJlabels,
         if settings.JStatsModel == 'k':
             J_dp4.append(CalculateJKDE(ScaledErrorsJ, settings.JStatsParamFile, 'k'))
         else:
-            Jmean, Jstdev = ReadJParamFile(settings.JStatsParamFile,
-                                             settings.JStatsModel)[2:]
-            J_dp4.append(CalculatePDP4(ScaledErrorsJ, meanJ, stdevJ))
+            if settings.JStatsParamFile != '':
+                Jmean, Jstdev = ReadJParamFile(settings.JStatsParamFile,
+                                                 settings.JStatsModel)[2:]
+            elif settings.jKarplus:
+                Jmean, Jstdev = KARPLUS_MEAN, KARPLUS_STDEV
+            elif settings.jFC:
+                Jmean, Jstdev = FC_MEAN, FC_STDEV
+            elif settings.jJ:
+                Jmean, Jstdev = FULLJ_MEAN, FULLJ_STDEV
+            
+            J_dp4.append(CalculatePDP4(ScaledErrorsJ, Jmean, Jstdev))
         
         Comb_cdp4.append(C_cdp4[-1]*H_cdp4[-1])
         Super_dp4.append(C_cdp4[-1]*H_cdp4[-1]*J_dp4[-1])
@@ -533,7 +541,7 @@ def ReadJParamFile(f, t):
         [Jmean, Jstdev] = [float(x) for x in inp[2].split(',')]
         return slope, intercept, Jmean, Jstdev
     
-    elif t == 'j': #KDE model for J values, includes linear scaling factors
+    elif t == 'k': #KDE model for J values, includes linear scaling factors
         [slope, intercept] = [float(x) for x in inp[1].split(',')]
         Jerrors = [float(x) for x in inp[2].split(',')]
         return slope, intercept, Jerrors
@@ -560,13 +568,7 @@ def CalculatePDP4(errors, expect, stdev):
 #load empirical error data from file and use KDE to construct pdf
 def CalculateKDE(errors, ParamFile, t, nucleus):
 
-    #pkl_file = open(PickleFile, 'rb')
-    if nucleus == 'k':
-        pkl_file = open(ParamFile, 'rb')
-        ErrorData = pickle.load(pkl_file)
-        kde = stats.gaussian_kde(ErrorData)
-    else:
-        Cerrors, Herrors = ReadParamFile(ParamFile, t)
+    Cerrors, Herrors = ReadParamFile(ParamFile, t)
         
     if nucleus == 'C':
         kde = stats.gaussian_kde(Cerrors)
