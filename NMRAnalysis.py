@@ -159,8 +159,6 @@ def GetCalcShiftsLabels(numDS, BShieldings, labels, omits, settings):
     Cvalues = []
     Hvalues = []
     
-    flatomits = [val for sublist in omits for val in sublist]
-    
     for DS in range(numDS):
 
         Cvalues.append([])
@@ -170,7 +168,7 @@ def GetCalcShiftsLabels(numDS, BShieldings, labels, omits, settings):
         #and calculates shifts relative to TMS
         for atom in range(len(BShieldings[DS])):
             shift = 0
-            if labels[atom][0] == 'C' and not labels[atom] in flatomits:
+            if labels[atom][0] == 'C' and not labels[atom] in omits:
                 # only read labels once, i.e. the first diastereomer
                 if DS == 0:
                     Clabels.append(labels[atom])
@@ -178,7 +176,7 @@ def GetCalcShiftsLabels(numDS, BShieldings, labels, omits, settings):
                     (1-(settings.TMS_SC_C13/10**6))
                 Cvalues[DS].append(shift)
 
-            if labels[atom][0] == 'H' and not labels[atom] in flatomits:
+            if labels[atom][0] == 'H' and not labels[atom] in omits:
                 # only read labels once, i.e. the first diastereomer
                 if DS == 0:
                     Hlabels.append(labels[atom])

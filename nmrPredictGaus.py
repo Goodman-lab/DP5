@@ -162,6 +162,7 @@ def ReadCouplingConstants(GOutpFile, atomlabels):
     Jmat, Jmatlabels = RemoveAtomsMatrix(Jmat, Jmatlabels, atomlabels)
     return FCmat, Jmat, Jmatlabels
 
+
 def RemoveAtomsMatrix(mat, matlabels, atomlabels):
 
     if len(mat) < 2:

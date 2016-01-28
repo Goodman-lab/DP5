@@ -145,7 +145,7 @@ def DP4j(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, cJvals, cJlabels,
         scaledH = ScaleNMR(sortedHvalues, sortedHexp)
         
         assignedExpJs, assignedCJs = AssignJvals(sExpJvalues, sCalcJvalues)
-        
+                
         if settings.JStatsParamFile == '':
             if settings.jKarplus:
                 slope, intercept = KARPLUS_SLOPE, KARPLUS_INTERCEPT
@@ -157,7 +157,7 @@ def DP4j(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, cJvals, cJlabels,
             slope, intercept = ReadJParamFile(settings.JStatsParamFile,
                                              settings.JStatsModel)[:2]
         
-        ScaledJ = ScaleJvals(assignedCJs, slope, intercept)
+        ScaledCJs = ScaleJvals(assignedCJs, slope, intercept)
 
         ScaledErrorsC = [scaledC[i] - sortedCexp[i]
                          for i in range(0, len(scaledC))]
@@ -167,8 +167,8 @@ def DP4j(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, cJvals, cJlabels,
                          for i in range(0, len(scaledH))]
         ErrorsH = [sortedHvalues[i] - sortedHexp[i]
                          for i in range(0, len(sortedHvalues))]
-                            
-        ScaledErrorsJ = CalculateJerrors(assignedExpJs, ScaledJ)
+        
+        ScaledErrorsJ = CalculateJerrors(assignedExpJs, ScaledCJs)
         
         Print("\nAssigned shifts for isomer " + str(isomer+1) + ": ")
         PrintNMR('C', sortedClabels, sortedCvalues, scaledC, sortedCexp)
@@ -310,13 +310,17 @@ def AssignExpNMRj(labels, calcShifts, exp, cJvalues, cJlabels):
     sortedExpLabels = SortExpAssignments(expShifts, expLabels)
     sortedCalcLabels = []
     sortedExpJs = []
+    
     for v in sortedExp:
         index = expShifts.index(v)
         sortedExpJs.append(expJs[index])
-    
+ 
+    tempCalcShifts = list(calcShifts)   
     for v in sortedCalc:
-        index = calcShifts.index(v)
+        index = tempCalcShifts.index(v)
         sortedCalcLabels.append(labels[index])
+        #Remove the value to avoid duplicate labels
+        tempCalcShifts[index] = -100
 
     assignedExpLabels = ['' for i in range(0, len(sortedExp))]
     
@@ -392,18 +396,23 @@ def AssignJvals(expJ, calcJ):
     for i in calcJ:
         prunedCJs.append([abs(j) for j in i if abs(j)>J_THRESH])
     
-    #Check that calculated J values are not less than experimental
+    #Check that number of calculated J values are not less than experimental
     #relevant if using Karplus equation
     prunedExpJ = list(expJ)
+    
     for i in range(len(expJ)):
-        if len(prunedCJs[i]) == 0:
-            prunedExpJ[i] = [0.0]
-
+        if len(prunedCJs[i]) < len(prunedExpJ[i]):
+            prunedCJs[i].extend([0.0 for i in range(len(prunedExpJ[i])-len(prunedCJs[i]))])
+    
     assignedCalcJ = []
+    
+    #IMPORTANT:
+    #Deal with cases the number of calc J values are less than exp
     for eJ, cJ in zip(prunedExpJ, prunedCJs):
         if eJ != [0.0]:
+            
             minerror = 10000
-            minassign = []
+            minassign = [0.0 for i in range(len(eJ))]
             for assign in itertools.permutations(cJ, len(eJ)):
                 error = sum([abs(assign[i]-eJ[i]) for i in range(len(eJ))])
                 if error<minerror:
@@ -412,8 +421,9 @@ def AssignJvals(expJ, calcJ):
             assignedCalcJ.append(list(minassign))
         else:
             assignedCalcJ.append([0.0])
-    
+        
     return prunedExpJ, assignedCalcJ
+
 
 def ScaleJvals(calcJ, slope, intercept):
     scaledJs = []
@@ -626,6 +636,7 @@ def CalculateJerrors(expJ, calcJ):
     
     errors = []
     for eJ, cJ in zip(expJ, calcJ):
-        errors.extend([abs(eJ[i] - cJ[i]) for i in range(len(eJ))])
+        if eJ != [0.0]:
+            errors.extend([abs(eJ[i] - cJ[i]) for i in range(len(eJ))])
     
     return errors

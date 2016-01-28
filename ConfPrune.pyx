@@ -213,7 +213,7 @@ def GetAtomWeight(AtomNum):
 
 """
  * This routine is a python translation of the QTRFIT Fortran routine
- * of David Hesiterberg
+ * of David Heisterberg
  *
  * David J. Heisterberg
  * The Ohio Supercomputer Center, 1224 Kinnear Rd,
