@@ -76,6 +76,8 @@ def AdaptiveRMSD(MMoutp, settings):
 def WriteGausFile(Gausinp, conformer, atoms, charge, settings):
 
     f = file(Gausinp + '.com', 'w')
+    if(settings.nProc > 1):
+        f.write('%nprocshared=' + str(settings.nProc) + '\n')
     f.write('%mem=6000MB\n%chk='+Gausinp + '.chk\n')
     
     if (settings.Functional).lower() == 'wp04':
@@ -490,7 +492,11 @@ def WriteSubScript(GausJob, queue, ZiggyJobFolder, settings):
     QSub = open(GausJob + ".qsub", 'w')
 
     #Choose the queue
-    QSub.write('#PBS -q ' + queue + '\n#PBS -l nodes=1:ppn=1\n#\n')
+    QSub.write('#PBS -q ' + queue + '\n')
+    if settings.nProc >1:
+        QSub.write('#PBS -l nodes=1:ppn=' + str(settings.nProc) + '\n#\n')
+    else:
+        QSub.write('#PBS -l nodes=1:ppn=1\n#\n')
 
     #define input files and output files
     QSub.write('file=' + GausJob + '\n\n')
@@ -504,7 +510,10 @@ def WriteSubScript(GausJob, queue, ZiggyJobFolder, settings):
     QSub.write('mkdir ${LSCRATCH}\n')
 
     #Setup GAUSSIAN environment variables
-    QSub.write('set OMP_NUM_THREADS=1\n')
+    if settings.nProc >1:
+        QSub.write('set OMP_NUM_THREADS=12\n')
+    else:
+        QSub.write('set OMP_NUM_THREADS=1\n')
     QSub.write('export GAUSS_EXEDIR=/usr/local/shared/gaussian/em64t/09-D01/g09\n')
     QSub.write('export g09root=/usr/local/shared/gaussian/em64t/09-D01\n')
     QSub.write('export PATH=/usr/local/shared/gaussian/em64t/09-D01/g09:$PATH\n')
