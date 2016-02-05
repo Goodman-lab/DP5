@@ -401,8 +401,10 @@ def AssignJvals(expJ, calcJ):
     prunedExpJ = list(expJ)
     
     for i in range(len(expJ)):
-        if len(prunedCJs[i]) < len(prunedExpJ[i]):
-            prunedCJs[i].extend([0.0 for i in range(len(prunedExpJ[i])-len(prunedCJs[i]))])
+        if len(prunedCJs[i]) == 0:
+            prunedExpJ[i] = [0.0]
+        #if len(prunedCJs[i]) < len(prunedExpJ[i]):
+        #    prunedCJs[i].extend([0.0 for i in range(len(prunedExpJ[i])-len(prunedCJs[i]))])
     
     assignedCalcJ = []
     

@@ -76,6 +76,7 @@ class Settings:
     TinkerPath = '~/tinker7/bin/scan '
     OBPath = '/home/ke291/Tools/openbabel-install/lib/python2.7/site-packages/'
     SCHRODINGER = '/usr/local/shared/schrodinger/current'
+    nProc = 1
     OtherNuclei = ''
     RenumberFile = ''
     ScriptDir = ''
@@ -459,6 +460,8 @@ if __name__ == '__main__':
     parser.add_argument("-t", "--ntaut", help="Specify number of explicit\
     tautomers per diastereomer given in structure files, must be a multiple\
     of structure files", type=int, default=1)
+    parser.add_argument("--nProc", help="Specify number of processor cores\
+    to use for Gaussian calculations", type=int, default=1)
     parser.add_argument("-l", "--ConfLimit", help="Specify maximum number of \
     conformers per structure. If above this, adaptive RMSD pruning will be \
     performed", type=int, default=100)
@@ -523,6 +526,7 @@ if __name__ == '__main__':
     settings.PerStructConfLimit = args.ConfLimit
     settings.BasisSet = args.BasisSet
     settings.Functional = args.Functional
+    settings.nProc = args.nProc
     
     if settings.DFT == 'd' and not args.TimeLimit:
         print "For calculations on Darwin explicit time limit in hours " + \
