@@ -535,6 +535,7 @@ def WriteSubScript(GausJob, queue, ZiggyJobFolder, settings):
 
     QSub.close()
 
+
 #Function to write ziggy script when dft optimisation is used
 def WriteSubScriptOpt(GausJob, queue, ZiggyJobFolder, settings):
 

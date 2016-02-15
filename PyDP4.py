@@ -462,6 +462,8 @@ if __name__ == '__main__':
     of structure files", type=int, default=1)
     parser.add_argument("--nProc", help="Specify number of processor cores\
     to use for Gaussian calculations", type=int, default=1)
+    parser.add_argument("--batch", help="Specify max number of jobs per batch",
+    type=int, default=75)
     parser.add_argument("-l", "--ConfLimit", help="Specify maximum number of \
     conformers per structure. If above this, adaptive RMSD pruning will be \
     performed", type=int, default=100)
@@ -527,6 +529,7 @@ if __name__ == '__main__':
     settings.BasisSet = args.BasisSet
     settings.Functional = args.Functional
     settings.nProc = args.nProc
+    settings.MaxConcurrentJobs = args.batch
     
     if settings.DFT == 'd' and not args.TimeLimit:
         print "For calculations on Darwin explicit time limit in hours " + \
