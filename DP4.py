@@ -94,6 +94,12 @@ def DP4(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, settings):
                                        settings.StatsModel, 'C'))
             H_cdp4.append(CalculateKDE(ScaledErrorsH, settings.StatsParamFile,
                                        settings.StatsModel, 'H'))
+ 
+        elif settings.StatsModel == 'm':
+            C_cdp4.append(CalculateMultiGaus(ScaledErrorsC,
+                            settings.StatsParamFile, settings.StatsModel, 'C'))
+            H_cdp4.append(CalculateMultiGaus(ScaledErrorsH,
+                            settings.StatsParamFile, settings.StatsModel, 'H'))
             
         elif settings.StatsModel == 'r':
             C_cdp4.append(CalculateRKDE(ScaledErrorsC, sortedCexp,
@@ -521,6 +527,13 @@ def ReadParamFile(f, t):
         [Hmean, Hstdev] = [float(x) for x in inp[2].split(',')]
         return Cmean, Cstdev, Hmean, Hstdev
     
+    if t == 'm':
+        Cmeans = [float(x) for x in inp[1].split(',')]
+        Cstdevs = [float(x) for x in inp[2].split(',')]
+        Hmeans = [float(x) for x in inp[3].split(',')]
+        Hstdevs = [float(x) for x in inp[4].split(',')]
+        return Cmeans, Cstdevs, Hmeans, Hstdevs
+    
     elif t == 'k':
         Cerrors = [float(x) for x in inp[1].split(',')]
         Herrors = [float(x) for x in inp[2].split(',')]
@@ -571,28 +584,47 @@ def CalculateCDP4(errors, expect, stdev):
 def CalculatePDP4(errors, expect, stdev):
     pdp4 = 1.0
     for e in errors:
-        #z = (e-expect)/stdev
-        #pdp4 = pdp4*stats.norm.pdf(z)
         pdp4 = pdp4*stats.norm(expect, stdev).pdf(e)
     return pdp4
+
+
+#load MultiGaus data from file and calculate probabilities
+def CalculateMultiGaus(errors, ParamFile, t, nucleus):
+
+    Cmeans, Cstdevs, Hmeans, Hstdevs = ReadParamFile(ParamFile, t)
+    if nucleus == 'C':
+        means, stdevs = Cmeans, Cstdevs
+    elif nucleus == 'H':
+        means, stdevs = Hmeans, Hstdevs
+
+    prob = 1.0
+    for e in errors:
+        prob = prob*MultiGaus(means, stdevs, e)
+    return prob
+
+
+def MultiGaus(means, stdevs, x):
+    res = 0
+    for mean, stdev in zip(means, stdevs):
+        res += stats.norm(mean, stdev).pdf(x)
+
+    return res/len(means)
 
 
 #load empirical error data from file and use KDE to construct pdf
 def CalculateKDE(errors, ParamFile, t, nucleus):
 
-    Cerrors, Herrors = ReadParamFile(ParamFile, t)
+    Cerrors, Herrors = ReadParamFile(ParamFile, 'k')
         
     if nucleus == 'C':
         kde = stats.gaussian_kde(Cerrors)
     elif nucleus == 'H':
         kde = stats.gaussian_kde(Herrors)
 
-    ep5 = 1.0
+    prob = 1.0
     for e in errors:
-        #z = (e-expect)/stdev
-        #pdp4 = pdp4*stats.norm.pdf(z)
-        ep5 = ep5*float(kde(e)[0])
-    return ep5
+        prob = prob*float(kde(e)[0])
+    return prob
 
 
 #load empirical error data from file and use KDE to construct pdf
@@ -603,8 +635,6 @@ def CalculateJKDE(errors, ParamFile, t):
     
     ep5 = 1.0
     for e in errors:
-        #z = (e-expect)/stdev
-        #pdp4 = pdp4*stats.norm.pdf(z)
         ep5 = ep5*float(kde(e)[0])
     return ep5
 
