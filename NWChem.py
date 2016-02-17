@@ -75,7 +75,12 @@ def WriteNWChemFile(NWCheminp, conformer, atoms, charge, settings):
         f.write('scratch_dir /scratch/' + settings.user + '/' + NWCheminp + '\n')
     f.write('echo\n\nstart molecule\n\ntitle "'+NWCheminp+'"\n')
     f.write('echo\n\nstart\n\n')
-    f.write('charge ' + str(charge) + '\n\n')
+    
+    if settings.charge is not None:
+        f.write('charge ' + str(settings.charge) + '\n\n')
+    else:
+        f.write('charge ' + str(charge) + '\n\n')
+    
     f.write('geometry units angstroms print xyz autosym\n')
 
     natom = 0
