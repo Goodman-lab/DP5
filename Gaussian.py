@@ -142,10 +142,10 @@ def WriteGausFileOpt(Gausinp, conformer, atoms, charge, settings):
     f1.write('%mem=6000MB\n%chk='+Gausinp + '.chk\n')
 
     if settings.Solvent != '':
-        f1.write('# b3lyp/6-31g(d,p) Opt=(maxcycles=30) scrf=(solvent=' +
+        f1.write('# b3lyp/6-31g(d,p) Opt=(maxcycles=50) scrf=(solvent=' +
                  settings.Solvent+')\n')
     else:
-        f1.write('# b3lyp/6-31g(d,p) Opt=(maxcycles=30)\n')
+        f1.write('# b3lyp/6-31g(d,p) Opt=(maxcycles=50)\n')
 
     f1.write('\n'+Gausinp+'\n\n')
     f1.write(str(charge) + ' 1\n')
@@ -577,7 +577,8 @@ def WriteSubScriptOpt(GausJob, queue, ZiggyJobFolder, settings):
     #write useful info to the job output file (not the gaussian)
     QSub.write('echo "Starting job $PBS_JOBID"\necho\n')
     QSub.write('echo "PBS assigned me this node:"\ncat $PBS_NODEFILE\necho\n')
-
+    
+    QSub.write('ln -s $HERE/$outfile1 $SCRATCH/$outfile1\n')
     QSub.write('ln -s $HERE/$outfile2 $SCRATCH/$outfile2\n')
     QSub.write('$GAUSS_EXEDIR/g09 < $inpfile1 > $outfile1\n')
     QSub.write('$GAUSS_EXEDIR/g09 < $inpfile2 > $outfile2\n')
@@ -637,6 +638,7 @@ def RunNMRPredict(numDS, settings, *args):
 
         GausFiles = glob.glob(isomer + 'ginp*.out')
         GausFiles = [x[:-4] for x in GausFiles]
+        GausFiles = [x for x in GausFiles if 'temp' not in x]
         
         #Runs nmrPredictGaus Name001, ... and collects output
         Es, Pops, ls, BSs, Jls, BFCs, BJs, SCs = nmrPredictGaus.main(settings,
