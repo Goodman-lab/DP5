@@ -70,6 +70,9 @@ class Settings:
     jKarplus = False
     jFC = False
     jJ = False
+    ProbFloor = False
+    ProbThreshH = 1.0
+    ProbThreshC = 7.0
     JDir = ''
     TimeLimit = 24
     queue = 's1'
