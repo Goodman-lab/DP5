@@ -609,8 +609,11 @@ if __name__ == '__main__':
     if args.ra is not None:
         settings.RingAtoms =\
             [int(x) for x in (args.ra).split(',')]
-    if len(args.StructureFiles) == 1:
-        main(args.StructureFiles[0], args.ExpNMR, 1)
+    
+    inpfiles = [x.split('.')[0] for x in args.StructureFiles]
+    
+    if len(inpfiles) == 1:
+        main(inpfiles[0], args.ExpNMR, 1)
     else:
-        main(args.StructureFiles, args.ExpNMR, len(args.StructureFiles))
+        main(inpfiles, args.ExpNMR, len(inpfiles))
     #main()
