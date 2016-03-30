@@ -71,8 +71,8 @@ class Settings:
     jFC = False
     jJ = False
     ProbFloor = False
-    ProbThreshH = 1.0
-    ProbThreshC = 7.0
+    ProbThreshH = 0.9
+    ProbThreshC = 9.0
     JDir = ''
     TimeLimit = 24
     queue = 's1'
