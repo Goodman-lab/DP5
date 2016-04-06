@@ -35,6 +35,8 @@ def SetupGaussian(MMoutp, Gausinp, numDigits, settings, adjRMSDcutoff):
     else:
         (atoms, conformers, charge) = MacroModel.ReadMacromodel(MMoutp,
                                                                 settings)
+    if settings.charge is not None:
+        charge = settings.charge
 
     #Prune similar conformations, if the number exceeds the limit
     if len(conformers) > settings.PerStructConfLimit and settings.ConfPrune:
