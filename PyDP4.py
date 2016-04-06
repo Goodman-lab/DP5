@@ -70,6 +70,7 @@ class Settings:
     jKarplus = False
     jFC = False
     jJ = False
+    Bias = True
     ProbFloor = False
     ProbThreshH = 0.9
     ProbThreshC = 9.0

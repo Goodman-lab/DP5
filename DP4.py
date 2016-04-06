@@ -201,6 +201,113 @@ def DP4j(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, cJvals, cJlabels,
     return output
 
 
+def DP4bias(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, settings):
+
+    Print(str(Cexp))
+    Print(str(Hexp))
+
+    C_cdp4 = []
+    H_cdp4 = []
+    Comb_cdp4 = []
+    
+    LabelsC = []
+    LabelsH = []
+    AllErrorsC = []
+    AllErrorsH = []
+    AllScaledErrorsC = []
+    AllScaledErrorsH = []
+    
+    for isomer in range(0, len(Cvalues)):
+
+        sortedClabels, sortedCvalues, sortedCexp, _ =\
+            AssignExpNMR(Clabels, Cvalues[isomer], Cexp)
+        scaledC = ScaleNMR(sortedCvalues, sortedCexp)
+        
+        sortedHlabels, sortedHvalues, sortedHexp, Jvalues = \
+            AssignExpNMR(Hlabels, Hvalues[isomer], Hexp)
+        scaledH = ScaleNMR(sortedHvalues, sortedHexp)
+
+        ScaledErrorsC = [scaledC[i] - sortedCexp[i]
+                         for i in range(0, len(scaledC))]
+        ErrorsC = [sortedCvalues[i] - sortedCexp[i]
+                         for i in range(0, len(sortedCvalues))]
+        ScaledErrorsH = [scaledH[i] - sortedHexp[i]
+                         for i in range(0, len(scaledH))]
+        ErrorsH = [sortedHvalues[i] - sortedHexp[i]
+                         for i in range(0, len(sortedHvalues))]
+        
+        LabelsC.append(sortedClabels)
+        LabelsH.append(sortedHlabels)
+        AllErrorsC.append(ErrorsC)
+        AllErrorsH.append(ErrorsH)
+        AllScaledErrorsC.append(ScaledErrorsC)
+        AllScaledErrorsH.append(ScaledErrorsH)
+        
+        Print("\nAssigned shifts for isomer " + str(isomer+1) + ": ")
+        PrintNMR('C', sortedClabels, sortedCvalues, scaledC, sortedCexp)
+        Print("Max C error: " + format(max(ScaledErrorsC, key=abs), "6.2f"))
+        PrintNMR('H', sortedHlabels, sortedHvalues, scaledH, sortedHexp)
+        Print("Max H error: " + format(max(ScaledErrorsH, key=abs), "6.2f"))
+    
+    LabelsH1 = LabelsH[0]
+    AllErrorsHr = []
+    
+    LabelsC1, AllErrorsCr = ReorderAllErrors(AllErrorsC, LabelsC)
+    LabelsH1, AllErrorsHr = ReorderAllErrors(AllErrorsH, LabelsH)
+    
+    _, AllScaledErrorsCr = ReorderAllErrors(AllScaledErrorsC, LabelsC)
+    _, AllScaledErrorsHr = ReorderAllErrors(AllScaledErrorsH, LabelsH)
+    
+    Print("Unscaled errors:")
+    PrintErrors(LabelsC1, AllErrorsCr)
+    PrintErrors(LabelsH1, AllErrorsHr)
+    Print("Scaled errors:")
+    PrintErrors(LabelsC1, AllScaledErrorsCr)
+    PrintErrors(LabelsH1, AllScaledErrorsHr)
+
+    """
+    #Apply bias to errors and scaled errors
+    #Calculate probabilities for each ds
+    relCDP4 = [(100*x)/sum(C_cdp4) for x in C_cdp4]
+    relHDP4 = [(100*x)/sum(H_cdp4) for x in H_cdp4]
+    relCombDP4 = [(100*x)/sum(Comb_cdp4) for x in Comb_cdp4]
+
+    PrintRelDP4('all available data', relCombDP4)
+    PrintRelDP4('carbon data only', relCDP4)
+    PrintRelDP4('proton data only', relHDP4)
+    """
+    return output
+
+
+def ReorderAllErrors(AllErrors, AllLabels):
+    
+    Labels1 = AllLabels[0]
+    AllErrorsR = []
+    
+    for i, (labels, errors) in enumerate(zip(AllLabels, AllErrors)):
+        if i ==0:
+            AllErrorsR.append(errors)
+        else:
+            AllErrorsR.append(ReorderErrors(Labels1, labels, errors))
+    
+    return Labels1, AllErrorsR
+
+#given 2 sets of labels and one set of values, the set of values will be
+#reordered from the order in labels2 to the order in labels1
+def ReorderErrors(labels1, labels2, errors2):
+    
+    newErrors = []
+    templabels2 = list(labels2)
+    
+    for l in labels1:
+        index = templabels2.index(l)
+        newErrors.append(errors2[index])
+        #Remove the value to avoid adding the same value twice
+        templabels2[index] = 'XX'
+    
+    return newErrors
+
+
 def AssignExpNMR(labels, calcShifts, exp):
 
     expLabels, expShifts, expJs = ReadExp(exp)
@@ -510,6 +617,15 @@ def PrintNMR(nucleus, labels, values, scaled, exp):
         Print(format(labels[i], "6s") + ' ' + format(values[i], "6.2f") + ' '
             + format(scaled[i], "6.2f") + ' ' + format(exp[i], "6.2f") + ' ' +
             format(exp[i]-scaled[i], "6.2f"))
+
+
+def PrintErrors(labels, AllErrors):
+    
+    Print("\nLabel " + ' '.join(['DS' + str(x+1) for x in range(len(AllErrors))]))
+    for i in range(len(labels)):
+        Print(labels[i] +
+        ' '.join([format(AllErrors[x][i], "6.2f") for x in range(len(AllErrors))]))
+
 
 def PrintNMRj(nucleus, labels, values, scaled, exp, expJ, calcJ):
     Print("\nAssigned " + nucleus +

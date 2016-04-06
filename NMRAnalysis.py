@@ -121,9 +121,14 @@ def main(numDS, settings, *args):
     
         return '\n'.join(DP4outp) + '\n'
     else:
-        DP4outp = DP4.DP4(Clabels, OptCvalues, Hlabels, OptHvalues, Cexp,
-                               Hexp, settings)
-        return '\n'.join(DP4outp) + '\n'
+        if settings.Bias is not True:
+            DP4outp = DP4.DP4(Clabels, OptCvalues, Hlabels, OptHvalues, Cexp,
+                                   Hexp, settings)
+            return '\n'.join(DP4outp) + '\n'
+        else:
+            DP4outp = DP4.DP4bias(Clabels, OptCvalues, Hlabels, OptHvalues, Cexp,
+                                   Hexp, settings)
+            return '\n'.join(DP4outp) + '\n'
 
 
 def ReadExpNMR(ExpNMR):
