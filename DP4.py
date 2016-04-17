@@ -258,16 +258,44 @@ def DP4bias(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, settings):
     _, AllScaledErrorsCr = ReorderAllErrors(AllScaledErrorsC, LabelsC)
     _, AllScaledErrorsHr = ReorderAllErrors(AllScaledErrorsH, LabelsH)
     
-    Print("Unscaled errors:")
+    Print('\n'.join([','.join(x) for x in LabelsC]))
+    Print("Scaled C errors before reordering:")
+    PrintErrors(LabelsC1, AllScaledErrorsCr)
+        
+    """Print("Unscaled errors after reordering:")
     PrintErrors(LabelsC1, AllErrorsCr)
-    PrintErrors(LabelsH1, AllErrorsHr)
-    Print("Scaled errors:")
+    PrintErrors(LabelsH1, AllErrorsHr)"""
+    Print("Scaled errors after reordering:")
     PrintErrors(LabelsC1, AllScaledErrorsCr)
     PrintErrors(LabelsH1, AllScaledErrorsHr)
+    
+    BiasesC = CalcBiases(AllScaledErrorsCr)
+    BiasesH = CalcBiases(AllScaledErrorsHr)
 
-    """
-    #Apply bias to errors and scaled errors
-    #Calculate probabilities for each ds
+    uBiasesC = CalcBiases(AllErrorsCr)
+    uBiasesH = CalcBiases(AllErrorsHr)
+    
+    Print("Biases for scaled C:")
+    Print(','.join([format(x, "6.2f") for x in BiasesC]))
+    Print("Biases for scaled H:")
+    Print(','.join([format(x, "6.2f") for x in BiasesH]))
+
+    AllScaledErrorsCb = ApplyBias(AllScaledErrorsCr, BiasesC)
+    AllScaledErrorsHb = ApplyBias(AllScaledErrorsHr, BiasesH)
+    AllErrorsCb = ApplyBias(AllErrorsCr, uBiasesC)
+    AllErrorsHb = ApplyBias(AllErrorsHr, uBiasesH)
+    
+    Print("Scaled errors after biasing:")
+    PrintErrors(LabelsC1, AllScaledErrorsCb)
+    PrintErrors(LabelsH1, AllScaledErrorsHb)
+    
+    for i in range(len(AllScaledErrorsCb)):
+        Cprob, Hprob = CalcProbabilities(AllScaledErrorsCb[i], AllScaledErrorsHb[i],
+            AllErrorsCb, AllErrorsHb, sortedCexp, sortedHexp, settings)
+        C_cdp4.append(Cprob)
+        H_cdp4.append(Hprob)
+        Comb_cdp4.append(C_cdp4[-1]*H_cdp4[-1])
+    
     relCDP4 = [(100*x)/sum(C_cdp4) for x in C_cdp4]
     relHDP4 = [(100*x)/sum(H_cdp4) for x in H_cdp4]
     relCombDP4 = [(100*x)/sum(Comb_cdp4) for x in Comb_cdp4]
@@ -275,9 +303,26 @@ def DP4bias(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, settings):
     PrintRelDP4('all available data', relCombDP4)
     PrintRelDP4('carbon data only', relCDP4)
     PrintRelDP4('proton data only', relHDP4)
-    """
+
     return output
 
+
+def ApplyBias(AllErrors, biases):
+    
+    AllErrorsB = []
+    for errors in AllErrors:
+        AllErrorsB.append([x-y for x,y in zip(errors,biases)])
+    
+    return AllErrorsB
+
+
+def CalcBiases(AllErrors):
+    
+    biases = []
+    for i in range(len(AllErrors[0])):
+        biases.append(min([AllErrors[x][i] for x in range(len(AllErrors))], key=abs))
+    
+    return biases
 
 def ReorderAllErrors(AllErrors, AllLabels):
     
