@@ -212,10 +212,16 @@ def DP4bias(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, settings):
     
     LabelsC = []
     LabelsH = []
+    AllC = []
+    AllH = []
     AllErrorsC = []
     AllErrorsH = []
+    AllScaledC = []
+    AllScaledH = []
     AllScaledErrorsC = []
     AllScaledErrorsH = []
+    Cexps = []
+    Hexps = []
     
     for isomer in range(0, len(Cvalues)):
 
@@ -237,21 +243,19 @@ def DP4bias(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, settings):
                          for i in range(0, len(sortedHvalues))]
         
         LabelsC.append(sortedClabels)
+        Cexps.append(sortedCexp)
         LabelsH.append(sortedHlabels)
+        Hexps.append(sortedHexp)
         AllErrorsC.append(ErrorsC)
         AllErrorsH.append(ErrorsH)
+        AllC.append(sortedCvalues)
+        AllH.append(sortedHvalues)
+        AllScaledC.append(scaledC)
+        AllScaledH.append(scaledH)
         AllScaledErrorsC.append(ScaledErrorsC)
         AllScaledErrorsH.append(ScaledErrorsH)
         
-        Print("\nAssigned shifts for isomer " + str(isomer+1) + ": ")
-        PrintNMR('C', sortedClabels, sortedCvalues, scaledC, sortedCexp)
-        Print("Max C error: " + format(max(ScaledErrorsC, key=abs), "6.2f"))
-        PrintNMR('H', sortedHlabels, sortedHvalues, scaledH, sortedHexp)
-        Print("Max H error: " + format(max(ScaledErrorsH, key=abs), "6.2f"))
-    
-    LabelsH1 = LabelsH[0]
-    AllErrorsHr = []
-    
+   
     LabelsC1, AllErrorsCr = ReorderAllErrors(AllErrorsC, LabelsC)
     LabelsH1, AllErrorsHr = ReorderAllErrors(AllErrorsH, LabelsH)
     
@@ -262,9 +266,6 @@ def DP4bias(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, settings):
     Print("Scaled C errors before reordering:")
     PrintErrors(LabelsC1, AllScaledErrorsCr)
         
-    """Print("Unscaled errors after reordering:")
-    PrintErrors(LabelsC1, AllErrorsCr)
-    PrintErrors(LabelsH1, AllErrorsHr)"""
     Print("Scaled errors after reordering:")
     PrintErrors(LabelsC1, AllScaledErrorsCr)
     PrintErrors(LabelsH1, AllScaledErrorsHr)
@@ -289,9 +290,21 @@ def DP4bias(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, settings):
     PrintErrors(LabelsC1, AllScaledErrorsCb)
     PrintErrors(LabelsH1, AllScaledErrorsHb)
     
+    for i in range(len(AllC)):
+        #print biased shift data for every diastereomer
+        bCvalues = ApplyBiasShifts(LabelsC[i], AllC[i], LabelsC1, uBiasesC)
+        sbCvalues = ApplyBiasShifts(LabelsC[i], AllScaledC[i], LabelsC1, BiasesC)
+        bHvalues = ApplyBiasShifts(LabelsH[i], AllH[i], LabelsH1, uBiasesH)
+        sbHvalues = ApplyBiasShifts(LabelsH[i], AllScaledH[i], LabelsH1, BiasesH)
+        Print("\nAssigned shifts for isomer " + str(i+1) + ": ")
+        PrintNMR('C', LabelsC[i], bCvalues, sbCvalues, Cexps[i])
+        Print("Max C error: " + format(max(AllScaledErrorsCb[i], key=abs), "6.2f"))
+        PrintNMR('H', LabelsH[i], bHvalues, sbHvalues, Hexps[i])
+        Print("Max H error: " + format(max(AllScaledErrorsHb[i], key=abs), "6.2f"))
+
     for i in range(len(AllScaledErrorsCb)):
         Cprob, Hprob = CalcProbabilities(AllScaledErrorsCb[i], AllScaledErrorsHb[i],
-            AllErrorsCb, AllErrorsHb, sortedCexp, sortedHexp, settings)
+            AllErrorsCb[i], AllErrorsHb[i], Cexps[i], Hexps[i], settings)
         C_cdp4.append(Cprob)
         H_cdp4.append(Hprob)
         Comb_cdp4.append(C_cdp4[-1]*H_cdp4[-1])
@@ -305,6 +318,15 @@ def DP4bias(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, settings):
     PrintRelDP4('proton data only', relHDP4)
 
     return output
+
+
+def ApplyBiasShifts(Labels, Shifts, BiasLabels, biases):
+    BiasedShifts = []
+    for i in range(len(Shifts)):
+        j = BiasLabels.index(Labels[i])
+        BiasedShifts.append(Shifts[i]-biases[j])
+    
+    return BiasedShifts
 
 
 def ApplyBias(AllErrors, biases):
