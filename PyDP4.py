@@ -70,7 +70,7 @@ class Settings:
     jKarplus = False
     jFC = False
     jJ = False
-    Bias = True
+    Bias = False
     ProbFloor = False
     ProbThreshH = 0.9
     ProbThreshC = 9.0
@@ -91,6 +91,7 @@ class Settings:
     MaxConcurrentJobs = 75
     MaxConcurrentJobsDarwin = 256
     PerStructConfLimit = 100
+    StrictConfLimit = False
     InitialRMSDcutoff = 0.75
     MaxCutoffEnergy = 10.0
     TMS_SC_C13 = 191.69255
@@ -471,6 +472,8 @@ if __name__ == '__main__':
     parser.add_argument("-l", "--ConfLimit", help="Specify maximum number of \
     conformers per structure. If above this, adaptive RMSD pruning will be \
     performed", type=int, default=100)
+    parser.add_argument("--StrictConfLimit", help="Strictly enforce per struct \
+    conf limit at the cost of abandoning consistent RMSD cutoff value", action="store_true")
     parser.add_argument("-r", "--rot5", help="Manually generate conformers for\
     5-memebered rings", action="store_true")
     parser.add_argument("--jJ", help="Calculate coupling constants at DFT\
@@ -599,6 +602,8 @@ if __name__ == '__main__':
             [int(x) for x in (args.StereoCentres).split(',')]
     if args.GenOnly:
         settings.GenOnly = True
+    if args.StrictConfLimit:
+        settings.StrictConfLimit = True
     if args.NoConfPrune:
         settings.ConfPrune = False
     if args.AssumeDFTDone:

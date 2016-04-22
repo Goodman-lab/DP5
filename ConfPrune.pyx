@@ -88,6 +88,49 @@ def AdaptRMSDPrune(conformers, atoms, cutoff, ConfLimit):
     free(RMSDMatrix)
     return AdjCutoff
 
+
+def StrictRMSDPrune(conformers, atoms, cutoff, ConfLimit):
+    
+    ToDel = []
+    cdef long int c1, c2
+    cdef long int l = len(conformers)
+    cdef double res
+    cdef double *RMSDMatrix = <double *>malloc(l * l * sizeof(double))
+    
+    for c1 in range(0, l):
+        for c2 in range(c1, l):
+            if c1==c2:
+                RMSDMatrix[c2 + c1*l]=0.0
+            else:
+                res = AlignedRMS(conformers[c1], conformers[c2], atoms)
+                RMSDMatrix[c2 + c1*l] = res
+                RMSDMatrix[c1 + c2*l] = res
+    #Check for similar conformations
+    for c1 in range(0, l):
+        for c2 in range(0, l):
+            if c1!=c2 and (not c1 in ToDel) and (not c2 in ToDel):
+                if RMSDMatrix[c2 + c1*l]<cutoff:
+                    ToDel.append(c2)
+    AdjCutoff = cutoff
+    while (l-len(ToDel))>ConfLimit:
+        AdjCutoff +=0.2
+        ToDel = []
+        for c1 in range(0, l):
+            for c2 in range(0, l):
+                if c1!=c2 and (not c1 in ToDel) and (not c2 in ToDel):
+                    if RMSDMatrix[c2 + c1*l]<AdjCutoff:
+                        ToDel.append(c2)
+    #Compose set of non-redundant conformations
+    PrunedConformers = []
+    for c in range(0, l):
+        if not c in ToDel:
+            PrunedConformers.append(conformers[c])
+            
+    #return PrunedConformers
+    free(RMSDMatrix)
+    return PrunedConformers, AdjCutoff
+
+
 def AlignMolecules(mol1, mol2, atoms):
     
     w= []

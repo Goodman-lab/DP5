@@ -41,14 +41,19 @@ def SetupGaussian(MMoutp, Gausinp, numDigits, settings, adjRMSDcutoff):
     #Prune similar conformations, if the number exceeds the limit
     if len(conformers) > settings.PerStructConfLimit and settings.ConfPrune:
         pruned = ConfPrune.RMSDPrune(conformers, atoms, adjRMSDcutoff)
+        actualRMSDcutoff = adjRMSDcutoff
+        if len(pruned) > settings.PerStructConfLimit and settings.StrictConfLimit:
+            pruned, actualRMSDcutoff = ConfPrune.StrictRMSDPrune(conformers, atoms, adjRMSDcutoff,
+                                               settings.PerStructConfLimit)
     else:
         pruned = conformers
+        actualRMSDcutoff = adjRMSDcutoff
 
     if settings.ConfPrune:
         print str(len(conformers) - len(pruned)) +\
             " or " + "{:.1f}".format(100*(len(conformers) - len(pruned)) /
             len(conformers))+"% of conformations have been pruned based on " +\
-            str(adjRMSDcutoff) + " angstrom cutoff"
+            str(actualRMSDcutoff) + " angstrom cutoff"
 
     for num in range(0, len(pruned)):
         filename = Gausinp+str(num+1).zfill(3)

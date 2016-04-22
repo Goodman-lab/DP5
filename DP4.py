@@ -254,8 +254,10 @@ def DP4bias(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, settings):
         AllScaledH.append(scaledH)
         AllScaledErrorsC.append(ScaledErrorsC)
         AllScaledErrorsH.append(ScaledErrorsH)
-        
    
+    Cexp1 = Cexps[0]
+    Hexp1 = Hexps[0]
+    
     LabelsC1, AllErrorsCr = ReorderAllErrors(AllErrorsC, LabelsC)
     LabelsH1, AllErrorsHr = ReorderAllErrors(AllErrorsH, LabelsH)
     
@@ -275,12 +277,24 @@ def DP4bias(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, settings):
 
     uBiasesC = CalcBiases(AllErrorsCr)
     uBiasesH = CalcBiases(AllErrorsHr)
+    uSpreadsC = CalcSpreads(AllErrorsCr)
+    uSpreadsH = CalcSpreads(AllErrorsHr)
     
-    Print("Biases for scaled C:")
-    Print(','.join([format(x, "6.2f") for x in BiasesC]))
-    Print("Biases for scaled H:")
-    Print(','.join([format(x, "6.2f") for x in BiasesH]))
-
+    Print("Biases for unscaled C:")
+    Print(','.join([format(x, "6.2f") for x in uBiasesC]))
+    Print("Biases for unscaled H:")
+    Print(','.join([format(x, "6.2f") for x in uBiasesH]))
+    
+    Print("Spreads for unscaled C:")
+    Print(','.join([format(x, "6.2f") for x in uSpreadsC]))
+    Print("Spreads for unscaled H:")
+    Print(','.join([format(x, "6.2f") for x in uSpreadsH]))
+    
+    Print("Corresponding C exp shifts:")
+    Print(','.join([format(x, "6.2f") for x in Cexp1]))
+    Print("Corresponding H exp shifts:")
+    Print(','.join([format(x, "6.2f") for x in Hexp1]))
+    
     AllScaledErrorsCb = ApplyBias(AllScaledErrorsCr, BiasesC)
     AllScaledErrorsHb = ApplyBias(AllScaledErrorsHr, BiasesH)
     AllErrorsCb = ApplyBias(AllErrorsCr, uBiasesC)
@@ -345,6 +359,13 @@ def CalcBiases(AllErrors):
         biases.append(min([AllErrors[x][i] for x in range(len(AllErrors))], key=abs))
     
     return biases
+
+def CalcSpreads(AllErrors):
+    spreads = []
+    for i in range(len(AllErrors[0])):
+        dserrors = [AllErrors[x][i] for x in range(len(AllErrors))]
+        spreads.append(max(dserrors)-min(dserrors))
+    return spreads
 
 def ReorderAllErrors(AllErrors, AllLabels):
     
