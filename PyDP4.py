@@ -100,6 +100,7 @@ class Settings:
     NTaut = 1
     LogFile = 'PyDP4.log'
     AssumeDone = False
+    UseExistingInputs = False
     GenOnly = False
     StatsModel = 'g'
     StatsParamFile = ''
@@ -235,7 +236,7 @@ def main(filename, ExpNMR, nfiles):
             print '\nRunning Macromodel...'
             MacroModel.RunMacromodel(len(inpfiles), settings, *mminpfiles)
 
-    if not settings.AssumeDone:
+    if (not settings.AssumeDone) and (not settings.UseExistingInputs):
         if settings.ConfPrune:
             if settings.DFT == 'z' or settings.DFT == 'g' or settings.DFT == 'd':
                 adjRMSDcutoff = Gaussian.AdaptiveRMSD(inpfiles[0], settings)
@@ -261,8 +262,10 @@ def main(filename, ExpNMR, nfiles):
                                    adjRMSDcutoff)
             i += 1
         QRun = False
-    else:
+    elif settings.AssumeDone:
         QRun = True
+    else:
+        QRun = False
 
     if settings.DFT == 'z' or settings.DFT == 'g' or settings.DFT == 'd':
         Files2Run = Gaussian.GetFiles2Run(inpfiles, settings)
@@ -496,6 +499,8 @@ if __name__ == '__main__':
     Useful when NMR and energies need to be calculated at different levels.")
     parser.add_argument("--AssumeDFTDone", help="Assume RMSD pruning, DFT setup\
     and DFT calculations have been run already", action="store_true")
+    parser.add_argument("--UseExistingInputs", help="Use previously generated\
+    DFT inputs, avoids long conf pruning and regeneration", action="store_true")
     parser.add_argument("--NoConfPrune", help="Skip RMSD pruning, use all\
     conformers in the energy window", action="store_true")
     parser.add_argument("--Renumber", help="Renumber the atoms in\
@@ -608,6 +613,8 @@ if __name__ == '__main__':
         settings.ConfPrune = False
     if args.AssumeDFTDone:
         settings.AssumeDone = True
+    if args.UseExistingInputs:
+        settings.UseExistingInputs = True
     if args.solvent:
         settings.Solvent = args.solvent
     if args.rot5:
