@@ -633,7 +633,16 @@ def CalcProbabilities(SErrorsC, SErrorsH, ErrorsC, ErrorsH, Cexp, Hexp, settings
                                          settings.StatsModel, 'C')
         H_cdp4 = CalculateMultiGaus(SErrorsH, settings.StatsParamFile,
                                          settings.StatsModel, 'H')
-        
+    elif settings.StatsModel == 'n':
+        C_cdp4 = CalculateRMultiGaus(SErrorsC, Cexp, settings.StatsParamFile,
+                                         settings.StatsModel, 'C')
+        H_cdp4 = CalculateRMultiGaus(SErrorsH, Hexp, settings.StatsParamFile,
+                                         settings.StatsModel, 'H')    
+    elif settings.StatsModel == 'p':
+        C_cdp4 = CalculateRMultiGaus(ErrorsC, Cexp, settings.StatsParamFile,
+                                         settings.StatsModel, 'C')
+        H_cdp4 = CalculateRMultiGaus(ErrorsH, Hexp, settings.StatsParamFile,
+                                         settings.StatsModel, 'H')    
     elif settings.StatsModel == 'r':
         C_cdp4 = CalculateRKDE(SErrorsC, Cexp, settings.StatsParamFile,
                                     settings.StatsModel, 'C')
@@ -760,6 +769,23 @@ def Print(s):
     output.append(s)
 
 
+def ReadRMultiGausFile(f, t):
+    
+    infile = open(f, 'r')
+    inp = infile.readlines()
+    infile.close()
+    
+    Cregions = [float(x) for x in inp[1].split(',')]
+    Cmeans = [[float(x) for x in y.split(',')] for y in inp[2].split(';')]
+    Cstdevs = [[float(x) for x in y.split(',')] for y in inp[3].split(';')]
+    
+    Hregions = [float(x) for x in inp[4].split(',')]
+    Hmeans = [[float(x) for x in y.split(',')] for y in inp[5].split(';')]
+    Hstdevs = [[float(x) for x in y.split(',')] for y in inp[6].split(';')]
+
+    return Cregions, Cmeans, Cstdevs, Hregions, Hmeans, Hstdevs
+
+
 def ReadParamFile(f, t):
     
     infile = open(f, 'r')
@@ -843,6 +869,24 @@ def CalculatePDP4Floor(errors, expect, stdev, threshold):
         pdp4 = pdp4*max(stats.norm(expect, stdev).pdf(e),
                         stats.norm(expect, stdev).pdf(threshold))
     return pdp4
+
+
+#load MultiGaus data from file and calculate probabilities
+def CalculateRMultiGaus(errors, shifts, ParamFile, t, nucleus):
+
+    Cregions, Cmeans, Cstdevs, Hregions, Hmeans, Hstdevs = \
+        ReadRMultiGausFile(ParamFile, t)
+    
+    if nucleus == 'C':
+        regions, means, stdevs = Cregions, Cmeans, Cstdevs
+    elif nucleus == 'H':
+        regions, means, stdevs = Hregions, Hmeans, Hstdevs
+
+    prob = 1.0
+    for e, s in zip(errors, shifts):
+        region = bisect.bisect_left(regions, s)
+        prob = prob*MultiGaus(means[region], stdevs[region], e)
+    return prob
 
 
 #load MultiGaus data from file and calculate probabilities
