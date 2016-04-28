@@ -356,7 +356,12 @@ def CalcBiases(AllErrors):
     
     biases = []
     for i in range(len(AllErrors[0])):
-        biases.append(min([AllErrors[x][i] for x in range(len(AllErrors))], key=abs))
+        serrors = sorted([AllErrors[x][i] for x in range(len(AllErrors))], key=abs)
+        if (serrors[0]<0) == (serrors[1]<0):
+            biases.append(serrors[0])
+        else:
+            biases.append(0)
+        #biases.append(min([AllErrors[x][i] for x in range(len(AllErrors))], key=abs))
     
     return biases
 
