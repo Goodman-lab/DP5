@@ -65,6 +65,7 @@ class Settings:
     GenProt = False
     Solvent = ''
     DFTOpt = False
+    PM6Opt = False
     PDP4 = True
     EP5 = False
     jKarplus = False
@@ -514,6 +515,8 @@ if __name__ == '__main__':
     tautomers", action="store_true")
     parser.add_argument('-o', '--DFTOpt', help="Optimize geometries at DFT\
     level before NMR prediction", action="store_true")
+    parser.add_argument('--PM6Opt', help="Optimize geometries at PM6\
+    level before NMR prediction", action="store_true")
     parser.add_argument('--ep5', help="Use EP5", action="store_true")
     parser.add_argument('-n', '--Charge', help="Specify\
     charge of the molecule. Do not use when input files have different charges")
@@ -592,6 +595,8 @@ if __name__ == '__main__':
         settings.MMTinker = False
     if args.DFTOpt:
         settings.DFTOpt = True
+    if args.PM6Opt:
+        settings.PM6Opt = True
     if args.BasicAtoms is not None:
         settings.BasicAtoms =\
             [int(x) for x in (args.BasicAtoms).split(',')]

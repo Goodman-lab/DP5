@@ -57,7 +57,7 @@ def SetupGaussian(MMoutp, Gausinp, numDigits, settings, adjRMSDcutoff):
 
     for num in range(0, len(pruned)):
         filename = Gausinp+str(num+1).zfill(3)
-        if not settings.DFTOpt:
+        if (not settings.DFTOpt) and (not settings.PM6Opt):
             WriteGausFile(filename, pruned[num], atoms, charge, settings)
         else:
             WriteGausFileOpt(filename, pruned[num], atoms, charge, settings)
@@ -147,12 +147,19 @@ def WriteGausFileOpt(Gausinp, conformer, atoms, charge, settings):
     #write the initial DFT geometry optimisation input file first
     f1 = file(Gausinp + 'a.com', 'w')
     f1.write('%mem=6000MB\n%chk='+Gausinp + '.chk\n')
-
-    if settings.Solvent != '':
-        f1.write('# b3lyp/6-31g(d,p) Opt=(maxcycles=50) scrf=(solvent=' +
-                 settings.Solvent+')\n')
-    else:
-        f1.write('# b3lyp/6-31g(d,p) Opt=(maxcycles=50)\n')
+    
+    if settings.DFTOpt:
+        if settings.Solvent != '':
+            f1.write('# b3lyp/6-31g(d,p) Opt=(maxcycles=50) scrf=(solvent=' +
+                     settings.Solvent+')\n')
+        else:
+            f1.write('# b3lyp/6-31g(d,p) Opt=(maxcycles=50)\n')
+    elif settings.PM6Opt:
+        if settings.Solvent != '':
+            f1.write('# pm6 Opt=(maxcycles=50) scrf=(solvent=' +
+                     settings.Solvent+')\n')
+        else:
+            f1.write('# pm6 Opt=(maxcycles=50)\n')
 
     f1.write('\n'+Gausinp+'\n\n')
     f1.write(str(charge) + ' 1\n')
