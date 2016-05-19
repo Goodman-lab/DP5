@@ -211,7 +211,7 @@ def main(filename, ExpNMR, nfiles):
                 MMRun = False
                 mminpfiles.append(filename)
 
-    if MMRun:
+    if MMRun or settings.AssumeDone or settings.UseExistingInputs:
         print 'Conformation search has already been run for these inputs.\
                 \nSkipping...'
         if settings.GenOnly:
@@ -256,7 +256,7 @@ def main(filename, ExpNMR, nfiles):
                     " of " +  str(len(inpfiles)) + ")"
                 Gaussian.SetupGaussian(ds, ds + 'ginp', 3, settings,
                                        adjRMSDcutoff)
-            elif settings.DFT == 'n' or 'w':
+            elif settings.DFT == 'n' or settings.DFT == 'w':
                 print "\nNWChem setup for file " + ds +\
                     " (" + str(i) + " of " + str(len(inpfiles)) + ")"
                 NWChem.SetupNWChem(ds, ds + 'nwinp', 3, settings,
@@ -291,7 +291,7 @@ def main(filename, ExpNMR, nfiles):
             #and wait until the last file is completed
             now = datetime.datetime.now()
             MaxCon = settings.MaxConcurrentJobs
-            if settings.DFTOpt:
+            if settings.DFTOpt or settings.PM6Opt:
                 for i in range(len(Files2Run)):
                     Files2Run[i] = Files2Run[i][:-5] + '.com'
             if len(Files2Run) < MaxCon:
@@ -320,7 +320,7 @@ def main(filename, ExpNMR, nfiles):
             now = datetime.datetime.now()
             MaxCon = settings.MaxConcurrentJobsDarwin
             
-            if settings.DFTOpt:
+            if settings.DFTOpt or settings.PM6Opt:
                 for i in range(len(Files2Run)):
                     Files2Run[i] = Files2Run[i][:-5] + '.com'
                     

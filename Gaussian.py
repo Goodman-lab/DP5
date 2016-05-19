@@ -224,7 +224,7 @@ def GetFiles2Run(inpfiles, settings):
     #Get the names of all relevant input files
     GinpFiles = []
     for filename in inpfiles:
-        if not settings.DFTOpt:
+        if (not settings.DFTOpt) and (not settings.PM6Opt):
             GinpFiles = GinpFiles + glob.glob(filename + 'ginp???.com')
         else:
             GinpFiles = GinpFiles + glob.glob(filename + 'ginp???a.com')
@@ -233,7 +233,7 @@ def GetFiles2Run(inpfiles, settings):
     #for every input file check that there is a completed output file,
     #delete the incomplete outputs and add the inputs to be done to Files2Run
     for filename in GinpFiles:
-        if not settings.DFTOpt:
+        if (not settings.DFTOpt) and (not settings.PM6Opt):
             if not os.path.exists(filename[:-3]+'out'):
                 Files2Run.append(filename)
             else:
@@ -284,7 +284,7 @@ def RunOnZiggy(folder, queue, GausFiles, settings):
 
     #Write the qsub scripts
     for f in GausFiles:
-        if not settings.DFTOpt:
+        if (not settings.DFTOpt) and (not settings.PM6Opt):
             WriteSubScript(f[:-4], queue, folder, settings)
         else:
             WriteSubScriptOpt(f[:-4], queue, folder, settings)
@@ -293,7 +293,7 @@ def RunOnZiggy(folder, queue, GausFiles, settings):
     #Upload .com files and .qsub files to directory
     print "Uploading files to ziggy..."
     for f in GausFiles:
-        if not settings.DFTOpt:
+        if (not settings.DFTOpt) and (not settings.PM6Opt):
             outp = subprocess.check_output('scp ' + f +' ziggy:~/' + folder,
                                            shell=True)
         else:
