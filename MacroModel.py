@@ -197,7 +197,7 @@ def ReadMacromodel(MMoutp, settings):
                         DataIndex[2] = offset-1
                     if 'r_m_z_coord' in line:
                         DataIndex[3] = offset-1
-                    if 'i_m_formal_charge' in line:
+                    if 'r_m_charge1' in line:
                         DataIndex[4] = offset-1
                     if ':::' in line:
                         blocks[i] = blocks[i] + MaeInp[blocks[i]:].index(line)
@@ -225,7 +225,7 @@ def ReadMacromodel(MMoutp, settings):
                         conformers[0][atom].append(line[DataIndexes[i][1]])  # add X
                         conformers[0][atom].append(line[DataIndexes[i][2]])  # add Y
                         conformers[0][atom].append(line[DataIndexes[i][3]])  # add Z
-                        charge = charge + int(line[DataIndexes[i][4]])
+                        charge = charge + float(line[DataIndexes[i][4]])
                         
                     else:
                         conformers[conformer][atom].append(line[0])  # add atom number
@@ -238,7 +238,7 @@ def ReadMacromodel(MMoutp, settings):
             else:
                 break
     
-    return atoms, conformers, charge
+    return atoms, conformers, int(charge)
 
 
 def GetMacromodelSymbol(atomType):

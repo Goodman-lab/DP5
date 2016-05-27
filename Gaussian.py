@@ -574,35 +574,31 @@ def WriteSubScriptOpt(GausJob, queue, ZiggyJobFolder, settings):
     #define cwd and scratch folder and ask the machine
     #to make it before running the job
     QSub.write('HERE=/home/' + settings.user +'/' + ZiggyJobFolder + '\n')
-    QSub.write('SCRATCH=/sharedscratch/' + settings.user + '/' + GausJob + ZiggyJobFolder +'\n')
-    QSub.write('mkdir ${SCRATCH}\n')
+    QSub.write('LSCRATCH=/scratch/' + settings.user + '/' + GausJob + ZiggyJobFolder +'\n')
+    QSub.write('mkdir ${LSCRATCH}\n')
 
     #Setup GAUSSIAN environment variables
     QSub.write('set OMP_NUM_THREADS=1\n')
     QSub.write('export GAUSS_EXEDIR=/usr/local/shared/gaussian/em64t/09-D01/g09\n')
     QSub.write('export g09root=/usr/local/shared/gaussian/em64t/09-D01\n')
     QSub.write('export PATH=/usr/local/shared/gaussian/em64t/09-D01/g09:$PATH\n')
-    QSub.write('export GAUSS_SCRDIR=$SCRATCH\n')
+    QSub.write('export GAUSS_SCRDIR=$LSCRATCH\n')
 
     #copy the input files to scratch
-    QSub.write('cp ${HERE}/${inpfile1}  $SCRATCH\n')
-    QSub.write('cp ${HERE}/${inpfile2}  $SCRATCH\ncd $SCRATCH\n')
+    QSub.write('cp ${HERE}/${inpfile1}  $LSCRATCH\n')
+    QSub.write('cp ${HERE}/${inpfile2}  $LSCRATCH\ncd $LSCRATCH\n')
 
     #write useful info to the job output file (not the gaussian)
     QSub.write('echo "Starting job $PBS_JOBID"\necho\n')
     QSub.write('echo "PBS assigned me this node:"\ncat $PBS_NODEFILE\necho\n')
     
-    QSub.write('ln -s $HERE/$outfile1 $SCRATCH/$outfile1\n')
-    QSub.write('ln -s $HERE/$outfile2 $SCRATCH/$outfile2\n')
+    QSub.write('ln -s $HERE/$outfile1 $LSCRATCH/$outfile1\n')
+    QSub.write('ln -s $HERE/$outfile2 $LSCRATCH/$outfile2\n')
     QSub.write('$GAUSS_EXEDIR/g09 < $inpfile1 > $outfile1\n')
     QSub.write('$GAUSS_EXEDIR/g09 < $inpfile2 > $outfile2\n')
 
     #Cleanup
-    QSub.write('mkdir ${HERE}/${file}\n')
-    QSub.write('cp ${SCRATCH}/*.chk  $HERE/${file}/\n')
-    QSub.write('rm -f ${SCRATCH}/*\n')
-    QSub.write('cp $HERE/${file}/*.chk ${SCRATCH}/\n')
-    QSub.write('rm -r ${HERE}/${file}\n')
+    QSub.write('rm -rf ${LSCRATCH}/\n')
     QSub.write('qstat -f $PBS_JOBID\n')
 
     QSub.close()

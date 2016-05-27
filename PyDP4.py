@@ -104,7 +104,7 @@ class Settings:
     UseExistingInputs = False
     GenOnly = False
     StatsModel = 'g'
-    StatsParamFile = ''
+    StatsParamFile = '/stats/mPW1PW91g'
     JStatsModel = 'g'
     JStatsParamFile = ''
     EnergyDir = ''
@@ -256,7 +256,7 @@ def main(filename, ExpNMR, nfiles):
                     " of " +  str(len(inpfiles)) + ")"
                 Gaussian.SetupGaussian(ds, ds + 'ginp', 3, settings,
                                        adjRMSDcutoff)
-            elif settings.DFT == 'n' or settings.DFT == 'w':
+            elif settings.DFT == 'n' or settings.DFT == 'w' or settings.DFT == 'm':
                 print "\nNWChem setup for file " + ds +\
                     " (" + str(i) + " of " + str(len(inpfiles)) + ")"
                 NWChem.SetupNWChem(ds, ds + 'nwinp', 3, settings,
@@ -270,7 +270,7 @@ def main(filename, ExpNMR, nfiles):
 
     if settings.DFT == 'z' or settings.DFT == 'g' or settings.DFT == 'd':
         Files2Run = Gaussian.GetFiles2Run(inpfiles, settings)
-    elif settings.DFT == 'n' or 'w':
+    elif settings.DFT == 'n' or settings.DFT == 'w' or settings.DFT == 'm':
         Files2Run = NWChem.GetFiles2Run(inpfiles, settings)
     print Files2Run
     if len(Files2Run) == 0:
@@ -628,10 +628,23 @@ if __name__ == '__main__':
         settings.RingAtoms =\
             [int(x) for x in (args.ra).split(',')]
     
+    if settings.StatsParamFile != '':
+        if os.path.isfile(settings.StatsParamFile):
+            print "Statistical parameter file found at " + settings.StatsParamFile
+        elif (not os.path.isfile(settings.StatsParamFile)) and\
+            os.path.isfile(settings.ScriptDir+settings.StatsParamFile):
+                settings.StatsParamFile = settings.ScriptDir+settings.StatsParamFile
+                print "Statistical parameter file found at " + settings.StatsParamFile
+        elif (not os.path.isfile(settings.StatsParamFile)) and\
+            (not os.path.isfile(settings.ScriptDir+settings.StatsParamFile)):
+            print "Stats file not found, quitting."
+            quit()
+    
     inpfiles = [x.split('.')[0] for x in args.StructureFiles]
     
     if len(inpfiles) == 1:
         main(inpfiles[0], args.ExpNMR, 1)
     else:
         main(inpfiles, args.ExpNMR, len(inpfiles))
+    
     #main()
