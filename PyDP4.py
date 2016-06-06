@@ -66,6 +66,7 @@ class Settings:
     Solvent = ''
     DFTOpt = False
     PM6Opt = False
+    PM7Opt = False
     PDP4 = True
     EP5 = False
     jKarplus = False
@@ -81,6 +82,7 @@ class Settings:
     TinkerPath = '~/tinker7/bin/scan '
     OBPath = '/home/ke291/Tools/openbabel-install/lib/python2.7/site-packages/'
     SCHRODINGER = '/usr/local/shared/schrodinger/current'
+    MOPAC = '/home/ke291/MOPAC/MOPAC2016.exe'
     nProc = 1
     OtherNuclei = ''
     RenumberFile = ''
@@ -104,7 +106,7 @@ class Settings:
     UseExistingInputs = False
     GenOnly = False
     StatsModel = 'g'
-    StatsParamFile = '/stats/mPW1PW91g'
+    StatsParamFile = ''
     JStatsModel = 'g'
     JStatsParamFile = ''
     EnergyDir = ''
@@ -517,6 +519,8 @@ if __name__ == '__main__':
     level before NMR prediction", action="store_true")
     parser.add_argument('--PM6Opt', help="Optimize geometries at PM6\
     level before NMR prediction", action="store_true")
+    parser.add_argument('--PM7Opt', help="Optimize geometries at PM7\
+    level before NMR prediction", action="store_true")
     parser.add_argument('--ep5', help="Use EP5", action="store_true")
     parser.add_argument('-n', '--Charge', help="Specify\
     charge of the molecule. Do not use when input files have different charges")
@@ -597,6 +601,8 @@ if __name__ == '__main__':
         settings.DFTOpt = True
     if args.PM6Opt:
         settings.PM6Opt = True
+    if args.PM7Opt:
+        settings.PM7Opt = True
     if args.BasicAtoms is not None:
         settings.BasicAtoms =\
             [int(x) for x in (args.BasicAtoms).split(',')]

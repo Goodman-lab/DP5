@@ -54,15 +54,24 @@ def SetupGaussian(MMoutp, Gausinp, numDigits, settings, adjRMSDcutoff):
             " or " + "{:.1f}".format(100*(len(conformers) - len(pruned)) /
             len(conformers))+"% of conformations have been pruned based on " +\
             str(actualRMSDcutoff) + " angstrom cutoff"
-
-    for num in range(0, len(pruned)):
-        filename = Gausinp+str(num+1).zfill(3)
-        if (not settings.DFTOpt) and (not settings.PM6Opt):
-            WriteGausFile(filename, pruned[num], atoms, charge, settings)
-        else:
-            WriteGausFileOpt(filename, pruned[num], atoms, charge, settings)
+    
+    if not settings.PM7Opt:
+        for num in range(0, len(pruned)):
+            filename = Gausinp+str(num+1).zfill(3)
+            if (not settings.DFTOpt) and (not settings.PM6Opt):
+                WriteGausFile(filename, pruned[num], atoms, charge, settings)
+            else:
+                WriteGausFileOpt(filename, pruned[num], atoms, charge, settings)
+    else:
+        for num in range(0, len(pruned)):
+            filename = Gausinp+str(num+1).zfill(3)
+            conformer = PM7opt(filename, pruned[num], atoms, charge, settings)
+            print "Conformer " + str(num+1) + " of " + str(len(pruned)) + \
+            " has been preoptimized at PM7 level"
+            WriteGausFile(filename, conformer, atoms, charge, settings)
 
     print str(len(pruned)) + " .com files written"
+    quit()
 
 
 #Adjust the RMSD cutoff to keep the conformation numbers reasonable
@@ -78,6 +87,64 @@ def AdaptiveRMSD(MMoutp, settings):
     return ConfPrune.AdaptRMSDPrune(conformers, atoms,
                                     settings.InitialRMSDcutoff,
                                     settings.PerStructConfLimit)
+
+
+def PM7opt(Gausinp, conformer, atoms, charge, settings):
+    
+    WriteMopacFile(Gausinp, conformer, atoms, charge)
+    #outp = subprocess.check_output(settings.MOPAC + Gausinp + 'm.mop', shell=True)
+    outp = subprocess.Popen([settings.MOPAC, Gausinp + 'm.mop'], \
+      stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
+    
+    OptConformer = ReadMopacFile(Gausinp+'m.out')
+    
+    return OptConformer
+    
+
+def WriteMopacFile(Gausinp, conformer, atoms, charge):
+    
+    f = file(Gausinp + 'm.mop', 'w')
+
+    f.write(" AUX LARGE CHARGE=" + str(charge) + " SINGLET\n")
+    f.write(Gausinp+'\n\n')
+    
+    natom = 0
+
+    for atom in conformer:
+        f.write(atoms[natom] + '  ' + atom[1] + '  1  ' + atom[2] + '  1  ' +
+                atom[3] + '  1 \n')
+        natom = natom + 1
+    f.write('\n')
+    
+    f.close()
+
+
+def ReadMopacFile(filename):
+
+    mofile = open(filename, 'r')
+    MopacOutp = mofile.readlines()
+    mofile.close()
+    
+    index = 0
+    conformer = []
+    
+    while not 'COMPUTATION TIME' in MopacOutp[index]:
+        index = index + 1
+    #Find the NMR shielding calculation section
+    while not 'CARTESIAN COORDINATES' in MopacOutp[index]:
+        index = index + 1
+    
+    index = index + 2
+    
+    #Read shielding constants and labels
+    for line in MopacOutp[index:]:
+        if len(line) < 3:
+            break
+        else:
+            data = filter(None, line[:-1].split(' '))
+            conformer.append([data[0]]+data[2:])
+
+    return conformer
 
 
 def WriteGausFile(Gausinp, conformer, atoms, charge, settings):
