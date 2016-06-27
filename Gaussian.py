@@ -58,7 +58,7 @@ def SetupGaussian(MMoutp, Gausinp, numDigits, settings, adjRMSDcutoff):
     if not settings.PM7Opt:
         for num in range(0, len(pruned)):
             filename = Gausinp+str(num+1).zfill(3)
-            if (not settings.DFTOpt) and (not settings.PM6Opt):
+            if (not settings.DFTOpt) and (not settings.PM6Opt) and (not settings.HFOpt):
                 WriteGausFile(filename, pruned[num], atoms, charge, settings)
             else:
                 WriteGausFileOpt(filename, pruned[num], atoms, charge, settings)
@@ -71,7 +71,6 @@ def SetupGaussian(MMoutp, Gausinp, numDigits, settings, adjRMSDcutoff):
             WriteGausFile(filename, conformer, atoms, charge, settings)
 
     print str(len(pruned)) + " .com files written"
-    quit()
 
 
 #Adjust the RMSD cutoff to keep the conformation numbers reasonable
@@ -95,9 +94,9 @@ def PM7opt(Gausinp, conformer, atoms, charge, settings):
     #outp = subprocess.check_output(settings.MOPAC + Gausinp + 'm.mop', shell=True)
     outp = subprocess.Popen([settings.MOPAC, Gausinp + 'm.mop'], \
       stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
-    
     OptConformer = ReadMopacFile(Gausinp+'m.out')
     
+    os.rename(Gausinp+'m.out',Gausinp+'.mopout')
     return OptConformer
     
 
@@ -106,6 +105,7 @@ def WriteMopacFile(Gausinp, conformer, atoms, charge):
     f = file(Gausinp + 'm.mop', 'w')
 
     f.write(" AUX LARGE CHARGE=" + str(charge) + " SINGLET\n")
+    #f.write(" AUX LARGE CHARGE=" + str(charge) + " SINGLET RECALC=1 DMAX=0.05 RELSCF=0.01\n")
     f.write(Gausinp+'\n\n')
     
     natom = 0
@@ -213,6 +213,8 @@ def WriteGausFileOpt(Gausinp, conformer, atoms, charge, settings):
 
     #write the initial DFT geometry optimisation input file first
     f1 = file(Gausinp + 'a.com', 'w')
+    if(settings.nProc > 1):
+        f1.write('%nprocshared=' + str(settings.nProc) + '\n')
     f1.write('%mem=6000MB\n%chk='+Gausinp + '.chk\n')
     
     if settings.DFTOpt:
@@ -227,6 +229,13 @@ def WriteGausFileOpt(Gausinp, conformer, atoms, charge, settings):
                      settings.Solvent+')\n')
         else:
             f1.write('# pm6 Opt=(maxcycles=50)\n')
+    elif settings.HFOpt:
+        if settings.Solvent != '':
+            f1.write('# rhf/6-31g(d,p) Opt=(maxcycles=50) scrf=(solvent=' +
+                     settings.Solvent+')\n')
+        else:
+            f1.write('# rhf/6-31g(d,p) Opt=(maxcycles=50)\n')
+            
 
     f1.write('\n'+Gausinp+'\n\n')
     f1.write(str(charge) + ' 1\n')
@@ -243,6 +252,8 @@ def WriteGausFileOpt(Gausinp, conformer, atoms, charge, settings):
     #Write the nmr prediction input file,
     #using the geometry from checkpoint file
     f2 = file(Gausinp + 'b.com', 'w')
+    if(settings.nProc > 1):
+        f2.write('%nprocshared=' + str(settings.nProc) + '\n')
     f2.write('%mem=6000MB\n%chk='+Gausinp + '.chk\n')
     if (settings.Functional).lower() == 'wp04':
         func1 = '# blyp/'
@@ -291,7 +302,7 @@ def GetFiles2Run(inpfiles, settings):
     #Get the names of all relevant input files
     GinpFiles = []
     for filename in inpfiles:
-        if (not settings.DFTOpt) and (not settings.PM6Opt):
+        if (not settings.DFTOpt) and (not settings.PM6Opt) and (not settings.HFOpt):
             GinpFiles = GinpFiles + glob.glob(filename + 'ginp???.com')
         else:
             GinpFiles = GinpFiles + glob.glob(filename + 'ginp???a.com')
@@ -300,7 +311,7 @@ def GetFiles2Run(inpfiles, settings):
     #for every input file check that there is a completed output file,
     #delete the incomplete outputs and add the inputs to be done to Files2Run
     for filename in GinpFiles:
-        if (not settings.DFTOpt) and (not settings.PM6Opt):
+        if (not settings.DFTOpt) and (not settings.PM6Opt) and (not settings.HFOpt):
             if not os.path.exists(filename[:-3]+'out'):
                 Files2Run.append(filename)
             else:
@@ -351,7 +362,7 @@ def RunOnZiggy(folder, queue, GausFiles, settings):
 
     #Write the qsub scripts
     for f in GausFiles:
-        if (not settings.DFTOpt) and (not settings.PM6Opt):
+        if (not settings.DFTOpt) and (not settings.PM6Opt) and (not settings.HFOpt):
             WriteSubScript(f[:-4], queue, folder, settings)
         else:
             WriteSubScriptOpt(f[:-4], queue, folder, settings)
@@ -360,7 +371,7 @@ def RunOnZiggy(folder, queue, GausFiles, settings):
     #Upload .com files and .qsub files to directory
     print "Uploading files to ziggy..."
     for f in GausFiles:
-        if (not settings.DFTOpt) and (not settings.PM6Opt):
+        if (not settings.DFTOpt) and (not settings.PM6Opt) and (not settings.HFOpt):
             outp = subprocess.check_output('scp ' + f +' ziggy:~/' + folder,
                                            shell=True)
         else:
@@ -631,7 +642,11 @@ def WriteSubScriptOpt(GausJob, queue, ZiggyJobFolder, settings):
     QSub = open(GausJob + ".qsub", 'w')
 
     #Choose the queue
-    QSub.write('#PBS -q ' + queue + '\n#PBS -l nodes=1:ppn=1\n#\n')
+    QSub.write('#PBS -q ' + queue + '\n')
+    if settings.nProc >1:
+        QSub.write('#PBS -l nodes=1:ppn=' + str(settings.nProc) + '\n#\n')
+    else:
+        QSub.write('#PBS -l nodes=1:ppn=1\n#\n')
 
     #define input files and output files
     QSub.write('file=' + GausJob + '\n\n')
@@ -645,7 +660,10 @@ def WriteSubScriptOpt(GausJob, queue, ZiggyJobFolder, settings):
     QSub.write('mkdir ${LSCRATCH}\n')
 
     #Setup GAUSSIAN environment variables
-    QSub.write('set OMP_NUM_THREADS=1\n')
+    if settings.nProc >1:
+        QSub.write('set OMP_NUM_THREADS=12\n')
+    else:
+        QSub.write('set OMP_NUM_THREADS=1\n')
     QSub.write('export GAUSS_EXEDIR=/usr/local/shared/gaussian/em64t/09-D01/g09\n')
     QSub.write('export g09root=/usr/local/shared/gaussian/em64t/09-D01\n')
     QSub.write('export PATH=/usr/local/shared/gaussian/em64t/09-D01/g09:$PATH\n')

@@ -129,7 +129,8 @@ def ReadEnergy(GOutpFile):
 
 
 def ReadShieldings(GOutpFile):
-
+    
+    print GOutpFile
     gausfile = open(GOutpFile + '.out', 'r')
     GOutp = gausfile.readlines()
 
