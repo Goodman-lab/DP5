@@ -68,6 +68,7 @@ class Settings:
     PM6Opt = False
     PM7Opt = False
     HFOpt = False
+    M06Opt = False
     PDP4 = True
     EP5 = False
     jKarplus = False
@@ -294,7 +295,7 @@ def main(filename, ExpNMR, nfiles):
             #and wait until the last file is completed
             now = datetime.datetime.now()
             MaxCon = settings.MaxConcurrentJobs
-            if settings.DFTOpt or settings.PM6Opt or settings.HFOpt:
+            if settings.DFTOpt or settings.PM6Opt or settings.HFOpt or settings.M06Opt:
                 for i in range(len(Files2Run)):
                     Files2Run[i] = Files2Run[i][:-5] + '.com'
             if len(Files2Run) < MaxCon:
@@ -323,7 +324,7 @@ def main(filename, ExpNMR, nfiles):
             now = datetime.datetime.now()
             MaxCon = settings.MaxConcurrentJobsDarwin
             
-            if settings.DFTOpt or settings.PM6Opt or settings.HFOpt:
+            if settings.DFTOpt or settings.PM6Opt or settings.HFOpt or settings.M06Opt:
                 for i in range(len(Files2Run)):
                     Files2Run[i] = Files2Run[i][:-5] + '.com'
                     
@@ -524,6 +525,8 @@ if __name__ == '__main__':
     level before NMR prediction", action="store_true")
     parser.add_argument('--HFOpt', help="Optimize geometries at HF\
     level before NMR prediction", action="store_true")
+    parser.add_argument('--M06Opt', help="Optimize geometries at M062X\
+    level before NMR prediction", action="store_true")
     parser.add_argument('--ep5', help="Use EP5", action="store_true")
     parser.add_argument('-n', '--Charge', help="Specify\
     charge of the molecule. Do not use when input files have different charges")
@@ -602,6 +605,8 @@ if __name__ == '__main__':
         settings.MMTinker = False
     if args.DFTOpt:
         settings.DFTOpt = True
+    if args.M06Opt:
+        settings.M06Opt = True
     if args.HFOpt:
         settings.HFOpt = True
     if args.PM6Opt:

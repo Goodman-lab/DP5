@@ -58,7 +58,8 @@ def SetupGaussian(MMoutp, Gausinp, numDigits, settings, adjRMSDcutoff):
     if not settings.PM7Opt:
         for num in range(0, len(pruned)):
             filename = Gausinp+str(num+1).zfill(3)
-            if (not settings.DFTOpt) and (not settings.PM6Opt) and (not settings.HFOpt):
+            if (not settings.DFTOpt) and (not settings.PM6Opt) and (not settings.HFOpt)\
+                and (not settings.M06Opt):
                 WriteGausFile(filename, pruned[num], atoms, charge, settings)
             else:
                 WriteGausFileOpt(filename, pruned[num], atoms, charge, settings)
@@ -235,6 +236,12 @@ def WriteGausFileOpt(Gausinp, conformer, atoms, charge, settings):
                      settings.Solvent+')\n')
         else:
             f1.write('# rhf/6-31g(d,p) Opt=(maxcycles=50)\n')
+    elif settings.M06Opt:
+        if settings.Solvent != '':
+            f1.write('# m062x/6-31g(d,p) Opt=(maxcycles=50) scrf=(solvent=' +
+                     settings.Solvent+')\n')
+        else:
+            f1.write('# m062x/6-31g(d,p) Opt=(maxcycles=50)\n')
             
 
     f1.write('\n'+Gausinp+'\n\n')
@@ -302,7 +309,8 @@ def GetFiles2Run(inpfiles, settings):
     #Get the names of all relevant input files
     GinpFiles = []
     for filename in inpfiles:
-        if (not settings.DFTOpt) and (not settings.PM6Opt) and (not settings.HFOpt):
+        if (not settings.DFTOpt) and (not settings.PM6Opt) and (not settings.HFOpt)\
+            and (not settings.M06Opt):
             GinpFiles = GinpFiles + glob.glob(filename + 'ginp???.com')
         else:
             GinpFiles = GinpFiles + glob.glob(filename + 'ginp???a.com')
@@ -311,7 +319,8 @@ def GetFiles2Run(inpfiles, settings):
     #for every input file check that there is a completed output file,
     #delete the incomplete outputs and add the inputs to be done to Files2Run
     for filename in GinpFiles:
-        if (not settings.DFTOpt) and (not settings.PM6Opt) and (not settings.HFOpt):
+        if (not settings.DFTOpt) and (not settings.PM6Opt) and (not settings.HFOpt)\
+            and (not settings.M06Opt):
             if not os.path.exists(filename[:-3]+'out'):
                 Files2Run.append(filename)
             else:
@@ -362,7 +371,8 @@ def RunOnZiggy(folder, queue, GausFiles, settings):
 
     #Write the qsub scripts
     for f in GausFiles:
-        if (not settings.DFTOpt) and (not settings.PM6Opt) and (not settings.HFOpt):
+        if (not settings.DFTOpt) and (not settings.PM6Opt) and (not settings.HFOpt)\
+            and (not settings.M06Opt):
             WriteSubScript(f[:-4], queue, folder, settings)
         else:
             WriteSubScriptOpt(f[:-4], queue, folder, settings)
@@ -371,7 +381,8 @@ def RunOnZiggy(folder, queue, GausFiles, settings):
     #Upload .com files and .qsub files to directory
     print "Uploading files to ziggy..."
     for f in GausFiles:
-        if (not settings.DFTOpt) and (not settings.PM6Opt) and (not settings.HFOpt):
+        if (not settings.DFTOpt) and (not settings.PM6Opt) and (not settings.HFOpt)\
+            and (not settings.M06Opt):
             outp = subprocess.check_output('scp ' + f +' ziggy:~/' + folder,
                                            shell=True)
         else:
