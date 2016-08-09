@@ -201,6 +201,28 @@ def DP4j(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, cJvals, cJlabels,
     return output
 
 
+def CP3(Clabels, Cvalues1, Cvalues2, Hlabels, Hvalues1, Hvalues2, Cexp1, Cexp2,
+        Hexp1, Hexp2, settings):
+    deltaCalcsC = [a - b for a,b in zip(Cvalues1, Cvalues2)]
+    deltaCalcsH = [a - b for a,b in zip(Cvalues1, Cvalues2)]
+    deltaExpsC = [a - b for a,b in zip(Cexp1, Cexp2)]
+    deltaExpsH = [a - b for a,b in zip(Hexp1, Hexp2)]
+    
+    top = sum([f3(calc,exp) for calc,exp in zip(deltaCalcsC, deltaExpsC)])
+    bottom = sum([x**2 for x in deltaExpsC])
+    CP3c = top/bottom
+    
+    top = sum([f3(calc,exp) for calc,exp in zip(deltaCalcsH, deltaExpsH)])
+    bottom = sum([x**2 for x in deltaExpsH])
+    CP3h = top/bottom
+    
+
+def f3(deltaExp, deltaCalc):
+    if (deltaCalc/deltaExp) > 1.0:
+        return deltaExp**3/deltaCalc
+    else:
+        return deltaExp*deltaCalc
+
 def DP4bias(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, settings):
 
     Print(str(Cexp))
