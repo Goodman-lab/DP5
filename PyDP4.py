@@ -493,6 +493,10 @@ if __name__ == '__main__':
     rotated, useful for molecules with several 5-membered rings")
     parser.add_argument('-S', '--Stats', help="Specify the stats model and\
     parameters")
+    parser.add_argument('--CP3', help="Calculate CP3 instead of DP4. Recommended\
+    when 2 experimental sets of data need to be matched to 2 calculated sets.\
+    Experimental NMR argument needs to be provided in the form 'ExpNMR1,ExpNMR2'",
+    action="store_true")
     parser.add_argument('--JStats', help="Specify the stats model and\
     parameters for coupling constants")
     parser.add_argument('-E', '--EnergyDir', help="Specify the location for\
@@ -582,6 +586,8 @@ if __name__ == '__main__':
     if args.Stats is not None:
         settings.StatsModel = (args.Stats)[0]
         settings.StatsParamFile = (args.Stats)[1:]
+    if args.CP3:
+        settings.CP3 = True
     if args.JStats is not None:
         settings.JStatsModel = (args.JStats)[0]
         settings.JStatsParamFile = (args.JStats)[1:]

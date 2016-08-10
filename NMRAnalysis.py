@@ -40,7 +40,12 @@ def main(numDS, settings, *args):
                                                 settings.RenumberFile)
     
     #Reads the experimental NMR data from the file
-    Cexp, Hexp, equivs, omits = ReadExpNMR(args[-1])
+    if not settings.CP3:
+        Cexp, Hexp, equivs, omits = ReadExpNMR(args[-1])
+    else:
+        [NMRfile1, NMRfile2] = args[-1].split(',')
+        Cexp1, Hexp1, equivs, omits = ReadExpNMR(NMRfile1)
+        Cexp2, Hexp2, equivs, omits = ReadExpNMR(NMRfile2)
     
     for Es, pops in zip(RelEs, populations):
         print '\nConformer relative energies (kJ/mol): ' + \
@@ -121,13 +126,18 @@ def main(numDS, settings, *args):
     
         return '\n'.join(DP4outp) + '\n'
     else:
-        if settings.Bias is not True:
-            DP4outp = DP4.DP4(Clabels, OptCvalues, Hlabels, OptHvalues, Cexp,
-                                   Hexp, settings)
-            return '\n'.join(DP4outp) + '\n'
-        else:
+        if settings.Bias:
             DP4outp = DP4.DP4bias(Clabels, OptCvalues, Hlabels, OptHvalues, Cexp,
                                    Hexp, settings)
+            return '\n'.join(DP4outp) + '\n'
+        elif settings.CP3:
+            CP3outp = DP4.CP3(Clabels, OptCvalues[0],OptCvalues[1],
+                              Hlabels, OptHvalues[0], OptHvalues[1],
+                              Cexp1, Cexp2, Hexp1, Hexp2, settings)
+            return '\n'.join(CP3outp) + '\n'
+        else:
+            DP4outp = DP4.DP4(Clabels, OptCvalues, Hlabels, OptHvalues, Cexp,
+                              Hexp, settings)
             return '\n'.join(DP4outp) + '\n'
 
 

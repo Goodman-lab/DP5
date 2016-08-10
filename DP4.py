@@ -20,6 +20,23 @@ meanH = 0.0
 stdevC = 2.269372270818724
 stdevH = 0.18731058105269952
 
+#Standard CP3 CORRECT parameters
+CP3meanC = 0.547
+CP3stdevC = 0.253
+CP3meanH = 0.478
+CP3stdevH = 0.305
+CP3meanAll = 0.512
+CP3stdevAll = 0.209
+
+"""
+#Standard CP3 INCORRECT parameters
+CP3meanC = -0.487
+CP3stdevC = 0.533
+CP3meanH = -0.786
+CP3stdevH = 0.835
+CP3meanAll = -0.637
+CP3stdevAll = 0.499
+"""
 #DFT J value parameters
 FULLJ_MEAN = -0.13133138905769429
 FULLJ_STDEV = 0.79315485469419067
@@ -196,27 +213,84 @@ def DP4j(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, cJvals, cJlabels,
     return output
 
 
-def CP3(Clabels, Cvalues1, Cvalues2, Hlabels, Hvalues1, Hvalues2, Cexp1, Cexp2,
-        Hexp1, Hexp2, settings):
-    deltaCalcsC = [a - b for a,b in zip(Cvalues1, Cvalues2)]
-    deltaCalcsH = [a - b for a,b in zip(Cvalues1, Cvalues2)]
-    deltaExpsC = [a - b for a,b in zip(Cexp1, Cexp2)]
-    deltaExpsH = [a - b for a,b in zip(Hexp1, Hexp2)]
+def CP3(Clabels, Cvalues1, Cvalues2, Hlabels, Hvalues1, Hvalues2,
+        Cexp1, Cexp2, Hexp1, Hexp2, settings):
     
-    top = sum([f3(calc,exp) for calc,exp in zip(deltaCalcsC, deltaExpsC)])
-    bottom = sum([x**2 for x in deltaExpsC])
-    CP3c = top/bottom
+    sortedClabels1, sortedCvalues1, sortedCexp1, _ =\
+        AssignExpNMR(Clabels, Cvalues1, Cexp1)
+    Cerrors1 = [a-b for a,b in zip(sortedCvalues1,sortedCexp1)]
+    sortedClabels2, sortedCvalues2, sortedCexp2, _ =\
+        AssignExpNMR(Clabels, Cvalues2, Cexp2)
+    Cerrors2 = [a-b for a,b in zip(sortedCvalues2,sortedCexp2)]
     
-    top = sum([f3(calc,exp) for calc,exp in zip(deltaCalcsH, deltaExpsH)])
-    bottom = sum([x**2 for x in deltaExpsH])
-    CP3h = top/bottom
+    sortedHlabels1, sortedHvalues1, sortedHexp1, _ =\
+        AssignExpNMR(Hlabels, Hvalues1, Hexp1)
+    Herrors1 = [a-b for a,b in zip(sortedHvalues1,sortedHexp1)]
+    sortedHlabels2, sortedHvalues2, sortedHexp2, _ =\
+        AssignExpNMR(Hlabels, Hvalues2, Hexp2)
+    Herrors2 = [a-b for a,b in zip(sortedHvalues2,sortedHexp2)]
+
+    Print("\nAssigned shifts for isomer 1: ")
+    PrintNMRCP3('C', sortedClabels1, sortedCvalues1, sortedCexp1)
+    Print("Max C error: " + format(max(Cerrors1, key=abs), "6.2f"))
+    PrintNMRCP3('H', sortedHlabels1, sortedHvalues1, sortedHexp1)
+    Print("Max H error: " + format(max(Herrors1, key=abs), "6.2f"))
+
+    Print("\nAssigned shifts for isomer 2: ")
+    PrintNMRCP3('C', sortedClabels2, sortedCvalues2, sortedCexp2)
+    Print("Max C error: " + format(max(Cerrors2, key=abs), "6.2f"))
+    PrintNMRCP3('H', sortedHlabels2, sortedHvalues2, sortedHexp2)
+    Print("Max H error: " + format(max(Herrors2, key=abs), "6.2f"))
     
+    #Rearrange the values here to ensure they match up!!!
+    
+    CP3c1 = CalcCP3(Cvalues1, Cvalues2, Cexp1, Cexp2)
+    CP3h1 = CalcCP3(Hvalues1, Hvalues2, Hexp1, Hexp2)
+    CP3all1 = (CP3c1 + CP3h1)/2
+    
+    CP3c2 = CalcCP3(Cvalues2, Cvalues1, Cexp1, Cexp2)
+    CP3h2 = CalcCP3(Hvalues2, Hvalues1, Hexp1, Hexp2)
+    CP3all2 = (CP3c2 + CP3h2)/2
+    #Calc probs
+    CP3Cprob1 = stats.norm(CP3meanC, CP3stdevC).pdf(CP3c1)
+    CP3Hprob1 = stats.norm(CP3meanH, CP3stdevH).pdf(CP3h1)
+    CP3allprob1 = stats.norm(CP3meanAll, CP3stdevAll).pdf(CP3all1)
+    
+    CP3Cprob2 = stats.norm(CP3meanC, CP3stdevC).pdf(CP3c2)
+    CP3Hprob2 = stats.norm(CP3meanH, CP3stdevH).pdf(CP3h2)
+    CP3allprob2 = stats.norm(CP3meanAll, CP3stdevAll).pdf(CP3all2)
+    
+    Print("Probabilities for Exp1-Calc1 & Exp2-Calc2 assignment")
+    Print("Based on C data:   " + format(CP3Cprob1, "4.1f") + "%")
+    Print("Based on H data:   " + format(CP3Hprob1, "4.1f") + "%")
+    Print("Based on all data: " + format(CP3allprob1, "4.1f") + "%")
+    Print("Probabilities for Exp1-Calc2 & Exp2-Calc1 assignment")
+    Print("Based on C data:   " + format(CP3Cprob2, "4.1f") + "%")
+    Print("Based on H data:   " + format(CP3Hprob2, "4.1f") + "%")
+    Print("Based on all data: " + format(CP3allprob2, "4.1f") + "%")
+    if CP3allprob1>CP3allprob2:
+        Print("Based on all data, Exp1-Calc1 & Exp2-Calc2 assignment is\n"+
+              "likely the correct one")
+    else:
+        Print("Based on all data, Exp1-Calc2 & Exp2-Calc1 assignment is\n"+
+              "likely the correct one")
+
 
 def f3(deltaExp, deltaCalc):
     if (deltaCalc/deltaExp) > 1.0:
         return deltaExp**3/deltaCalc
     else:
         return deltaExp*deltaCalc
+
+def CalcCP3(values1, values2, exp1, exp2):
+    deltaCalcs = [a - b for a,b in zip(values1, values2)]
+    deltaExps = [a - b for a,b in zip(exp1, exp2)]
+    
+    top = sum([f3(calc,exp) for calc,exp in zip(deltaCalcs, deltaExps)])
+    bottom = sum([x**2 for x in deltaExps])
+    
+    return top/bottom
+
 
 def DP4bias(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, settings):
 
@@ -382,12 +456,14 @@ def CalcBiases(AllErrors):
     
     return biases
 
+
 def CalcSpreads(AllErrors):
     spreads = []
     for i in range(len(AllErrors[0])):
         dserrors = [AllErrors[x][i] for x in range(len(AllErrors))]
         spreads.append(max(dserrors)-min(dserrors))
     return spreads
+
 
 def ReorderAllErrors(AllErrors, AllLabels):
     
@@ -398,24 +474,25 @@ def ReorderAllErrors(AllErrors, AllLabels):
         if i ==0:
             AllErrorsR.append(errors)
         else:
-            AllErrorsR.append(ReorderErrors(Labels1, labels, errors))
+            AllErrorsR.append(ReorderData(Labels1, labels, errors))
     
     return Labels1, AllErrorsR
 
+
 #given 2 sets of labels and one set of values, the set of values will be
 #reordered from the order in labels2 to the order in labels1
-def ReorderErrors(labels1, labels2, errors2):
+def ReorderData(labels1, labels2, data2):
     
-    newErrors = []
+    newData = []
     templabels2 = list(labels2)
     
     for l in labels1:
         index = templabels2.index(l)
-        newErrors.append(errors2[index])
+        newData.append(data2[index])
         #Remove the value to avoid adding the same value twice
         templabels2[index] = 'XX'
     
-    return newErrors
+    return newData
 
 
 def AssignExpNMR(labels, calcShifts, exp):
@@ -691,6 +768,14 @@ def PrintNMR(nucleus, labels, values, scaled, exp):
         Print(format(labels[i], "6s") + ' ' + format(values[i], "6.2f") + ' '
             + format(scaled[i], "6.2f") + ' ' + format(exp[i], "6.2f") + ' ' +
             format(exp[i]-scaled[i], "6.2f"))
+
+
+def PrintNMRCP3(nucleus, labels, values, exp):
+    Print("\nAssigned " + nucleus +
+          " shifts: (label, calc, exp, error)")
+    for i in range(len(labels)):
+        Print(format(labels[i], "6s") + ' ' + format(values[i], "6.2f") + ' ' +
+            format(exp[i], "6.2f") + ' ' + format(exp[i]-values[i], "6.2f"))
 
 
 def PrintErrors(labels, AllErrors):
