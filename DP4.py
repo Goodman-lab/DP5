@@ -241,15 +241,23 @@ def CP3(Clabels, Cvalues1, Cvalues2, Hlabels, Hvalues1, Hvalues2,
     Print("Max C error: " + format(max(Cerrors2, key=abs), "6.2f"))
     PrintNMRCP3('H', sortedHlabels2, sortedHvalues2, sortedHexp2)
     Print("Max H error: " + format(max(Herrors2, key=abs), "6.2f"))
+    #Reorder data to ensure it matches up
+    fCvalues1 = sortedCvalues1
+    fCexp1 = sortedCexp1
+    fCvalues2 = ReorderData(sortedClabels1,sortedClabels2, sortedCvalues2)
+    fCexp2 = ReorderData(sortedClabels1,sortedClabels2, sortedCexp2)
     
-    #Rearrange the values here to ensure they match up!!!
-    
-    CP3c1 = CalcCP3(Cvalues1, Cvalues2, Cexp1, Cexp2)
-    CP3h1 = CalcCP3(Hvalues1, Hvalues2, Hexp1, Hexp2)
+    fHvalues1 = sortedHvalues1
+    fHexp1 = sortedHexp1
+    fHvalues2 = ReorderData(sortedHlabels1,sortedHlabels2, sortedHvalues2)
+    fHexp2 = ReorderData(sortedHlabels1,sortedHlabels2, sortedHexp2)
+    #Calc parameters
+    CP3c1 = CalcCP3(fCvalues1, fCvalues2, fCexp1, fCexp2)
+    CP3h1 = CalcCP3(fHvalues1, fHvalues2, fHexp1, fHexp2)
     CP3all1 = (CP3c1 + CP3h1)/2
     
-    CP3c2 = CalcCP3(Cvalues2, Cvalues1, Cexp1, Cexp2)
-    CP3h2 = CalcCP3(Hvalues2, Hvalues1, Hexp1, Hexp2)
+    CP3c2 = CalcCP3(fCvalues2, fCvalues1, fCexp1, fCexp2)
+    CP3h2 = CalcCP3(fHvalues2, fHvalues1, fHexp1, fHexp2)
     CP3all2 = (CP3c2 + CP3h2)/2
     #Calc probs
     CP3Cprob1 = stats.norm(CP3meanC, CP3stdevC).pdf(CP3c1)
