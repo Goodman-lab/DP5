@@ -79,13 +79,8 @@ def DP4(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, settings):
         PrintNMR('H', sortedHlabels, sortedHvalues, scaledH, sortedHexp)
         Print("Max H error: " + format(max(ScaledErrorsH, key=abs), "6.2f"))
         
-        if settings.ProbFloor == False:
-            Cprob, Hprob = CalcProbabilities(ScaledErrorsC, ScaledErrorsH, ErrorsC,
+        Cprob, Hprob = CalcProbabilities(ScaledErrorsC, ScaledErrorsH, ErrorsC,
                                          ErrorsH, sortedCexp, sortedHexp, settings)
-        else:
-            Cprob, Hprob = CalcFlooredProbabilities(ScaledErrorsC, ScaledErrorsH,
-                ErrorsC, ErrorsH, sortedCexp, sortedHexp, settings)
-
         C_cdp4.append(Cprob)
         H_cdp4.append(Hprob)
 
@@ -689,51 +684,6 @@ def CalcProbabilities(SErrorsC, SErrorsH, ErrorsC, ErrorsH, Cexp, Hexp, settings
     return C_cdp4, H_cdp4
 
 
-def CalcFlooredProbabilities(SErrorsC, SErrorsH, ErrorsC, ErrorsH, Cexp, Hexp,
-                             settings):
-    
-    if settings.StatsModel == 'g':
-        if settings.StatsParamFile == '':
-            C_cdp4 = CalculateCDP4(SErrorsC, meanC, stdevC)
-            H_cdp4 = CalculateCDP4(SErrorsH, meanH, stdevH)
-        else:
-            Cmean, Cstdev, Hmean, Hstdev =\
-                ReadParamFile(settings.StatsParamFile, 'g')
-            C_cdp4 = CalculatePDP4Floor(SErrorsC, Cmean, Cstdev, settings.ProbThreshC)
-            H_cdp4 = CalculatePDP4Floor(SErrorsH, Hmean, Hstdev, settings.ProbThreshH)
-            
-    elif settings.StatsModel == 'k':
-        C_cdp4 = CalculateKDEFloor(SErrorsC, settings.StatsParamFile,
-                                   settings.StatsModel, 'C', settings.ProbThreshC)
-        H_cdp4 = CalculateKDEFloor(SErrorsH, settings.StatsParamFile,
-                                   settings.StatsModel, 'H', settings.ProbThreshH)
-
-    elif settings.StatsModel == 'm':
-        C_cdp4 = CalculateMultiGaus(SErrorsC, settings.StatsParamFile,
-                                         settings.StatsModel, 'C')
-        H_cdp4 = CalculateMultiGaus(SErrorsH, settings.StatsParamFile,
-                                         settings.StatsModel, 'H')
-        
-    elif settings.StatsModel == 'r':
-        C_cdp4 = CalculateRKDEFloor(SErrorsC, Cexp, settings.StatsParamFile,
-                                    settings.StatsModel, 'C', settings.ProbThreshC)
-        H_cdp4 = CalculateRKDEFloor(SErrorsH, Hexp, settings.StatsParamFile,
-                                    settings.StatsModel, 'H', settings.ProbThreshH)
-        
-    elif settings.StatsModel == 'u':
-        C_cdp4 = CalculateRKDEFloor(ErrorsC, Cexp, settings.StatsParamFile,
-                                    settings.StatsModel, 'C', settings.ProbThreshC)
-        H_cdp4 = CalculateRKDEFloor(ErrorsH, Hexp, settings.StatsParamFile,
-                                    settings.StatsModel, 'H', settings.ProbThreshH)
-    else:
-        print "Invalid stats model"
-        C_cdp4 = 0.0
-        H_cdp4 = 0.0
-    
-    print "Floored probabilities calculated"
-    return C_cdp4, H_cdp4
-
-
 def PrintNMR(nucleus, labels, values, scaled, exp):
     Print("\nAssigned " + nucleus +
           " shifts: (label, calc, corrected, exp, error)")
@@ -772,11 +722,13 @@ def PrintNMRj(nucleus, labels, values, scaled, exp, expJ, calcJ):
                 print "{:4.1f}".format(e) + "   " + "{:4.1f}".format(c)
                 Jerrs.append(e-c)
     Print("Max J error:" + "{:4.1f}".format(max(Jerrs, key=abs)))
-            
+
+
 def PrintRelDP4(title, RelDP4):
     Print("\nResults of DP4 using " + title + ":")
     for i in range(len(RelDP4)):
         Print("Isomer " + str(i+1) + ": " + format(RelDP4[i], "4.1f") + "%")
+
 
 def PrintJ(Jerrors):
     Print("\nMean absolute errors of J values:")
@@ -889,15 +841,6 @@ def CalculatePDP4(errors, expect, stdev):
     return pdp4
 
 
-#Alternative function using probability density function instead of cdf
-def CalculatePDP4Floor(errors, expect, stdev, threshold):
-    pdp4 = 1.0
-    for e in errors:
-        pdp4 = pdp4*max(stats.norm(expect, stdev).pdf(e),
-                        stats.norm(expect, stdev).pdf(threshold))
-    return pdp4
-
-
 #load MultiGaus data from file and calculate probabilities
 def CalculateRMultiGaus(errors, shifts, ParamFile, t, nucleus):
 
@@ -956,22 +899,6 @@ def CalculateKDE(errors, ParamFile, t, nucleus):
 
 
 #load empirical error data from file and use KDE to construct pdf
-def CalculateKDEFloor(errors, ParamFile, t, nucleus, threshold):
-
-    Cerrors, Herrors = ReadParamFile(ParamFile, 'k')
-        
-    if nucleus == 'C':
-        kde = stats.gaussian_kde(Cerrors)
-    elif nucleus == 'H':
-        kde = stats.gaussian_kde(Herrors)
-
-    prob = 1.0
-    for e in errors:
-        prob = prob*max(float(kde(e)[0]),float(kde(threshold)[0]))
-    return prob
-
-
-#load empirical error data from file and use KDE to construct pdf
 def CalculateJKDE(errors, ParamFile, t):
 
     slope, intercept, Jerrors = ReadJParamFile(ParamFile, t)
@@ -1005,33 +932,6 @@ def CalculateRKDE(errors, shifts, ParamFile, t, nucleus):
     for i, e in enumerate(errors):
         region = bisect.bisect_left(regions, shifts[i])
         ep5 = ep5*float((kdes[region])(e)[0])
-    return ep5
-
-
-#load empirical error data from file and use KDE to construct several pdfs,
-#one for each chemical shift region, can be used both for scaled and unscaled
-#errors with the appropriate data
-def CalculateRKDEFloor(errors, shifts, ParamFile, t, nucleus, threshold):
-    
-    #Load the data
-    Cregions, Cerrors, Hregions, Herrors = ReadParamFile(ParamFile, t)
-    if nucleus == 'C':
-        regions = Cregions
-        RErrors = Cerrors
-    elif nucleus == 'H':
-        regions = Hregions
-        RErrors = Herrors
-        
-    #Reconstruct the distributions for each region
-    kdes = []
-    for es in RErrors:
-        kdes.append(stats.gaussian_kde(es))
-
-    ep5 = 1.0
-    for i, e in enumerate(errors):
-        region = bisect.bisect_left(regions, shifts[i])
-        ep5 = ep5*max(float((kdes[region])(e)[0]),
-                      float((kdes[region])(threshold)[0]))
     return ep5
 
 

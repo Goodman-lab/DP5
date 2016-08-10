@@ -69,15 +69,11 @@ class Settings:
     PM7Opt = False
     HFOpt = False
     M06Opt = False
-    PDP4 = True
-    EP5 = False
     jKarplus = False
     jFC = False
     jJ = False
     Bias = False
-    ProbFloor = False
-    ProbThreshH = 0.9
-    ProbThreshC = 9.0
+    CP3 = False
     JDir = ''
     TimeLimit = 24
     queue = 's1'
@@ -527,7 +523,6 @@ if __name__ == '__main__':
     level before NMR prediction", action="store_true")
     parser.add_argument('--M06Opt', help="Optimize geometries at M062X\
     level before NMR prediction", action="store_true")
-    parser.add_argument('--ep5', help="Use EP5", action="store_true")
     parser.add_argument('-n', '--Charge', help="Specify\
     charge of the molecule. Do not use when input files have different charges")
     parser.add_argument('-b', '--BasicAtoms', help="Generate protonated states\
@@ -580,13 +575,6 @@ if __name__ == '__main__':
         settings.jFC = False
     if args.JDir is not None:
         settings.JDir = args.JDir
-    if args.ep5:
-        settings.EP5 = True
-        settings.PDP4 = False
-    else:
-        settings.EP5 = False
-        settings.PDP4 = True
-    
     if args.EnergyDir is not None:
         settings.EnergyDir = args.EnergyDir
     else:
