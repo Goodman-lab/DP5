@@ -720,6 +720,71 @@ def IsZiggyGComplete(f, folder, settings):
     return False
 
 
+def CheckConvergence(inpfiles):
+    #FilesRun - list of files of the form input.com
+    #we are looking for the corresponding optimization output files
+    #in the form inputtemp.out
+    GoutpFiles = []
+    for filename in inpfiles:
+        GoutpFiles = GoutpFiles + glob.glob(filename + 'ginp???temp.out')
+    Nunconverged = 0
+    unconverged = []
+    for outfile in GoutpFiles:
+        f = open(outfile, 'r')
+        ginp = '\n'.join(f.readlines())
+        f.close()
+        if not 'Stationary point found' in ginp:
+            Nunconverged += 1
+            unconverged.append(outfile)
+    return len(GoutpFiles), Nunconverged, unconverged
+
+
+def ResubGeOpt(GoutpFiles, settings):
+    for f in GoutpFiles:
+        atoms, coords, charge = ReadGeometry(f[:-8]+'.out')
+        for remf in glob.glob(f[:-8] + '*'):
+            os.remove(remf)
+        WriteGausFileOpt(f[:-8], coords,atoms,charge,settings)
+        print f[:-8] + '* deleted and new .com files written'
+    f = file('Reoptimized.log', 'w')
+    f.write('\n'.join([x[:-8] for x in GoutpFiles]))
+    f.close()
+
+
+def ReadGeometry(GOutpFile):
+
+    gausfile = open(GOutpFile, 'r')
+    GOutp = gausfile.readlines()
+
+    index = 0
+    atoms = []
+    coords = []
+
+    #Find the geometry section and charge section
+    for index in range(len(GOutp)):
+        if 'Charge =' in GOutp[index]:
+            chindex = index
+        if 'Redundant internal' in GOutp[index]:
+            gindex = index + 1
+
+    #Read shielding constants and labels
+    for line in GOutp[gindex:]:
+        if 'Recover connectivity' in line:
+            break
+        else:
+            data = filter(None, line[:-1].split(','))
+            atoms.append(data[0][-1])
+            coords.append(data[1:])
+            
+    line = GOutp[chindex].split('Charge =  ')
+    line = line[1].split(' Multiplicity = ')
+    charge = int(line[0])
+    print charge
+    gausfile.close()
+
+    return atoms, coords, charge
+
+
 def RunNMRPredict(numDS, settings, *args):
 
     GausNames = []

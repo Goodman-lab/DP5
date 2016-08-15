@@ -69,6 +69,7 @@ class Settings:
     PM7Opt = False
     HFOpt = False
     M06Opt = False
+    MaxOptReruns = 2
     jKarplus = False
     jFC = False
     jJ = False
@@ -274,7 +275,22 @@ def main(filename, ExpNMR, nfiles):
         Files2Run = NWChem.GetFiles2Run(inpfiles, settings)
     print Files2Run
     if len(Files2Run) == 0:
-        QRun = True
+        if (settings.DFT == 'z' or settings.DFT == 'g' or settings.DFT == 'd') and\
+            (settings.DFTOpt or settings.PM6Opt or settings.HFOpt or settings.M06Opt):
+            print "Checking if all geometries have converged"
+            Ngeoms, Nunconverged, unconverged = Gaussian.CheckConvergence(inpfiles)
+            if Nunconverged > 0:
+                print "WARNING: Not all geometries have achieved convergence!"
+                print ','.join([x[:-8] for x in unconverged])
+                print "Number of geometries: " + str(Ngeoms)
+                print "Unconverged: " + str(Nunconverged)
+                Gaussian.ResubGeOpt(unconverged, settings)
+                Files2Run = Gaussian.GetFiles2Run(inpfiles, settings)
+                QRun = False
+            else:
+                QRun = True
+        else:
+            QRun = True
 
     if len(Files2Run) > settings.HardConfLimit:
         print "Hard conformation count limit exceeded, DFT calculations aborted."
@@ -311,7 +327,6 @@ def main(filename, ExpNMR, nfiles):
                 Gaussian.RunOnZiggy(now.strftime('%d%b%H%M')+str(i+1) + 
                     settings.Title, settings.queue, Files2Run[(i*MaxCon):],
                     settings)
-
         elif settings.DFT == 'd':
             print '\nRunning Gaussian on Darwin...'
 
