@@ -746,9 +746,10 @@ def ResubGeOpt(GoutpFiles, settings):
             os.remove(remf)
         WriteGausFileOpt(f[:-8], coords,atoms,charge,settings)
         print f[:-8] + '* deleted and new .com files written'
-    f = file('Reoptimized.log', 'w')
-    f.write('\n'.join([x[:-8] for x in GoutpFiles]))
-    f.close()
+    if not os.path.exists('Reoptimized.log'):
+        f = file('Reoptimized.log', 'w')
+        f.write('\n'.join([x[:-8] for x in GoutpFiles]))
+        f.close()
 
 
 def ReadGeometry(GOutpFile):
@@ -779,7 +780,6 @@ def ReadGeometry(GOutpFile):
     line = GOutp[chindex].split('Charge =  ')
     line = line[1].split(' Multiplicity = ')
     charge = int(line[0])
-    print charge
     gausfile.close()
 
     return atoms, coords, charge
