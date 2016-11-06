@@ -97,6 +97,19 @@ def WriteNWChemFile(NWCheminp, conformer, atoms, charge, settings):
         basis = '6-311g*'
     
     f.write('end\n\nbasis\n  * library ' + basis + '\nend\n\n')
+    if settings.Solvent != "":
+        f.write('cosmo\n  do_cosmo_smd true\n  solvent ' + settings.Solvent + '\n')
+        f.write('end\n\n')
+    if settings.DFTOpt or settings.HFOpt:
+        f.write('driver\n  maxiter ' + str(settings.MaxDFTOptCycles)+ '\nend\n\n')
+        if settings.DFTOpt:
+            f.write('dft\n  xc b3lyp\n  mult 1\nend\n\n')
+            f.write('task dft optimize\n\n')
+        if settings.M06Opt:
+            f.write('dft\n  xc m06-2x\n  mult 1\nend\n\n')
+            f.write('task dft optimize\n\n')
+        if settings.HFOpt:
+            f.write('task scf optimize\n\n')
     if (settings.Functional).lower() == 'b3lyp':
         f.write('dft\n  xc b3lyp\n  mult 1\nend\n\n')
     elif (settings.Functional).lower() == 'm062x' or\
@@ -106,9 +119,6 @@ def WriteNWChemFile(NWCheminp, conformer, atoms, charge, settings):
         f.write('dft\n  xc mpw91 0.75 HFexch 0.25 perdew91\n  mult 1\nend\n\n')
     else:
         f.write('dft\n  xc ' + settings.Functional + '\n  mult 1\nend\n\n')
-    if settings.Solvent != "":
-        f.write('cosmo\n  do_cosmo_smd true\n  solvent ' + settings.Solvent + '\n')
-        f.write('end\n\n')
     f.write('task dft energy\n\n')
     f.write('property\n  shielding\nend\n')
     f.write('task dft property\n')

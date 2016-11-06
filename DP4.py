@@ -214,15 +214,22 @@ def DP4j(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, cJvals, cJlabels,
 
 
 def CP3(Clabels, Cvalues1, Cvalues2, Hlabels, Hvalues1, Hvalues2,
-        Cexp1, Cexp2, Hexp1, Hexp2, settings):
+        Cexp1, Cexp2, Hexp1, Hexp2,
+        CalcFile1, CalcFile2, NMRFile1, NMRFile2, settings):
     
     sortedClabels1, sortedCvalues1, sortedCexp1, _ =\
         AssignExpNMR(Clabels, Cvalues1, Cexp1)
+    print "Clabels: " + str(Clabels)
+    print "Cvalues: " + str(Cvalues1)
+    print "Cexp1: " + str(Cexp1)
     Cerrors1 = [a-b for a,b in zip(sortedCvalues1,sortedCexp1)]
     sortedClabels2, sortedCvalues2, sortedCexp2, _ =\
         AssignExpNMR(Clabels, Cvalues2, Cexp2)
     Cerrors2 = [a-b for a,b in zip(sortedCvalues2,sortedCexp2)]
     
+    print "Hlabels: " + str(Hlabels)
+    print "Hvalues: " + str(Hvalues1)
+    print "Hexp1: " + str(Hexp1)
     sortedHlabels1, sortedHvalues1, sortedHexp1, _ =\
         AssignExpNMR(Hlabels, Hvalues1, Hexp1)
     Herrors1 = [a-b for a,b in zip(sortedHvalues1,sortedHexp1)]
@@ -267,21 +274,28 @@ def CP3(Clabels, Cvalues1, Cvalues2, Hlabels, Hvalues1, Hvalues2,
     CP3Cprob2 = stats.norm(CP3meanC, CP3stdevC).pdf(CP3c2)
     CP3Hprob2 = stats.norm(CP3meanH, CP3stdevH).pdf(CP3h2)
     CP3allprob2 = stats.norm(CP3meanAll, CP3stdevAll).pdf(CP3all2)
-    
-    Print("Probabilities for Exp1-Calc1 & Exp2-Calc2 assignment")
-    Print("Based on C data:   " + format(CP3Cprob1, "4.1f") + "%")
-    Print("Based on H data:   " + format(CP3Hprob1, "4.1f") + "%")
-    Print("Based on all data: " + format(CP3allprob1, "4.1f") + "%")
-    Print("Probabilities for Exp1-Calc2 & Exp2-Calc1 assignment")
-    Print("Based on C data:   " + format(CP3Cprob2, "4.1f") + "%")
-    Print("Based on H data:   " + format(CP3Hprob2, "4.1f") + "%")
-    Print("Based on all data: " + format(CP3allprob2, "4.1f") + "%")
+    print NMRFile1
+    print NMRFile2
+    print CalcFile1
+    print CalcFile2
+    comb1 = NMRFile1 + '-' + CalcFile1 + ' & ' + NMRFile2 + '-' + CalcFile2
+    comb2 = NMRFile1 + '-' + CalcFile2 + ' & ' + NMRFile2 + '-' + CalcFile1
+    Print("Probabilities for " + comb1 + " assignment")
+    Print("Based on C data:   " + format(CP3Cprob1*100, "4.1f") + "%")
+    Print("Based on H data:   " + format(CP3Hprob1*100, "4.1f") + "%")
+    Print("Based on all data: " + format(CP3allprob1*100, "4.1f") + "%")
+    Print("Probabilities for " + comb2 + " assignment")
+    Print("Based on C data:   " + format(CP3Cprob2*100, "4.1f") + "%")
+    Print("Based on H data:   " + format(CP3Hprob2*100, "4.1f") + "%")
+    Print("Based on all data: " + format(CP3allprob2*100, "4.1f") + "%")
     if CP3allprob1>CP3allprob2:
-        Print("Based on all data, Exp1-Calc1 & Exp2-Calc2 assignment is\n"+
+        Print("Based on all data, " + comb1 + " assignment is\n"+
               "likely the correct one")
     else:
-        Print("Based on all data, Exp1-Calc2 & Exp2-Calc1 assignment is\n"+
+        Print("Based on all data, " + comb2 + " assignment is\n"+
               "likely the correct one")
+    
+    return output
 
 
 def f3(deltaExp, deltaCalc):
@@ -289,6 +303,7 @@ def f3(deltaExp, deltaCalc):
         return deltaExp**3/deltaCalc
     else:
         return deltaExp*deltaCalc
+
 
 def CalcCP3(values1, values2, exp1, exp2):
     deltaCalcs = [a - b for a,b in zip(values1, values2)]
@@ -1025,6 +1040,8 @@ def CalculateRKDE(errors, shifts, ParamFile, t, nucleus):
     for i, e in enumerate(errors):
         region = bisect.bisect_left(regions, shifts[i])
         ep5 = ep5*float((kdes[region])(e)[0])
+        if ep5<1e-315:  #Crude underflow protection
+            ep5=1e-315
     return ep5
 
 

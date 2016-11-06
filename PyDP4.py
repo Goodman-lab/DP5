@@ -52,8 +52,8 @@ import math
 
 #Assigning the config default values
 class Settings:
-    MMTinker = True
-    MMMacromodel = False
+    MMTinker = False
+    MMMacromodel = True
     DFT = 'z'
     Rot5Cycle = False
     Title = 'DP4molecule'
@@ -69,7 +69,7 @@ class Settings:
     PM7Opt = False
     HFOpt = False
     M06Opt = False
-    MaxOptReruns = 2
+    MaxDFTOptCycles = 50
     jKarplus = False
     jFC = False
     jJ = False
@@ -87,6 +87,7 @@ class Settings:
     RenumberFile = ''
     ScriptDir = ''
     user = 'ke291'
+    OnlyConfS = False # Stop the process after conformational search
     MMstepcount = 10000
     MMfactor = 2500  # nsteps = MMfactor*degrees of freedom
     HardConfLimit = 10000
@@ -238,6 +239,10 @@ def main(filename, ExpNMR, nfiles):
             print '\nRunning Macromodel...'
             MacroModel.RunMacromodel(len(inpfiles), settings, *mminpfiles)
 
+    if settings.OnlyConfS:
+        print "Conformational search completed, quitting as instructed."
+        quit()
+
     if (not settings.AssumeDone) and (not settings.UseExistingInputs):
         if settings.ConfPrune:
             if settings.DFT == 'z' or settings.DFT == 'g' or settings.DFT == 'd':
@@ -274,7 +279,9 @@ def main(filename, ExpNMR, nfiles):
     elif settings.DFT == 'n' or settings.DFT == 'w' or settings.DFT == 'm':
         Files2Run = NWChem.GetFiles2Run(inpfiles, settings)
     print Files2Run
+    
     if len(Files2Run) == 0:
+        """
         if (settings.DFT == 'z' or settings.DFT == 'g' or settings.DFT == 'd') and\
             (settings.DFTOpt or settings.PM6Opt or settings.HFOpt or settings.M06Opt):
             print "Checking if all geometries have converged"
@@ -291,7 +298,9 @@ def main(filename, ExpNMR, nfiles):
                 QRun = True
         else:
             QRun = True
-
+        """
+        QRun = True
+        
     if len(Files2Run) > settings.HardConfLimit:
         print "Hard conformation count limit exceeded, DFT calculations aborted."
         quit()
@@ -461,8 +470,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='PyDP4 script to setup\
     and run Tinker, Gaussian (on ziggy) and DP4')
     parser.add_argument('-m', '--mm', help="Select molecular mechanics program,\
-    t for tinker or m for macromodel, default is t", choices=['t', 'm'],
-    default='t')
+    t for tinker or m for macromodel, default is m", choices=['t', 'm'],
+    default='m')
     parser.add_argument('-d', '--dft', help="Select DFT program, j for Jaguar,\
     g for Gaussian, n for NWChem, z for Gaussian on ziggy, d for Gaussian on \
     Darwin, w for NWChem on ziggy, m for NWChem on Medivir cluster, default is z",
@@ -523,6 +532,8 @@ if __name__ == '__main__':
     DFT inputs, avoids long conf pruning and regeneration", action="store_true")
     parser.add_argument("--NoConfPrune", help="Skip RMSD pruning, use all\
     conformers in the energy window", action="store_true")
+    parser.add_argument("--OnlyConfS", help="Quit after conformational search",
+                        action="store_true")
     parser.add_argument("--Renumber", help="Renumber the atoms in\
     diastereomers according to renumbering map in the specified file. Useful\
     when analysing manually drawn input structures")
@@ -612,6 +623,8 @@ if __name__ == '__main__':
     else:
         settings.MMMacromodel = True
         settings.MMTinker = False
+    if args.OnlyConfS:
+        settings.OnlyConfS = True
     if args.DFTOpt:
         settings.DFTOpt = True
     if args.M06Opt:
@@ -665,11 +678,14 @@ if __name__ == '__main__':
             print "Stats file not found, quitting."
             quit()
     
+    #settings.SCHRODINGER = os.environ['SCHRODINGER']
+    settings.SCHRODINGER = '/usr/local/shared/schrodinger/current'
+    
     inpfiles = [x.split('.')[0] for x in args.StructureFiles]
     
     if len(inpfiles) == 1:
         main(inpfiles[0], args.ExpNMR, 1)
     else:
         main(inpfiles, args.ExpNMR, len(inpfiles))
-    
+
     #main()

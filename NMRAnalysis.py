@@ -44,6 +44,8 @@ def main(numDS, settings, *args):
         Cexp, Hexp, equivs, omits = ReadExpNMR(args[-1])
     else:
         [NMRfile1, NMRfile2] = args[-1].split(',')
+        CalcFile1 = args[1]
+        CalcFile2 = args[3]
         Cexp1, Hexp1, equivs, omits = ReadExpNMR(NMRfile1)
         Cexp2, Hexp2, equivs, omits = ReadExpNMR(NMRfile2)
     
@@ -133,7 +135,8 @@ def main(numDS, settings, *args):
         elif settings.CP3:
             CP3outp = DP4.CP3(Clabels, OptCvalues[0],OptCvalues[1],
                               Hlabels, OptHvalues[0], OptHvalues[1],
-                              Cexp1, Cexp2, Hexp1, Hexp2, settings)
+                              Cexp1, Cexp2, Hexp1, Hexp2, 
+                              CalcFile1, CalcFile2, NMRfile1, NMRfile2, settings)
             return '\n'.join(CP3outp) + '\n'
         else:
             DP4outp = DP4.DP4(Clabels, OptCvalues, Hlabels, OptHvalues, Cexp,

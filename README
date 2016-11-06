@@ -3,9 +3,9 @@
 PyDP4 workflow integrating MacroModel/TINKER, Gaussian/NWChem
 and DP4 analysis
 
-version 0.4
+version 0.7
 
-Copyright (c) 2015 Kristaps Ermanis, Jonathan M. Goodman
+Copyright (c) 2016 Kristaps Ermanis, Jonathan M. Goodman
 
 distributed under MIT license
 
@@ -22,18 +22,18 @@ CONTENTS
 
 REQUIREMENTS AND SETUP
 
-All the python and Java files and one utility to convert to and from TINKER
+All the python  files and one utility to convert to and from TINKER
 nonstandard xyz file are in the attached archive. They are set up to work
 from a centralised location. It is not a requirement, but it is probably
 best to add the location to the PATH variable.
 
 The script currently is set up to use MacroModel for molecular mechanics and
-NWChem for DFT and it runs NWChem locally. Gaussian and TINKER is also supported
+Gaussian for DFT and it runs Gaussian on ziggy by default. NWChem and TINKER is also supported.
 This setup has several requirements.
 
 1) One should have MacroModel or TINKER and NWChem or Gaussian.
 The beginning PyDP4.py file contains a structure "Settings", where the location
-of the TINKER scan executable or MacroModel bmin executable should be specified.
+of the TINKER scan executable or MacroModel bmin executable should be specified. All instances of 'ke291' should be replaced with the CRSid of the user.
 
 2) The various manipulations of sdf files (renumbering, ring corner flipping)
 requires OpenBabel, including Python bindings. The following links provide
