@@ -41,6 +41,7 @@ import NMRAnalysis
 import Tinker
 import MacroModel
 import NWChem
+import Jaguar
 
 import glob
 import sys
@@ -249,6 +250,9 @@ def main(filename, ExpNMR, nfiles):
                 adjRMSDcutoff = Gaussian.AdaptiveRMSD(inpfiles[0], settings)
             elif settings.DFT == 'n' or settings.DFT == 'w' or settings.DFT == 'm':
                 adjRMSDcutoff = NWChem.AdaptiveRMSD(inpfiles[0], settings)
+            elif settings.DFT == 'j':
+                adjRMSDcutoff = Jaguar.AdaptiveRMSD(inpfiles[0], settings)
+
             print 'RMSD cutoff adjusted to ' + str(adjRMSDcutoff)
         else:
             adjRMSDcutoff = settings.InitialRMSDcutoff
@@ -267,6 +271,12 @@ def main(filename, ExpNMR, nfiles):
                     " (" + str(i) + " of " + str(len(inpfiles)) + ")"
                 NWChem.SetupNWChem(ds, ds + 'nwinp', 3, settings,
                                    adjRMSDcutoff)
+            elif settings.DFT == 'j':
+                print "\nJaguar setup for file " + ds +\
+                    " (" + str(i) + " of " + str(len(inpfiles)) + ")"
+                Jaguar.SetupJaguar(ds, ds + 'jinp', 3, settings,
+                                   adjRMSDcutoff)
+
             i += 1
         QRun = False
     elif settings.AssumeDone:
@@ -278,6 +288,9 @@ def main(filename, ExpNMR, nfiles):
         Files2Run = Gaussian.GetFiles2Run(inpfiles, settings)
     elif settings.DFT == 'n' or settings.DFT == 'w' or settings.DFT == 'm':
         Files2Run = NWChem.GetFiles2Run(inpfiles, settings)
+    elif settings.DFT == 'j':
+        Files2Run = Jaguar.GetFiles2Run(inpfiles, settings)
+    
     print Files2Run
     
     if len(Files2Run) == 0:
@@ -410,6 +423,12 @@ def main(filename, ExpNMR, nfiles):
                     i += 1
                 print "Starting batch nr " + str(i+1)
                 NWChem.RunOnMedivir(Files2Run[(i*MaxCon):], settings)
+        
+        elif settings.DFT == 'n':
+            print '\nRunning Jaguar locally...'
+            quit()
+            #Jaguar.RunJaguar(Files2Run, settings)
+
 
     if numDS < 2:
         print "DP4 requires at least 2 candidate structures!"
