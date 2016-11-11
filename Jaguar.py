@@ -80,25 +80,29 @@ def WriteJagFile(Jaginp, conformer, atoms, charge, settings):
     f.write('&gen\n')
     if settings.Solvent != '':
         f.write('solvent=' + settings.Solvent+'\nisolv=2\n')
+        f.write('pbf_radii=2\n')
     
     basis = settings.BasisSet
     if basis.lower() == '6-31g(d,p)':
-        basis = '6-31g**'
+        basis = '6-31G**'
     elif basis.lower() == '6-311g(d)':
-        basis = '6-311g*'
+        basis = '6-311G*'
     
     f.write('basis=' + basis + '\nnmr=1\n')
-    f.write('dftname=' + settings.Functional + '\n&\n')
+    f.write('dftname=' + settings.Functional.upper() + '\n&\n')
             
     
-    f.write('entry_name:'+Jaginp+'\n&zmat\n')
+    #f.write('entry_name: '+Jaginp+'\n&zmat\n')
+    f.write('&zmat\n')
     #f.write(str(charge) + ' 1\n')
 
     #natom = 0
 
     for natom, atom in enumerate(conformer):
-        f.write((atoms[natom] + str(natom+1)).ljust(8) + atom[1].ljust(15, '0')\
-                 + '   ' + atom[2].ljust(15, '0') + '   ' + atom[3].ljust(15, '0') + '\n')
+        fxyz = [float(x) for x in atom[1:]]
+        t = "{: .13f}"
+        f.write(atoms[natom] + str(natom+1).ljust(6) + t.format(fxyz[0])\
+                 + '  ' + t.format(fxyz[1]) + '  ' + t.format(fxyz[2]) + '\n')
         #natom = natom + 1
     f.write('&')
     
@@ -107,30 +111,40 @@ def WriteJagFile(Jaginp, conformer, atoms, charge, settings):
 
 def GetFiles2Run(inpfiles, settings):
     #Get the names of all relevant input files
-    GinpFiles = []
+    
+    JinpFiles = []
     for filename in inpfiles:
-        GinpFiles = GinpFiles + glob.glob(filename + 'jinp???.com')
-
+        JinpFiles = JinpFiles + glob.glob(filename + 'jinp???.in')
+    print JinpFiles
     Files2Run = []
 
     #for every input file check that there is a completed output file,
     #delete the incomplete outputs and add the inputs to be done to Files2Run
-    for filename in GinpFiles:
-        if not os.path.exists(filename[:-3]+'out'):
+    for filename in JinpFiles:
+        if not os.path.exists(filename[:-2]+'out'):
             Files2Run.append(filename)
         else:
-            if IsJagCompleted(filename[:-3] + 'out'):
+            if IsJagCompleted(filename[:-2] + 'out'):
                 #print filename[:-3]+'out already exists'
                 continue
             else:
-                os.remove(filename[:-3] + 'out')
+                os.remove(filename[:-2] + 'out')
                 Files2Run.append(filename)
 
     return Files2Run
 
 
-def RunJaguar(folder, JagFiles, settings):
-    pass
+def RunJaguar(JagFiles, settings):
+    NCompleted = 0
+    JagPrefix = settings.SCHRODINGER + "/jaguar run -WAIT "
+
+    for f in JagFiles:
+        time.sleep(3)
+        print JagPrefix + f
+        outp = subprocess.check_output(JagPrefix + f, shell=True)
+        NCompleted += 1
+        print "Jaguar job " + str(NCompleted) + " of " + str(len(JagFiles)) + \
+            " completed."
 
 
 def IsJagCompleted(f):
@@ -231,12 +245,11 @@ def main(numDS, MaxEnergy, *allargs):
         
     print "Jaguar calculation for file " + str(compFiles) + " out of " + str(totFiles) + " completed."
     
-    else:
-        NMRargs = []
-        for ds in args:
-            NMRargs.append(ds + 'jaginp')
-            NMRargs.append(len(glob.glob(ds + '*jaginp*.out')))
-        print numDS
-        NMRargs.append(ExpNMR)
-        print NMRargs
-        NMRDP4.main(numDS, *NMRargs)
+    NMRargs = []
+    for ds in args:
+        NMRargs.append(ds + 'jaginp')
+        NMRargs.append(len(glob.glob(ds + '*jaginp*.out')))
+    print numDS
+    NMRargs.append(ExpNMR)
+    print NMRargs
+    #NMRDP4.main(numDS, *NMRargs)

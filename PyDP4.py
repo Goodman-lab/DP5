@@ -424,11 +424,11 @@ def main(filename, ExpNMR, nfiles):
                 print "Starting batch nr " + str(i+1)
                 NWChem.RunOnMedivir(Files2Run[(i*MaxCon):], settings)
         
-        elif settings.DFT == 'n':
+        elif settings.DFT == 'j':
             print '\nRunning Jaguar locally...'
+            Jaguar.RunJaguar(Files2Run, settings)
             quit()
-            #Jaguar.RunJaguar(Files2Run, settings)
-
+            
 
     if numDS < 2:
         print "DP4 requires at least 2 candidate structures!"
@@ -697,8 +697,8 @@ if __name__ == '__main__':
             print "Stats file not found, quitting."
             quit()
     
-    #settings.SCHRODINGER = os.environ['SCHRODINGER']
-    settings.SCHRODINGER = '/usr/local/shared/schrodinger/current'
+    settings.SCHRODINGER = os.environ['SCHRODINGER']
+    #settings.SCHRODINGER = '/usr/local/shared/schrodinger/current'
     
     inpfiles = [x.split('.')[0] for x in args.StructureFiles]
     
