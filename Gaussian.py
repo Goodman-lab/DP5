@@ -356,6 +356,10 @@ def IsGausCompleted(f):
         return False
 
 
+def RunLocally(folder, GausJobs, settings):
+    print "Not yet implemented, sorry!"
+    quit()
+
 #Still need addition of support for geometry optimisation
 def RunOnZiggy(folder, queue, GausFiles, settings):
 

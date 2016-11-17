@@ -321,7 +321,11 @@ def main(filename, ExpNMR, nfiles):
     if QRun:
         print 'DFT has already been run for these inputs. Skipping...'
     else:
-        if settings.DFT == 'z':
+        if settings.DFT == 'g':
+            print '\nRunning Gaussian locally...'
+            Gaussian.RunLocally(Files2Run, settings)
+
+        elif settings.DFT == 'z':
             print '\nRunning Gaussian on Ziggy...'
 
             #Run Gaussian jobs on Ziggy cluster in folder named after date
@@ -427,8 +431,6 @@ def main(filename, ExpNMR, nfiles):
         elif settings.DFT == 'j':
             print '\nRunning Jaguar locally...'
             Jaguar.RunJaguar(Files2Run, settings)
-            quit()
-            
 
     if numDS < 2:
         print "DP4 requires at least 2 candidate structures!"
