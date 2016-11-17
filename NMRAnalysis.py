@@ -11,6 +11,7 @@ and DP4 input preparation and running DP4.py. Called by PyDP4.py
 
 import Gaussian
 import NWChem
+import Jaguar
 
 import sys
 import scipy.optimize as sciopt
@@ -34,6 +35,12 @@ def main(numDS, settings, *args):
     elif settings.DFT == 'n' or settings.DFT == 'w' or settings.DFT == 'm':
         (RelEs, populations, labels, BoltzmannShieldings, SigConfs, Ntaut) = \
                                             NWChem.RunNMRPredict(numDS, *args)
+    elif settings.DFT == 'j':
+        (RelEs, populations, labels, BoltzmannShieldings, SigConfs, Ntaut) = \
+            Jaguar.RunNMRPredict(numDS, settings, *args)
+        Jlabels = [""]
+        BoltzmannFCs = [0]
+        BoltzmannJs = [0]
     
     if settings.RenumberFile != '':
         BoltzmannShieldings = ReorderShieldings(BoltzmannShieldings,

@@ -6,6 +6,7 @@ Created on Thu Oct 16 14:26:32 2015
 """
 import Tinker
 import MacroModel
+import nmrPredictJag
 
 import subprocess
 import glob
@@ -170,86 +171,26 @@ def RunNMRPredict(numDS, settings, *args):
 
     RelEs = []
     populations = []
+    BoltzmannShieldings = []
     SigConfs = []
 
     print JagNames
     print NTaut
     #This loop runs nmrPredict for each diastereomer and collects
     #the outputs    
-    for i, isomer in enumerate(GausNames):
-
+    for i, isomer in enumerate(JagNames):
+        print isomer
         JagFiles = glob.glob(isomer + 'jinp*.out')
         JagFiles = [x[:-4] for x in JagFiles]
-        JagFiles = [x for x in JagFiles if 'temp' not in x]
-        
+
         #Runs nmrPredictGaus Name001, ... and collects output
-        Es, Pops, ls, Jls, SCs = nmrPredictJag.main(settings,
-                                                                *JagFiles)
+        Es, Pops, ls, BSs, SCs = nmrPredictJag.main(settings, *JagFiles)
         if i == 0:
             labels = ls
             
         RelEs.append(Es)
         populations.append(Pops)
+        BoltzmannShieldings.append(BSs)
         SigConfs.append(SCs)
 
-    return (RelEs, populations, labels, SigConfs, NTaut)
-
-            
-def main(numDS, MaxEnergy, *allargs):
-
-    args = allargs[:-1]
-    ExpNMR = allargs[-1]
-    
-    JagInp = "jaguar run "    
-    
-    #Run Jaguar (if there are not output files for all input filed
-    #and wait until the last file is completed
-    
-    inpFiles = glob.glob('*jaginp*.in')
-    
-    totFiles = len(inpFiles)
-    
-    compFiles = len(glob.glob('*jaginp*.out'))
-    
-    if compFiles < totFiles:
-        outp = subprocess.check_output(JagInp, shell=True)
-    
-    print outp    
-    
-    #Wait while all the .out files have been created and report on progress
-    while compFiles < totFiles:
-        outpFiles = glob.glob('*jaginp*.out')
-        if len(outpFiles) > compFiles:
-            compFiles = len(outpFiles)
-            if compFiles > 1:
-                print "Jaguar calculation for file " + str(compFiles-1) + " out of " + str(totFiles) + " completed."
-        time.sleep(30)
-        
-    lastSeries = glob.glob(args[-1] + '*jaginp*.out')
-    numLast = len(lastSeries)
-    for f in lastSeries:
-        if str(numLast) in f[-7:]:
-            lastFile = f
-            
-    #Wait while the last job has been completed by looking in the file
-    lastOutp = open(lastFile, 'r')
-    outp = lastOutp.readlines()
-    
-    while not "completed" in outp[-1]:
-        lastOutp.close()
-        time.sleep(15)
-        lastOutp = open(lastFile, 'r')
-        outp = lastOutp.readlines()
-    
-    lastOutp.close()
-        
-    print "Jaguar calculation for file " + str(compFiles) + " out of " + str(totFiles) + " completed."
-    
-    NMRargs = []
-    for ds in args:
-        NMRargs.append(ds + 'jaginp')
-        NMRargs.append(len(glob.glob(ds + '*jaginp*.out')))
-    print numDS
-    NMRargs.append(ExpNMR)
-    print NMRargs
-    #NMRDP4.main(numDS, *NMRargs)
+    return (RelEs, populations, labels, BoltzmannShieldings, SigConfs, NTaut)

@@ -125,8 +125,8 @@ def main(filename, ExpNMR, nfiles):
 
     print "=========================="
     print "PyDP4 script,\nintegrating Tinker/MacroModel,"
-    print "Gaussian/NWChem and DP4\nv0.4"
-    print "\nCopyright (c) 2015 Kristaps Ermanis, Jonathan M. Goodman"
+    print "Gaussian/NWChem/Jaguar and DP4\nv0.7"
+    print "\nCopyright (c) 2015-2016 Kristaps Ermanis, Jonathan M. Goodman"
     print "Distributed under MIT license"
     print "==========================\n\n"
 
