@@ -153,7 +153,10 @@ def WriteGausFile(Gausinp, conformer, atoms, charge, settings):
     f = file(Gausinp + '.com', 'w')
     if(settings.nProc > 1):
         f.write('%nprocshared=' + str(settings.nProc) + '\n')
-    f.write('%mem=6000MB\n%chk='+Gausinp + '.chk\n')
+    if settings.DFT == 'g':
+        f.write('%mem=2000MB\n%chk='+Gausinp + '.chk\n')
+    else:
+        f.write('%mem=6000MB\n%chk='+Gausinp + '.chk\n')
     
     if (settings.Functional).lower() == 'wp04':
         func1 = '# blyp/'
@@ -356,9 +359,19 @@ def IsGausCompleted(f):
         return False
 
 
-def RunLocally(folder, GausJobs, settings):
-    print "Not yet implemented, sorry!"
-    quit()
+def RunLocally(GausJobs, settings):
+    NCompleted = 0
+    gausdir = os.environ['GAUSS_EXEDIR']
+    GausPrefix = gausdir + "/g09 < "
+
+    for f in GausJobs:
+        time.sleep(3)
+        print GausPrefix + f + ' > ' + f[:-3] + 'out'
+        outp = subprocess.check_output(GausPrefix + f + ' > ' + f[:-3] + 'out', shell=True)
+        NCompleted += 1
+        print "Gaussian job " + str(NCompleted) + " of " + str(len(GausJobs)) + \
+            " completed."
+
 
 #Still need addition of support for geometry optimisation
 def RunOnZiggy(folder, queue, GausFiles, settings):

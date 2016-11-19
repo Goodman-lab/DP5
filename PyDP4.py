@@ -521,6 +521,9 @@ if __name__ == '__main__':
     parser.add_argument("-l", "--ConfLimit", help="Specify maximum number of \
     conformers per structure. If above this, adaptive RMSD pruning will be \
     performed", type=int, default=100)
+    parser.add_argument("--MaxConfE", help="Specify maximum MMFF energy \
+    allowed before conformer is discarded before DFT stage", type=float,\
+    default=settings.MaxCutoffEnergy)
     parser.add_argument("--StrictConfLimit", help="Strictly enforce per struct \
     conf limit at the cost of abandoning consistent RMSD cutoff value", action="store_true")
     parser.add_argument("-r", "--rot5", help="Manually generate conformers for\
@@ -597,6 +600,7 @@ if __name__ == '__main__':
     settings.ScriptDir = getScriptPath()
     settings.ForceField = args.ff
     settings.PerStructConfLimit = args.ConfLimit
+    settings.MaxCutoffEnergy = args.MaxConfE
     settings.BasisSet = args.BasisSet
     settings.Functional = args.Functional
     settings.nProc = args.nProc
