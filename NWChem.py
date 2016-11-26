@@ -12,14 +12,20 @@ import Tinker
 import MacroModel
 import nmrPredictNWChem
 
-import pyximport
-pyximport.install()
-import ConfPrune
 import glob
 import os
 import subprocess
 import time
 import socket
+
+if os.name == 'nt':
+    import pyximport
+    pyximport.install()
+    import ConfPrune
+else:
+    import pyximport
+    pyximport.install()
+    import ConfPrune
 
 
 def SetupNWChem(MMoutp, NWCheminp, numDigits, settings, adjRMSDcutoff):

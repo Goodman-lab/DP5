@@ -13,14 +13,20 @@ import glob
 import time
 import sys
 import os
-import pyximport
-pyximport.install()
-import ConfPrune
+
+if os.name == 'nt':
+    import pyximport
+    pyximport.install()
+    import ConfPrune
+else:
+    import pyximport
+    pyximport.install()
+    import ConfPrune
 
 """
 main function that runs the Jaguar, checks for when it's done and
 submits the result to the NMRDP4 script for data extraction, processing
-and submission to DP4 java file
+and submission to DP4
 """
 
 def SetupJaguar(MMoutp, Jaginp, numDigits, settings, adjRMSDcutoff):
@@ -137,7 +143,10 @@ def GetFiles2Run(inpfiles, settings):
 
 def RunJaguar(JagFiles, settings):
     NCompleted = 0
-    JagPrefix = settings.SCHRODINGER + "/jaguar run -WAIT "
+    if os.name == 'nt':
+        JagPrefix = '"' + settings.SCHRODINGER + '\jaguar" run -WAIT '
+    else:
+        JagPrefix = settings.SCHRODINGER + "/jaguar run -WAIT "
 
     for f in JagFiles:
         time.sleep(3)

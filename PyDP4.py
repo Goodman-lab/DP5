@@ -703,7 +703,9 @@ if __name__ == '__main__':
             print "Stats file not found, quitting."
             quit()
     
-    settings.SCHRODINGER = os.environ['SCHRODINGER']
+    SchrodEnv = os.getenv('SCHRODINGER')
+    if SchrodEnv != None:
+        settings.SCHRODINGER = SchrodEnv
     #settings.SCHRODINGER = '/usr/local/shared/schrodinger/current'
     
     inpfiles = [x.split('.')[0] for x in args.StructureFiles]

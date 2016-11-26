@@ -31,7 +31,10 @@ def SetupMacromodel(numDS, settings, *args):
         cwd = os.getcwd()
 
         #Convert input structure to mae file
-        convinp = settings.SCHRODINGER + '/utilities/sdconvert -isd '
+        if os.name == 'nt':
+            convinp = '"' + settings.SCHRODINGER + '/utilities/sdconvert" -isd '
+        else:
+            convinp = settings.SCHRODINGER + '/utilities/sdconvert -isd '
         outp = subprocess.check_output(convinp + f + '.sdf -omae ' + f +
                                        '.mae', shell=True)
 
@@ -67,9 +70,12 @@ def SetupMacromodel(numDS, settings, *args):
         
         if settings.Rot5Cycle is True:
             #Convert input structure to mae file
-            convinp = settings.SCHRODINGER + '/utilities/sdconvert -isd '
-            outp = subprocess.check_output(convinp + f + 'rot.sdf -omae ' + f
-                                           + 'rot.mae', shell=True)
+            if os.name == 'nt':
+                convinp = '"' + settings.SCHRODINGER + '/utilities/sdconvert" -isd '
+            else:
+                convinp = settings.SCHRODINGER + '/utilities/sdconvert -isd '
+            outp = subprocess.check_output(convinp + f + '.sdf -omae ' + f +
+                                           '.mae', shell=True)
 
             #Copy default com file to directory
             shutil.copyfile(scriptdir + '/default.com', cwd + '/' + f +
@@ -95,12 +101,16 @@ def SetupMacromodel(numDS, settings, *args):
 def RunMacromodel(numDS, settings, *args):
     #Run Macromodel conformation search for all diastereomeric inputs
     NCompleted = 0
+    
+    if os.name == 'nt':
+        MMPrefix = '"' + settings.SCHRODINGER + '\\bmin" '
+    else:
+        MMPrefix = settings.SCHRODINGER + "/bmin "
 
     for ds in args[0]:
         if not os.path.exists(ds+'.log'):
-            print settings.SCHRODINGER + '/bmin ' + ds
-            outp = subprocess.check_output(settings.SCHRODINGER + '/bmin ' +
-                                           ds, shell=True)
+            print MMPrefix + ds
+            outp = subprocess.check_output(MMPrefix + ds, shell=True)
         else:
             print ds + ".log exists, skipping"
             continue
@@ -114,9 +124,8 @@ def RunMacromodel(numDS, settings, *args):
             print "Macromodel job " + str(NCompleted) + " of " + str(numDS*2)\
                 + " completed."
 
-            print settings.SCHRODINGER + '/bmin ' + ds + 'rot'
-            outp = subprocess.check_output(settings.SCHRODINGER + '/bmin '
-                                           + ds+'rot', shell=True)
+            print MMPrefix + ds + 'rot'
+            outp = subprocess.check_output(MMPrefix + ds +'rot', shell=True)
             time.sleep(60)
             while(not IsMMCompleted(ds + 'rot.log')):
                 time.sleep(30)
@@ -271,7 +280,12 @@ def IsMMCompleted(f):
     outp = Gfile.readlines()
     Gfile.close()
 
-    if "normal termination" in outp[-3]:
+    if os.name == 'nt':
+        i = -2
+    else:
+        i = -3
+
+    if "normal termination" in outp[i]:
         return True
     else:
         return False
