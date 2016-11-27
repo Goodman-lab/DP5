@@ -22,9 +22,16 @@ import sys
 import glob
 import shutil
 import math
-import pyximport
-pyximport.install()
-import ConfPrune
+import numpy
+
+if os.name == 'nt':
+    import pyximport
+    pyximport.install()
+    import ConfPrune
+else:
+    import pyximport
+    pyximport.install()
+    import ConfPrune
 
 
 def SetupGaussian(MMoutp, Gausinp, numDigits, settings, adjRMSDcutoff):
