@@ -10,11 +10,12 @@ protomer generation is used.
 """
 import sys
 sys.path.append('/home/ke291/Tools/openbabel-install/lib/python2.7/site-packages/')
+import os
 from openbabel import *
 import subprocess
 import itertools
 
-MolConPath = '/home/ke291/ChemAxon/MarvinBeans/bin/molconvert'
+MolConPath = '/usr/local/bin/molconvert'
 
 
 def main(f):
@@ -162,8 +163,9 @@ def RestoreNumsSDF(f, fold, AuxInfo):
 
 
 def GetInchi(f):
-
-    outp = subprocess.check_output(MolConPath + ' inchi ' + f, shell=True)
+    
+    cwd = os.getcwd()
+    outp = subprocess.check_output(MolConPath + ' inchi ' + cwd + '/' + f, shell=True)
     idata = outp.split('\n')
 
     aux = idata[1][:]
@@ -172,12 +174,14 @@ def GetInchi(f):
 
 def Inchi2Struct(inchi, f, aux):
 
+    cwd = os.getcwd()
+    fullf = cwd + '/' + f
     infile = open(f + '.inchi', 'w')
     infile.write(inchi)
     infile.close()
-
-    outp = subprocess.check_output(MolConPath + ' sdf ' + f +
-        '.inchi -3:S{fine}[prehydrogenize] -o ' + f + '.sdf', shell=True)
+    
+    outp = subprocess.check_output(MolConPath + ' sdf ' + fullf +
+        '.inchi -3:S{fine}[prehydrogenize] -o ' + fullf + '.sdf', shell=True)
 
 
 def GenProtomers(structf, atoms):
