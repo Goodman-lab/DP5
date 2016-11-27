@@ -95,7 +95,7 @@ class Settings:
     MaxConcurrentJobs = 75
     MaxConcurrentJobsDarwin = 256
     PerStructConfLimit = 100
-    StrictConfLimit = False
+    StrictConfLimit = True
     InitialRMSDcutoff = 0.75
     MaxCutoffEnergy = 10.0
     TMS_SC_C13 = 191.69255
