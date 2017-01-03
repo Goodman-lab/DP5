@@ -230,28 +230,28 @@ def WriteGausFileOpt(Gausinp, conformer, atoms, charge, settings):
     
     if settings.DFTOpt:
         if settings.Solvent != '':
-            f1.write('# b3lyp/6-31g(d,p) Opt=(maxcycles=50) scrf=(solvent=' +
+            f1.write('# b3lyp/6-31g(d,p) Opt=(maxcycles=' + str(settings.MaxDFTOptCycles) + ') scrf=(solvent=' +
                      settings.Solvent+')\n')
         else:
-            f1.write('# b3lyp/6-31g(d,p) Opt=(maxcycles=50)\n')
+            f1.write('# b3lyp/6-31g(d,p) Opt=(maxcycles=' + str(settings.MaxDFTOptCycles) + ')\n')
     elif settings.PM6Opt:
         if settings.Solvent != '':
-            f1.write('# pm6 Opt=(maxcycles=50) scrf=(solvent=' +
+            f1.write('# pm6 Opt=(maxcycles=' + str(settings.MaxDFTOptCycles) + ') scrf=(solvent=' +
                      settings.Solvent+')\n')
         else:
-            f1.write('# pm6 Opt=(maxcycles=50)\n')
+            f1.write('# pm6 Opt=(maxcycles=' + str(settings.MaxDFTOptCycles) + ')\n')
     elif settings.HFOpt:
         if settings.Solvent != '':
-            f1.write('# rhf/6-31g(d,p) Opt=(maxcycles=50) scrf=(solvent=' +
+            f1.write('# rhf/6-31g(d,p) Opt=(maxcycles=' + str(settings.MaxDFTOptCycles) + ') scrf=(solvent=' +
                      settings.Solvent+')\n')
         else:
-            f1.write('# rhf/6-31g(d,p) Opt=(maxcycles=50)\n')
+            f1.write('# rhf/6-31g(d,p) Opt=(maxcycles=' + str(settings.MaxDFTOptCycles) + ')\n')
     elif settings.M06Opt:
         if settings.Solvent != '':
-            f1.write('# m062x/6-31g(d,p) Opt=(maxcycles=50) scrf=(solvent=' +
+            f1.write('# m062x/6-31g(d,p) Opt=(maxcycles=' + str(settings.MaxDFTOptCycles) + ') scrf=(solvent=' +
                      settings.Solvent+')\n')
         else:
-            f1.write('# m062x/6-31g(d,p) Opt=(maxcycles=50)\n')
+            f1.write('# m062x/6-31g(d,p) Opt=(maxcycles=' + str(settings.MaxDFTOptCycles) + ')\n')
             
 
     f1.write('\n'+Gausinp+'\n\n')

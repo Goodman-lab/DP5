@@ -294,7 +294,7 @@ def main(filename, ExpNMR, nfiles):
     print Files2Run
     
     if len(Files2Run) == 0:
-        """
+        
         if (settings.DFT == 'z' or settings.DFT == 'g' or settings.DFT == 'd') and\
             (settings.DFTOpt or settings.PM6Opt or settings.HFOpt or settings.M06Opt):
             print "Checking if all geometries have converged"
@@ -311,8 +311,8 @@ def main(filename, ExpNMR, nfiles):
                 QRun = True
         else:
             QRun = True
-        """
-        QRun = True
+        
+        #QRun = True
         
     if len(Files2Run) > settings.HardConfLimit:
         print "Hard conformation count limit exceeded, DFT calculations aborted."
@@ -577,6 +577,8 @@ if __name__ == '__main__':
     level before NMR prediction", action="store_true")
     parser.add_argument('--M06Opt', help="Optimize geometries at M062X\
     level before NMR prediction", action="store_true")
+    parser.add_argument("--OptCycles", help="Specify max number of DFT geometry\
+    optimization cycles", type=int, default=settings.MaxDFTOptCycles)
     parser.add_argument('-n', '--Charge', help="Specify\
     charge of the molecule. Do not use when input files have different charges")
     parser.add_argument('-b', '--BasicAtoms', help="Generate protonated states\
@@ -605,6 +607,7 @@ if __name__ == '__main__':
     settings.Functional = args.Functional
     settings.nProc = args.nProc
     settings.MaxConcurrentJobs = args.batch
+    settings.MaxDFTOptCycles = args.OptCycles
     
     if settings.DFT == 'd' and not args.TimeLimit:
         print "For calculations on Darwin explicit time limit in hours " + \
