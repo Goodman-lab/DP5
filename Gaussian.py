@@ -798,7 +798,10 @@ def ReadGeometry(GOutpFile):
             break
         else:
             data = filter(None, line[:-1].split(','))
-            atoms.append(data[0][-1])
+            if data[0][-2:].isalpha():
+                atoms.append(data[0][-2:])
+            else:
+                atoms.append(data[0][-1])
             coords.append(data[1:])
             
     line = GOutp[chindex].split('Charge =  ')
