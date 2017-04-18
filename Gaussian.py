@@ -399,9 +399,7 @@ def RunOnZiggy(folder, queue, GausFiles, settings):
             and (not settings.M06Opt):
             WriteSubScript(f[:-4], queue, folder, settings)
         else:
-            print "Optimized job running on ziggy slurm queue not yet implemented."
-            quit()
-            #WriteSubScriptOpt(f[:-4], queue, folder, settings)
+            WriteSubScriptOpt(f[:-4], queue, folder, settings)
     print str(len(GausFiles)) + ' slurm scripts generated'
 
     #Upload .com files and .qsub files to directory
@@ -695,14 +693,16 @@ def WriteSubScriptOpt(GausJob, queue, ZiggyJobFolder, settings):
         return
 
     #Create the submission script
-    QSub = open(GausJob + ".qsub", 'w')
+    QSub = open(GausJob + "slurm", 'w')
 
     #Choose the queue
-    QSub.write('#PBS -q ' + queue + '\n')
+    QSub.write('#!/bin/bash\n\n')
+    QSub.write('#SBATCH -p SWAN\n')
     if settings.nProc >1:
-        QSub.write('#PBS -l nodes=1:ppn=' + str(settings.nProc) + '\n#\n')
+        QSub.write('#SBATCH --nodes=1\n#SBATCH --cpus-per-task=' + str(settings.nProc) + '\n')
     else:
-        QSub.write('#PBS -l nodes=1:ppn=1\n#\n')
+        QSub.write('#SBATCH --nodes=1\n#SBATCH --cpus-per-task=1\n')
+    QSub.write('#SBATCH --time=24:00:00\n\n')
 
     #define input files and output files
     QSub.write('file=' + GausJob + '\n\n')
@@ -712,36 +712,36 @@ def WriteSubScriptOpt(GausJob, queue, ZiggyJobFolder, settings):
     #define cwd and scratch folder and ask the machine
     #to make it before running the job
     QSub.write('HERE=/home/' + settings.user +'/' + ZiggyJobFolder + '\n')
-    QSub.write('LSCRATCH=/scratch/' + settings.user + '/' + GausJob + ZiggyJobFolder +'\n')
-    QSub.write('mkdir ${LSCRATCH}\n')
+    QSub.write('SCRATCH=/scratch/' + settings.user + '/' +
+               GausJob + '\n')
+    QSub.write('mkdir ${SCRATCH}\n')
 
     #Setup GAUSSIAN environment variables
-    if settings.nProc >1:
-        QSub.write('set OMP_NUM_THREADS=12\n')
-    else:
-        QSub.write('set OMP_NUM_THREADS=1\n')
+    QSub.write('set OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK\n')
+    
     QSub.write('export GAUSS_EXEDIR=/usr/local/shared/gaussian/em64t/09-D01/g09\n')
     QSub.write('export g09root=/usr/local/shared/gaussian/em64t/09-D01\n')
     QSub.write('export PATH=/usr/local/shared/gaussian/em64t/09-D01/g09:$PATH\n')
-    QSub.write('export GAUSS_SCRDIR=$LSCRATCH\n')
+    QSub.write('export GAUSS_SCRDIR=$SCRATCH\n')
+    QSub.write('exe=$GAUSS_EXEDIR/g09\n')
 
     #copy the input files to scratch
-    QSub.write('cp ${HERE}/${inpfile1}  $LSCRATCH\n')
-    QSub.write('cp ${HERE}/${inpfile2}  $LSCRATCH\ncd $LSCRATCH\n')
+    QSub.write('cp ${HERE}/${inpfile1}  $SCRATCH\n')
+    QSub.write('cp ${HERE}/${inpfile2}  $SCRATCH\ncd $SCRATCH\n')
 
     #write useful info to the job output file (not the gaussian)
-    QSub.write('echo "Starting job $PBS_JOBID"\necho\n')
-    QSub.write('echo "PBS assigned me this node:"\ncat $PBS_NODEFILE\necho\n')
+    QSub.write('echo "Starting job $SLURM_JOBID"\necho\n')
+    QSub.write('echo "SLURM assigned me this node:"\nsrun hostname\necho\n')
     
-    QSub.write('ln -s $HERE/$outfile1 $LSCRATCH/$outfile1\n')
-    QSub.write('ln -s $HERE/$outfile2 $LSCRATCH/$outfile2\n')
-    QSub.write('$GAUSS_EXEDIR/g09 < $inpfile1 > $outfile1\n')
-    QSub.write('$GAUSS_EXEDIR/g09 < $inpfile2 > $outfile2\n')
+    QSub.write('ln -s $HERE/$outfile1 $SCRATCH/$outfile1\n')
+    QSub.write('ln -s $HERE/$outfile2 $SCRATCH/$outfile2\n')
+    QSub.write('srun $exe < $inpfile1 > $outfile1\n')
+    QSub.write('wait\n')
+    QSub.write('srun $exe < $inpfile2 > $outfile2\n')
 
     #Cleanup
-    QSub.write('rm -rf ${LSCRATCH}/\n')
-    QSub.write('qstat -f $PBS_JOBID\n')
-
+    QSub.write('rm -rf ${SCRATCH}/\n')
+    
     QSub.close()
 
 
