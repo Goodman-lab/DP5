@@ -479,9 +479,19 @@ def RunOnDarwin(folder, GausJobs, settings):
     #Upload .com files and slurm files to directory
     print "Uploading files to darwin..."
     for f in GausJobs:
-        outp = subprocess.Popen(['scp', f,
+        if (not settings.DFTOpt) and (not settings.PM6Opt) and (not settings.HFOpt)\
+            and (not settings.M06Opt):
+            outp = subprocess.Popen(['scp', f,
             'darwin:/home/' + settings.user + '/' + folder],
             stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
+        
+        else:
+            outp = subprocess.Popen(['scp', f[:-4] + 'a.com',
+                'darwin:/home/' + settings.user + '/' + folder],
+                stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
+            outp = subprocess.Popen(['scp', f[:-4] + 'b.com',
+                'darwin:/home/' + settings.user + '/' + folder],
+                stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
     
     for f in SubFiles:
         
@@ -579,12 +589,23 @@ def WriteSlurm(GausJobs, settings, index=''):
     slurm[20] = '#SBATCH --time=' + format(settings.TimeLimit,"02") +\
         ':00:00\n'
     
-    for f in GausJobs:
-        
-        slurm.append('srun --exclusive -n 1 $application < ' + f[:-3] + \
-            'com > ' + f[:-3] + 'out 2> error &\n')
+    if (not settings.DFTOpt) and (not settings.PM6Opt) and (not settings.HFOpt)\
+        and (not settings.M06Opt):
             
-    slurm.append('wait\n')
+        for f in GausJobs:
+            slurm.append('srun --exclusive -n 1 $application < ' + f[:-3] + \
+                'com > ' + f[:-3] + 'out 2> error &\n')
+        slurm.append('wait\n')
+    else:
+        for f in GausJobs:
+            slurm.append('srun --exclusive -n 1 $application < ' + f[:-4] + \
+                'a.com > ' + f[:-4] + 'temp.out 2> error &\n')
+        slurm.append('wait\n')
+        for f in GausJobs:
+            slurm.append('srun --exclusive -n 1 $application < ' + f[:-4] + \
+                'b.com > ' + f[:-4] + '.out 2> error &\n')
+        slurm.append('wait\n')
+        
     slurmf.truncate(0)
     slurmf.seek(0)
     slurmf.writelines(slurm)
@@ -798,7 +819,10 @@ def ReadGeometry(GOutpFile):
             break
         else:
             data = filter(None, line[:-1].split(','))
-            atoms.append(data[0][-1])
+            if data[0][-2:].isalpha():
+                atoms.append(data[0][-2:])
+            else:
+                atoms.append(data[0][-1])
             coords.append(data[1:])
             
     line = GOutp[chindex].split('Charge =  ')
