@@ -3,9 +3,9 @@
 """
 PyDP4 integrated workflow for the running of MM, DFT GIAO calculations and
 DP4 analysis
-v0.4
+v0.8
 
-Copyright (c) 2015 Kristaps Ermanis, Jonathan M. Goodman
+Copyright (c) 2015-2017 Kristaps Ermanis, Jonathan M. Goodman
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +26,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
 Created on Wed Nov 19 15:26:32 2014
-Updated on Mon Jul 30 2015
+Updated on Mon Sep 28 2017
 
 @author: ke291
 
@@ -296,7 +296,8 @@ def main(filename, ExpNMR, nfiles):
     if len(Files2Run) == 0:
         
         if (settings.DFT == 'z' or settings.DFT == 'g' or settings.DFT == 'd') and\
-            (settings.DFTOpt or settings.PM6Opt or settings.HFOpt or settings.M06Opt):
+            (settings.DFTOpt or settings.PM6Opt or settings.HFOpt or settings.M06Opt)\
+	    and not settings.AssumeDone:
             print "Checking if all geometries have converged"
             Ngeoms, Nunconverged, unconverged = Gaussian.CheckConvergence(inpfiles)
             if Nunconverged > 0:
