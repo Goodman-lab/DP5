@@ -58,7 +58,7 @@ class Settings:
     DFT = 'z'
     Rot5Cycle = False
     Title = 'DP4molecule'
-    DarwinNodeSize = 16
+    DarwinNodeSize = 32
     RingAtoms = []
     ConfPrune = True
     GenDS = True
@@ -93,7 +93,7 @@ class Settings:
     MMfactor = 2500  # nsteps = MMfactor*degrees of freedom
     HardConfLimit = 10000
     MaxConcurrentJobs = 75
-    MaxConcurrentJobsDarwin = 256
+    MaxConcurrentJobsDarwin = 320
     PerStructConfLimit = 100
     StrictConfLimit = True
     InitialRMSDcutoff = 0.75

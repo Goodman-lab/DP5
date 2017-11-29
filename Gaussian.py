@@ -583,25 +583,31 @@ def WriteSlurm(GausJobs, settings, index=''):
     slurmf = open(filename, 'r+')
     slurm = slurmf.readlines()
     slurm[12] = '#SBATCH -J ' + settings.Title + '\n'
-    slurm[18] = '#SBATCH --ntasks=' + str(len(GausJobs)) + '\n'
-    slurm[20] = '#SBATCH --time=' + format(settings.TimeLimit,"02") +\
+    slurm[19] = '#SBATCH --ntasks=' + str(len(GausJobs)) + '\n'
+    slurm[21] = '#SBATCH --time=' + format(settings.TimeLimit,"02") +\
         ':00:00\n'
     
     if (not settings.DFTOpt) and (not settings.PM6Opt) and (not settings.HFOpt)\
         and (not settings.M06Opt):
             
         for f in GausJobs:
-            slurm.append('srun --exclusive -n 1 $application < ' + f[:-3] + \
+            slurm.append('srun --exclusive -n1 $application < ' + f[:-3] + \
                 'com > ' + f[:-3] + 'out 2> error &\n')
+            #slurm.append('$application < ' + f[:-3] + \
+            #             'com > ' + f[:-3] + 'out 2> error &\n')
         slurm.append('wait\n')
     else:
         for f in GausJobs:
-            slurm.append('srun --exclusive -n 1 $application < ' + f[:-4] + \
+            slurm.append('srun --exclusive -n1 $application < ' + f[:-4] + \
                 'a.com > ' + f[:-4] + 'temp.out 2> error &\n')
+            #slurm.append('$application < ' + f[:-4] + \
+            #    'a.com > ' + f[:-4] + 'temp.out 2> error &\n')
         slurm.append('wait\n')
         for f in GausJobs:
-            slurm.append('srun --exclusive -n 1 $application < ' + f[:-4] + \
-                'b.com > ' + f[:-4] + '.out 2> error &\n')
+            slurm.append('srun --exclusive -n1 $application < ' + f[:-4] + \
+                         'b.com > ' + f[:-4] + '.out 2> error &\n')
+            #slurm.append('$application < ' + f[:-4] + \
+            #    'b.com > ' + f[:-4] + '.out 2> error &\n')
         slurm.append('wait\n')
         
     slurmf.truncate(0)
