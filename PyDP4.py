@@ -711,7 +711,10 @@ if __name__ == '__main__':
     if SchrodEnv != None:
         settings.SCHRODINGER = SchrodEnv
     #settings.SCHRODINGER = '/usr/local/shared/schrodinger/current'
-    
+
+    with open('cmd.log', 'a') as f:
+        f.write(' '.join(sys.argv) + '\n')
+
     inpfiles = [x.split('.')[0] for x in args.StructureFiles]
     
     if len(inpfiles) == 1:
