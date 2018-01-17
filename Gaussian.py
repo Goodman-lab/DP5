@@ -69,7 +69,11 @@ def SetupGaussian(MMoutp, Gausinp, numDigits, settings, adjRMSDcutoff):
                 and (not settings.M06Opt):
                 WriteGausFile(filename, pruned[num], atoms, charge, settings)
             else:
-                WriteGausFileOpt(filename, pruned[num], atoms, charge, settings)
+                if not(os.path.exists(filename + 'temp.out')):
+                    WriteGausFileOpt(filename, pruned[num], atoms, charge, settings)
+                else:
+                    tempatoms, tempcoords, tempcharge = ReadGeometry(filename + 'temp.out')
+                    WriteGausFileOpt(filename, tempcoords, tempatoms, tempcharge, settings)
     else:
         for num in range(0, len(pruned)):
             filename = Gausinp+str(num+1).zfill(3)
