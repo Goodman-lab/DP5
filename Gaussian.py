@@ -598,18 +598,12 @@ def WriteSlurm(GausJobs, settings, index=''):
         slurm.append('wait\n')
     else:
         for f in GausJobs:
+            slurm.append('(srun --exclusive -n1 $application < ' + f[:-4] + \
+                'a.com > ' + f[:-4] + 'temp.out 2> error;')
             slurm.append('srun --exclusive -n1 $application < ' + f[:-4] + \
-                'a.com > ' + f[:-4] + 'temp.out 2> error &\n')
-            #slurm.append('$application < ' + f[:-4] + \
-            #    'a.com > ' + f[:-4] + 'temp.out 2> error &\n')
+                         'b.com > ' + f[:-4] + '.out 2> error) &\n')
         slurm.append('wait\n')
-        for f in GausJobs:
-            slurm.append('srun --exclusive -n1 $application < ' + f[:-4] + \
-                         'b.com > ' + f[:-4] + '.out 2> error &\n')
-            #slurm.append('$application < ' + f[:-4] + \
-            #    'b.com > ' + f[:-4] + '.out 2> error &\n')
-        slurm.append('wait\n')
-        
+
     slurmf.truncate(0)
     slurmf.seek(0)
     slurmf.writelines(slurm)
