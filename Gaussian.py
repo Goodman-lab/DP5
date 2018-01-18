@@ -591,25 +591,26 @@ def WriteDarwinScripts(GausJobs, settings, scrfolder):
 
     SubFiles = []
     NodeSize = settings.DarwinNodeSize
-    
-    if len(GausJobs) <= NodeSize:
+    AdjNodeSize = int(math.floor(settings.DarwinNodeSize/settings.nProc))
+
+    if len(GausJobs) <= AdjNodeSize:
 
         SubFiles.append(WriteSlurm(GausJobs, settings, scrfolder))
     
     else:
         print "The Gaussian calculations will be submitted as " +\
-                    str(math.ceil(len(GausJobs)/NodeSize)) + \
+                    str(math.ceil(len(GausJobs)/AdjNodeSize)) + \
                     " jobs"
         i = 0
-        while (i+1)*NodeSize < len(GausJobs):
-            PartGausJobs = list(GausJobs[(i*NodeSize):((i+1)*NodeSize)])
+        while (i+1)*AdjNodeSize < len(GausJobs):
+            PartGausJobs = list(GausJobs[(i*AdjNodeSize):((i+1)*AdjNodeSize)])
             print "Writing script nr " + str(i+1)
             
             SubFiles.append(WriteSlurm(PartGausJobs, settings, scrfolder, str(i+1)))
             
             i += 1
         
-        PartGausJobs = list(GausJobs[(i*NodeSize):])
+        PartGausJobs = list(GausJobs[(i*AdjNodeSize):])
         print "Writing script nr " + str(i+1)
         SubFiles.append(WriteSlurm(PartGausJobs, settings, scrfolder, str(i+1)))
         
@@ -626,7 +627,7 @@ def WriteSlurm(GausJobs, settings, scrfolder, index=''):
     slurmf = open(filename, 'r+')
     slurm = slurmf.readlines()
     slurm[12] = '#SBATCH -J ' + settings.Title + '\n'
-    slurm[19] = '#SBATCH --ntasks=' + str(len(GausJobs)) + '\n'
+    slurm[19] = '#SBATCH --ntasks=' + str(len(GausJobs)*settings.nProc) + '\n'
     slurm[21] = '#SBATCH --time=' + format(settings.TimeLimit,"02") +\
         ':00:00\n'
 
@@ -643,9 +644,9 @@ def WriteSlurm(GausJobs, settings, scrfolder, index=''):
         slurm.append('wait\n')
     else:
         for f in GausJobs:
-            slurm.append('(srun --exclusive -n1 $application < ' + f[:-4] + \
+            slurm.append('(srun --exclusive -n1 -c' + str(settings.nProc) + ' $application < ' + f[:-4] + \
                 'a.com > ' + f[:-4] + 'temp.out 2> error;')
-            slurm.append('srun --exclusive -n1 $application < ' + f[:-4] + \
+            slurm.append('srun --exclusive -n1 -c' + str(settings.nProc) + ' $application < ' + f[:-4] + \
                          'b.com > ' + f[:-4] + '.out 2> error) &\n')
         slurm.append('wait\n')
 
