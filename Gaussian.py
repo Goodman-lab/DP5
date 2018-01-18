@@ -231,7 +231,12 @@ def WriteGausFileOpt(Gausinp, conformer, atoms, charge, settings):
     f1 = file(Gausinp + 'a.com', 'w')
     if(settings.nProc > 1):
         f1.write('%nprocshared=' + str(settings.nProc) + '\n')
-    f1.write('%mem=6000MB\n%chk='+Gausinp + '.chk\n')
+
+    if settings.DFT != 'd':
+        f1.write('%mem=6000MB\n%chk='+Gausinp + '.chk\n')
+    else:
+        fullscrfolder = settings.DarwinScrDir + settings.StartTime + settings.Title + '/'
+        f1.write('%mem=6000MB\n%chk=' + fullscrfolder + Gausinp + '.chk\n')
     
     if settings.DFTOpt:
         if settings.Solvent != '':
@@ -276,7 +281,13 @@ def WriteGausFileOpt(Gausinp, conformer, atoms, charge, settings):
     f2 = file(Gausinp + 'b.com', 'w')
     if(settings.nProc > 1):
         f2.write('%nprocshared=' + str(settings.nProc) + '\n')
-    f2.write('%mem=6000MB\n%chk='+Gausinp + '.chk\n')
+
+    if settings.DFT != 'd':
+        f2.write('%mem=6000MB\n%chk=' + Gausinp + '.chk\n')
+    else:
+        fullscrfolder = settings.DarwinScrDir + settings.StartTime + settings.Title + '/'
+        f2.write('%mem=6000MB\n%chk=' + fullscrfolder + Gausinp + '.chk\n')
+
     if (settings.Functional).lower() == 'wp04':
         func1 = '# blyp/'
         func2 = ' iop(3/76=1000001189,3/77=0961409999,3/78=0000109999)' + \
@@ -386,7 +397,14 @@ def RunLocally(GausJobs, settings):
 
 
 #Still need addition of support for geometry optimisation
-def RunOnZiggy(folder, queue, GausFiles, settings):
+def RunOnZiggy(findex, queue, GausFiles, settings):
+
+    if findex == 0:
+        folder = settings.StartTime + settings.Title
+    else:
+        folder = settings.StartTime + findex + settings.Title
+
+    scrfolder = settings.StartTime + settings.Title
 
     print "ziggy GAUSSIAN job submission script\n"
 
@@ -458,24 +476,43 @@ def RunOnZiggy(folder, queue, GausFiles, settings):
                                    '/' + folder + '/*.out ' + socket.getfqdn()
                                    + ':' + os.getcwd(), shell=True)
 
-def RunOnDarwin(folder, GausJobs, settings):
-    
+def RunOnDarwin(findex, GausJobs, settings):
+
+    if findex == 0:
+        folder = settings.StartTime + settings.Title
+    else:
+        folder = settings.StartTime + findex + settings.Title
+
+    scrfolder = settings.StartTime + settings.Title
+
     print "Darwin GAUSSIAN job submission script\n"
     
-    #Check that folder does not exist, create job folder on ziggy
+    #Check that results folder does not exist, create job folder on darwin
     outp = subprocess.Popen(['ssh', 'darwin', 'ls'], \
       stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
-    print folder
+    print "Results folder: " + folder
     
     if folder in outp:
-        print "Folder exists on Darwin, choose another folder name."
-        return
+        print "Results folder exists on Darwin, choose another folder name."
+        quit()
 
     outp = subprocess.Popen(['ssh', 'darwin', 'mkdir', folder], \
       stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
 
+    # Check that scratch directory does not exist, create job folder on darwin
+    outp = subprocess.Popen(['ssh', 'darwin', 'ls ' + settings.DarwinScrDir], \
+                            stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
+    print "Scratch directory: " + settings.DarwinScrDir + scrfolder
+
+    if folder in outp:
+        print "Scratch folder exists on Darwin, choose another folder name."
+        quit()
+
+    outp = subprocess.Popen(['ssh', 'darwin', 'mkdir', settings.DarwinScrDir + scrfolder], \
+                            stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
+
     #Write the slurm scripts
-    SubFiles = WriteDarwinScripts(GausJobs, settings)
+    SubFiles = WriteDarwinScripts(GausJobs, settings, scrfolder)
         
     print str(len(SubFiles)) + ' slurm scripts generated'
 
@@ -540,23 +577,24 @@ def RunOnDarwin(folder, GausJobs, settings):
     outp = subprocess.Popen(['scp', 'darwin:' + fullfolder + '/*.out ',
             os.getcwd() + '/'], \
             stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
-    
-    print "\nDeleting checkpoint files..."
-    print 'ssh darwin rm ' + fullfolder + '/*.chk'
+
+    fullscrfolder = settings.DarwinScrDir + scrfolder
+    print "\nDeleting scratch folder..."
+    print 'ssh darwin rm -r ' + fullscrfolder
     #outp = subprocess.check_output('ssh darwin rm /home/' + settings.user +
     #                               '/' + folder + '/*.chk', shell=True)
-    outp = subprocess.Popen(['ssh', 'darwin', 'rm', fullfolder + '/*.chk'], \
+    outp = subprocess.Popen(['ssh', 'darwin', 'rm -r', fullscrfolder], \
             stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
     
 
-def WriteDarwinScripts(GausJobs, settings):
-    
+def WriteDarwinScripts(GausJobs, settings, scrfolder):
+
     SubFiles = []
     NodeSize = settings.DarwinNodeSize
     
     if len(GausJobs) <= NodeSize:
 
-        SubFiles.append(WriteSlurm(GausJobs, settings))
+        SubFiles.append(WriteSlurm(GausJobs, settings, scrfolder))
     
     else:
         print "The Gaussian calculations will be submitted as " +\
@@ -567,18 +605,18 @@ def WriteDarwinScripts(GausJobs, settings):
             PartGausJobs = list(GausJobs[(i*NodeSize):((i+1)*NodeSize)])
             print "Writing script nr " + str(i+1)
             
-            SubFiles.append(WriteSlurm(PartGausJobs, settings, str(i+1)))
+            SubFiles.append(WriteSlurm(PartGausJobs, settings, scrfolder, str(i+1)))
             
             i += 1
         
         PartGausJobs = list(GausJobs[(i*NodeSize):])
         print "Writing script nr " + str(i+1)
-        SubFiles.append(WriteSlurm(PartGausJobs, settings, str(i+1)))
+        SubFiles.append(WriteSlurm(PartGausJobs, settings, scrfolder, str(i+1)))
         
     return SubFiles
 
 
-def WriteSlurm(GausJobs, settings, index=''):
+def WriteSlurm(GausJobs, settings, scrfolder, index=''):
     
     cwd = os.getcwd()
     filename = settings.Title + 'slurm' + index
@@ -591,6 +629,8 @@ def WriteSlurm(GausJobs, settings, index=''):
     slurm[19] = '#SBATCH --ntasks=' + str(len(GausJobs)) + '\n'
     slurm[21] = '#SBATCH --time=' + format(settings.TimeLimit,"02") +\
         ':00:00\n'
+
+    slurm[61] = 'export GAUSS_SCRDIR=' + settings.DarwinScrDir + scrfolder + '\n'
     
     if (not settings.DFTOpt) and (not settings.PM6Opt) and (not settings.HFOpt)\
         and (not settings.M06Opt):

@@ -83,6 +83,8 @@ class Settings:
     OBPath = '/home/ke291/Tools/openbabel-install/lib/python2.7/site-packages/'
     SCHRODINGER = '/usr/local/shared/schrodinger/current'
     MOPAC = '/home/ke291/MOPAC/MOPAC2016.exe'
+    DarwinScrDir = '/home/ke291/rds/hpc-work/'
+    StartTime = ''
     nProc = 1
     OtherNuclei = ''
     RenumberFile = ''
@@ -332,34 +334,27 @@ def main(filename, ExpNMR, nfiles):
             #Run Gaussian jobs on Ziggy cluster in folder named after date
             #and time in the short 1processor job queue
             #and wait until the last file is completed
-            now = datetime.datetime.now()
             MaxCon = settings.MaxConcurrentJobs
             if settings.DFTOpt or settings.PM6Opt or settings.HFOpt or settings.M06Opt:
                 for i in range(len(Files2Run)):
                     Files2Run[i] = Files2Run[i][:-5] + '.com'
             if len(Files2Run) < MaxCon:
-                Gaussian.RunOnZiggy(now.strftime('%d%b%H%M') + settings.Title,
-                                    settings.queue, Files2Run, settings)
+                Gaussian.RunOnZiggy(0, settings.queue, Files2Run, settings)
             else:
                 print "The DFT calculations will be done in " +\
                     str(math.ceil(len(Files2Run)/MaxCon)) + " batches"
                 i = 0
                 while (i+1)*MaxCon < len(Files2Run):
                     print "Starting batch nr " + str(i+1)
-                    Gaussian.RunOnZiggy(now.strftime('%d%b%H%M')+str(i+1) +
-                        settings.Title, settings.queue,
-                        Files2Run[(i*MaxCon):((i+1)*MaxCon)], settings)
+                    Gaussian.RunOnZiggy(str(i+1), settings.queue, Files2Run[(i*MaxCon):((i+1)*MaxCon)], settings)
                     i += 1
                 print "Starting batch nr " + str(i+1)
-                Gaussian.RunOnZiggy(now.strftime('%d%b%H%M')+str(i+1) + 
-                    settings.Title, settings.queue, Files2Run[(i*MaxCon):],
-                    settings)
+                Gaussian.RunOnZiggy(str(i+1), settings.queue, Files2Run[(i*MaxCon):], settings)
         elif settings.DFT == 'd':
             print '\nRunning Gaussian on Darwin...'
 
             #Run Gaussian jobs on Darwin cluster in folder named after date
             #and title and wait until the last file is completed
-            now = datetime.datetime.now()
             MaxCon = settings.MaxConcurrentJobsDarwin
             
             if settings.DFTOpt or settings.PM6Opt or settings.HFOpt or settings.M06Opt:
@@ -367,21 +362,18 @@ def main(filename, ExpNMR, nfiles):
                     Files2Run[i] = Files2Run[i][:-5] + '.com'
                     
             if len(Files2Run) < MaxCon:
-                Gaussian.RunOnDarwin(now.strftime('%d%b%H%M') + settings.Title,
-                                     Files2Run, settings)
+                Gaussian.RunOnDarwin(0, Files2Run, settings)
             else:
                 print "The DFT calculations will be done in " +\
                     str(math.ceil(len(Files2Run)/MaxCon)) + " batches"
                 i = 0
                 while (i+1)*MaxCon < len(Files2Run):
                     print "Starting batch nr " + str(i+1)
-                    Gaussian.RunOnDarwin(now.strftime('%d%b%H%M')+str(i+1) +
-                        settings.Title, Files2Run[(i*MaxCon):((i+1)*MaxCon)],
+                    Gaussian.RunOnDarwin(str(i+1), Files2Run[(i*MaxCon):((i+1)*MaxCon)],
                         settings)
                     i += 1
                 print "Starting batch nr " + str(i+1)
-                Gaussian.RunOnDarwin(now.strftime('%d%b%H%M')+str(i+1) + 
-                    settings.Title, Files2Run[(i*MaxCon):], settings)
+                Gaussian.RunOnDarwin(str(i+1), Files2Run[(i*MaxCon):], settings)
 
         elif settings.DFT == 'n':
             print '\nRunning NWChem locally...'
@@ -711,6 +703,9 @@ if __name__ == '__main__':
     if SchrodEnv != None:
         settings.SCHRODINGER = SchrodEnv
     #settings.SCHRODINGER = '/usr/local/shared/schrodinger/current'
+
+    now = datetime.datetime.now()
+    settings.StartTime = now.strftime('%d%b%H%M')
 
     with open('cmd.log', 'a') as f:
         f.write(' '.join(sys.argv) + '\n')
