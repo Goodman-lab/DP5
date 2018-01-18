@@ -72,7 +72,8 @@ def SetupGaussian(MMoutp, Gausinp, numDigits, settings, adjRMSDcutoff):
                 if not(os.path.exists(filename + 'temp.out')):
                     WriteGausFileOpt(filename, pruned[num], atoms, charge, settings)
                 else:
-                    tempatoms, tempcoords, tempcharge = ReadGeometry(filename + 'temp.out')
+                    print 'Reusing geometry from ' + 'temp.out'
+                    tempatoms, tempcoords, tempcharge = ReadTempGeometry(filename + 'temp.out')
                     WriteGausFileOpt(filename, tempcoords, tempatoms, tempcharge, settings)
     else:
         for num in range(0, len(pruned)):
@@ -806,6 +807,9 @@ def ReadGeometry(GOutpFile):
     gausfile = open(GOutpFile, 'r')
     GOutp = gausfile.readlines()
 
+    print GOutpFile
+    print len(GOutp)
+
     index = 0
     atoms = []
     coords = []
@@ -835,6 +839,54 @@ def ReadGeometry(GOutpFile):
     gausfile.close()
 
     return atoms, coords, charge
+
+
+def ReadTempGeometry(GOutpFile):
+    gausfile = open(GOutpFile, 'r')
+    GOutp = gausfile.readlines()
+    gausfile.close()
+
+    index = 0
+    atoms = []
+    coords = []
+
+    # Find the geometry section and charge section
+    for index in range(len(GOutp)):
+        if 'Charge =' in GOutp[index]:
+            chindex = index
+        if ('Input orientation:' in GOutp[index]) or ("Standard orientation:" in GOutp[index]):
+            gindex = index + 5
+
+    # Read shielding constants and labels
+    for line in GOutp[gindex:]:
+        if '--------------' in line:
+            break
+        else:
+            data = filter(None, line[:-1].split(' '))
+            atoms.append(GetAtomSymbol(int(data[1])))
+            coords.append(data[2:])
+
+    line = GOutp[chindex].split('Charge =  ')
+    line = line[1].split(' Multiplicity = ')
+    charge = int(line[0])
+
+    return atoms, coords, charge
+
+
+def GetAtomSymbol(AtomNum):
+    Lookup = ['H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne', 'Na', 'Mg', 'Al', \
+              'Si', 'P', 'S', 'Cl', 'Ar', 'K', 'Ca', 'Sc', 'Ti', 'V', 'Cr', 'Mn', 'Fe', 'Co', \
+              'Ni', 'Cu', 'Zn', 'Ga', 'Ge', 'As', 'Se', 'Br', 'Kr', 'Rb', 'Sr', 'Y', 'Zr', \
+              'Nb', 'Mo', 'Tc', 'Ru', 'Rh', 'Pd', 'Ag', 'Cd', 'In', 'Sn', 'Sb', 'Te', 'I', \
+              'Xe', 'Cs', 'Ba', 'La', 'Ce', 'Pr', 'Nd', 'Pm', 'Sm', 'Eu', 'Gd', 'Tb', 'Dy', \
+              'Ho', 'Er', 'Tm', 'Yb', 'Lu', 'Hf', 'Ta', 'W', 'Re', 'Os', 'Ir', 'Pt', 'Au', \
+              'Hg', 'Tl', 'Pb', 'Bi', 'Po', 'At', 'Rn']
+
+    if AtomNum > 0 and AtomNum < len(Lookup):
+        return Lookup[AtomNum-1]
+    else:
+        print "No such element with atomic number " + str(AtomNum)
+        return 0
 
 
 def RunNMRPredict(numDS, settings, *args):
