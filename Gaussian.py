@@ -691,7 +691,7 @@ def WriteSubScript(GausJob, queue, ZiggyJobFolder, settings):
         QSub.write('#SBATCH --nodes=1\n#SBATCH --cpus-per-task=' + str(settings.nProc) + '\n')
     else:
         QSub.write('#SBATCH --nodes=1\n#SBATCH --cpus-per-task=1\n')
-    QSub.write('#SBATCH --time=24:00:00\n\n')
+    QSub.write('#SBATCH --time=' + format(settings.TimeLimit,"02") +':00:00\n\n')
 
     #define input files and output files
     QSub.write('file=' + GausJob + '\n\n')
@@ -748,7 +748,7 @@ def WriteSubScriptOpt(GausJob, queue, ZiggyJobFolder, settings):
         QSub.write('#SBATCH --nodes=1\n#SBATCH --cpus-per-task=' + str(settings.nProc) + '\n')
     else:
         QSub.write('#SBATCH --nodes=1\n#SBATCH --cpus-per-task=1\n')
-    QSub.write('#SBATCH --time=24:00:00\n\n')
+    QSub.write('#SBATCH --time=' + format(settings.TimeLimit,"02") +':00:00\n\n')
 
     #define input files and output files
     QSub.write('file=' + GausJob + '\n\n')
