@@ -72,9 +72,13 @@ def SetupGaussian(MMoutp, Gausinp, numDigits, settings, adjRMSDcutoff):
                 if not(os.path.exists(filename + 'temp.out')):
                     WriteGausFileOpt(filename, pruned[num], atoms, charge, settings)
                 else:
-                    print 'Reusing geometry from ' + 'temp.out'
+                    print 'Reusing geometry from ' + filename + 'temp.out'
                     tempatoms, tempcoords, tempcharge = ReadTempGeometry(filename + 'temp.out')
-                    WriteGausFileOpt(filename, tempcoords, tempatoms, tempcharge, settings)
+                    if (len(tempatoms) > 0) and (len(tempcoords) > 0):
+                        WriteGausFileOpt(filename, tempcoords, tempatoms, tempcharge, settings)
+                    else:
+                        print filename + 'temp.out is an invalid Gaussian output file. Falling back to MMFF geometry.'
+                        WriteGausFileOpt(filename, pruned[num], atoms, charge, settings)
     else:
         for num in range(0, len(pruned)):
             filename = Gausinp+str(num+1).zfill(3)
@@ -416,6 +420,8 @@ def RunOnZiggy(findex, queue, GausFiles, settings):
 
     outp = subprocess.check_output('ssh ziggy mkdir ' + folder, shell=True)
 
+    print "Results folder: " + folder
+    
     #Write the qsub scripts
     for f in GausFiles:
         if (not settings.DFTOpt) and (not settings.PM6Opt) and (not settings.HFOpt)\
@@ -887,9 +893,14 @@ def ReadTempGeometry(GOutpFile):
     GOutp = gausfile.readlines()
     gausfile.close()
 
+    if len(GOutp) < 80:
+        return [], [], 0
+
     index = 0
     atoms = []
     coords = []
+    gindex = -1
+    chindex = -1
 
     # Find the geometry section and charge section
     for index in range(len(GOutp)):
@@ -897,6 +908,9 @@ def ReadTempGeometry(GOutpFile):
             chindex = index
         if ('Input orientation:' in GOutp[index]) or ("Standard orientation:" in GOutp[index]):
             gindex = index + 5
+
+    if (gindex < 0) or (gindex < 0):
+        return [], [], 0
 
     # Read shielding constants and labels
     for line in GOutp[gindex:]:
