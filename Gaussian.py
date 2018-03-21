@@ -421,7 +421,7 @@ def RunOnZiggy(findex, queue, GausFiles, settings):
     outp = subprocess.check_output('ssh ziggy mkdir ' + folder, shell=True)
 
     print "Results folder: " + folder
-    
+
     #Write the qsub scripts
     for f in GausFiles:
         if (not settings.DFTOpt) and (not settings.PM6Opt) and (not settings.HFOpt)\
@@ -553,7 +553,7 @@ def RunOnDarwin(findex, GausJobs, settings):
     for f in SubFiles:
         outp = subprocess.Popen(['ssh', 'darwin', 'cd ' + fullfolder + ';sbatch', f], \
             stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
-        print "\n".split(outp)[-2:]
+        print outp.split('\n')[-2]
 
     print str(len(SubFiles)) + ' jobs submitted to the queue on darwin ' + \
         'containing ' + str(len(GausJobs)) + ' Gaussian jobs'

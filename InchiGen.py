@@ -15,7 +15,7 @@ from openbabel import *
 import subprocess
 import itertools
 
-MolConPath = '/usr/local/bin/molconvert'
+MolConPath = '/home/ke291/chemaxon/marvinsuite/bin/molconvert'
 
 
 def main(f):
