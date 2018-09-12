@@ -194,7 +194,7 @@ def ReadMacromodel(MMoutp, settings):
 
         #find start of atom coordinates for each block
         for i in range(len(blocks)):
-            if AbsEs[i] < MinE+settings.MaxCutoffEnergy:
+            if (AbsEs[i] < MinE+settings.MaxCutoffEnergy) or (settings.Cluster == True):
                 #Save the locations of atom number, xyz and charge
                 DataIndex = [0, 0, 0, 0, 0]
                 for offset, line in enumerate(MaeInp[blocks[i]:]):
@@ -217,7 +217,7 @@ def ReadMacromodel(MMoutp, settings):
 
         #Read the atom numbers and coordinates
         for i, block in enumerate(blocks):
-            if AbsEs[i] < MinE+settings.MaxCutoffEnergy:
+            if (AbsEs[i] < MinE+settings.MaxCutoffEnergy) or (settings.Cluster == True):
                 conformers.append([])
                 conformer = conformer + 1
                 index = block+1
@@ -246,8 +246,10 @@ def ReadMacromodel(MMoutp, settings):
                     atom = atom + 1     # Move to next atom
             else:
                 break
-    
-    return atoms, conformers, int(charge)
+    if settings.Cluster == False:
+        return atoms, conformers, int(charge)
+    else:
+        return atoms, conformers, int(charge), AbsEs
 
 
 def GetMacromodelSymbol(atomType):

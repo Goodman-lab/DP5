@@ -33,6 +33,7 @@ else:
     pyximport.install()
     import ConfPrune
 
+from openbabel import *
 
 def SetupGaussian(MMoutp, Gausinp, numDigits, settings, adjRMSDcutoff):
 
@@ -88,6 +89,214 @@ def SetupGaussian(MMoutp, Gausinp, numDigits, settings, adjRMSDcutoff):
             WriteGausFile(filename, conformer, atoms, charge, settings)
 
     print str(len(pruned)) + " .com files written"
+
+
+def SetupGaussianCluster(MMoutp, Gausinp, numDigits, settings):
+
+    if settings.MMTinker:
+        print "Clustering not implemented with Tinker..."
+        quit()
+    else:
+        atoms, conformers, charge, AbsEs = MacroModel.ReadMacromodel(MMoutp,
+                                                                settings)
+    if settings.charge is not None:
+        charge = settings.charge
+
+    oldconformers = conformers
+    conformers = AdaptConfs(conformers)
+    print str(len(conformers)) + " Macromodel conformers read"
+
+    print "Absolute energies: " + ', '.join([format(x, "3.1f") for x in AbsEs])
+    MinE = min(AbsEs)
+    RelEs = [x-MinE for x in AbsEs]
+    print "Relative energies " + ', '.join([format(x-MinE, "3.1f") for x in AbsEs])
+
+    obmols = BuildObMols(conformers, atoms)
+    IntCoords = SelectCoords(obmols[0])
+    print str(len(IntCoords)) + " torsionable single bonds found"
+    print IntCoords
+
+    CoordData = GetCoordData(obmols, IntCoords)
+    for data in CoordData[:3]:
+        print ' '.join([format(x, "8.1f") for x in data])
+    print '-'*20
+
+    import hdbscan
+
+    clusterer = hdbscan.HDBSCAN(min_cluster_size=4, min_samples=1)
+
+    clusterer.fit(CoordData)
+    #clusterer.fit(TSNEdata)
+    print "Number of clusters: " + str(max(clusterer.labels_)+1)
+    print "Clustering results: "
+    print clusterer.labels_
+
+    Clusters = []
+    MinEconfs = []
+    for i in range(-1, max(clusterer.labels_)):
+        Clusters.append([j for j, x in enumerate(clusterer.labels_) if x == i])
+
+    for i, cluster in enumerate(Clusters):
+        MinE = 1000
+        tempmin = 10000
+        for x in cluster:
+            if RelEs[x] < MinE:
+                tempmin = x
+                MinE = RelEs[x]
+        if tempmin != 10000:
+            MinEconfs.append(tempmin)
+        #MinE = min([filtRelEs[x] for x in cluster])
+        print "Cluster " + str(i) + ": " + str(cluster) + ", min E: " + format(MinE, ".1f") + ' kJ/mol (' + str(tempmin) + ')'
+
+    print MinEconfs
+
+
+    for num in MinEconfs:
+        filename = Gausinp + str(num + 1).zfill(3)
+        if (not settings.DFTOpt) and (not settings.PM6Opt) and (not settings.HFOpt) \
+                and (not settings.M06Opt):
+            WriteGausFile(filename, oldconformers[num], atoms, charge, settings)
+
+    print str(len(MinEconfs)) + " .com files written"
+
+
+def BuildObMols(conformers, atoms):
+    obmols = []
+
+    for conf in conformers:
+        mol = BuildOBMol(atoms, conf)
+        obmols.append(mol)
+
+    print str(len(obmols)) + " obmols generated"
+
+    return obmols
+
+
+def BuildOBMol(atoms, coords):
+
+    mol = OBMol()
+    for anum, acoords in zip(atoms, coords):
+        atom = OBAtom()
+        atom.SetAtomicNum(GetAtomNum(anum))
+        atom.SetVector(acoords[0],acoords[1], acoords[2])
+        mol.AddAtom(atom)
+
+    #Restore the bonds
+    mol.ConnectTheDots()
+    mol.PerceiveBondOrders()
+
+    #mol.Kekulize()
+
+    return mol
+
+
+def AdaptConfs(conformers):
+
+    newconfs = []
+
+    for conf in conformers:
+        newconf = []
+        for coord in conf:
+            newconf.append([float(x) for x in coord[1:]])
+        newconfs.append(newconf)
+
+    return newconfs
+
+
+def SelectCoords(mol):
+
+    TorsAtoms = []
+
+    ntorsions = 0
+    for bond in OBMolBondIter(mol):
+        if bond.IsSingle() and (not IsTerminating(bond)) and (not OnlyHSubst(bond)):
+            ntorsions += 1
+            TorsAtoms.append(ChooseTorsAtoms(bond))
+
+    ntorsionsb = 0
+
+    for tors in OBMolTorsionIter(mol):
+        ntorsionsb += 1
+
+    return TorsAtoms
+
+
+def GetCoordData(obmols, TorsAtoms, ExtraCoords = []):
+    coords = []
+
+    for mol in obmols:
+        moldata = []
+        for tors in TorsAtoms:
+            moldata.append(mol.GetTorsion(tors[0], tors[1], tors[2], tors[3]))
+
+        if len(ExtraCoords) > 0:
+            for coord in ExtraCoords:
+                if len(coord) == 2:
+                    moldata.append(GetDistance(mol, coord))
+                elif len(coord) == 3:
+                    moldata.append(mol.GetAngle(coord[0], coord[1], coord[2]))
+                elif len(coord) == 4:
+                    moldata.append(mol.GetTorsion(coord[0], coord[1], coord[2], coord[3]))
+
+        coords.append(moldata)
+
+    return coords
+
+def GetDistance(mol, atoms):
+
+    a1 = mol.GetAtom(atoms[0])
+
+    return a1.GetDistance(atoms[1])
+
+
+def IsTerminating(bond):
+
+    BAtom = bond.GetBeginAtom()
+    EAtom = bond.GetEndAtom()
+
+    if (GetNNeighbours(BAtom) <= 1) or (GetNNeighbours(EAtom) <= 1):
+        return True
+    else:
+        return False
+
+
+def GetNNeighbours(atom):
+    NNeighbours = 0
+
+    for NbrAtom in OBAtomAtomIter(atom):
+        NNeighbours += 1
+
+    return NNeighbours
+
+
+def OnlyHSubst(bond):
+    BAtom = bond.GetBeginAtom()
+    EAtom = bond.GetEndAtom()
+
+    if (BAtom.GetHvyValence() <= 1) or (EAtom.GetHvyValence() <= 1):
+        return True
+    else:
+        return False
+
+
+def ChooseTorsAtoms(bond):
+    BAtom = bond.GetBeginAtom()
+    CAtom = bond.GetEndAtom()
+
+    max = 0
+    for NbrAtom in OBAtomAtomIter(BAtom):
+        if (NbrAtom.GetIdx() != CAtom.GetIdx()) and (NbrAtom.GetAtomicNum() > max):
+            AAtom = NbrAtom
+            max = NbrAtom.GetAtomicNum()
+
+    max = 0
+    for NbrAtom in OBAtomAtomIter(CAtom):
+        if (NbrAtom.GetIdx() != BAtom.GetIdx()) and (NbrAtom.GetAtomicNum() > max):
+            DAtom = NbrAtom
+            max = NbrAtom.GetAtomicNum()
+    AtomIDs = [AAtom.GetIdx(), BAtom.GetIdx(), CAtom.GetIdx(), DAtom.GetIdx()]
+
+    return AtomIDs
 
 
 #Adjust the RMSD cutoff to keep the conformation numbers reasonable
@@ -941,6 +1150,24 @@ def GetAtomSymbol(AtomNum):
         return Lookup[AtomNum-1]
     else:
         print "No such element with atomic number " + str(AtomNum)
+        return 0
+
+
+PTable = ['H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne', 'Na', 'Mg', 'Al', \
+          'Si', 'P', 'S', 'Cl', 'Ar', 'K', 'Ca', 'Sc', 'Ti', 'V', 'Cr', 'Mn', 'Fe', 'Co', \
+          'Ni', 'Cu', 'Zn', 'Ga', 'Ge', 'As', 'Se', 'Br', 'Kr', 'Rb', 'Sr', 'Y', 'Zr', \
+          'Nb', 'Mo', 'Tc', 'Ru', 'Rh', 'Pd', 'Ag', 'Cd', 'In', 'Sn', 'Sb', 'Te', 'I', \
+          'Xe', 'Cs', 'Ba', 'La', 'Ce', 'Pr', 'Nd', 'Pm', 'Sm', 'Eu', 'Gd', 'Tb', 'Dy', \
+          'Ho', 'Er', 'Tm', 'Yb', 'Lu', 'Hf', 'Ta', 'W', 'Re', 'Os', 'Ir', 'Pt', 'Au', \
+          'Hg', 'Tl', 'Pb', 'Bi', 'Po', 'At', 'Rn']
+
+
+def GetAtomNum(AtomSymbol):
+
+    if AtomSymbol in PTable:
+        return PTable.index(AtomSymbol)+1
+    else:
+        print "No such element with symbol " + str(AtomSymbol)
         return 0
 
 

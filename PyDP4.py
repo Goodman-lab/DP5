@@ -98,6 +98,7 @@ class Settings:
     MaxConcurrentJobsDarwin = 320
     PerStructConfLimit = 100
     StrictConfLimit = True
+    Cluster = False
     InitialRMSDcutoff = 0.75
     MaxCutoffEnergy = 10.0
     TMS_SC_C13 = 191.69255
@@ -128,7 +129,7 @@ def main(filename, ExpNMR, nfiles):
     print "=========================="
     print "PyDP4 script,\nintegrating Tinker/MacroModel,"
     print "Gaussian/NWChem/Jaguar and DP4\nv0.7"
-    print "\nCopyright (c) 2015-2016 Kristaps Ermanis, Jonathan M. Goodman"
+    print "\nCopyright (c) 2015-2018 Kristaps Ermanis, Jonathan M. Goodman"
     print "Distributed under MIT license"
     print "==========================\n\n"
 
@@ -247,7 +248,7 @@ def main(filename, ExpNMR, nfiles):
         quit()
 
     if (not settings.AssumeDone) and (not settings.UseExistingInputs):
-        if settings.ConfPrune:
+        if settings.ConfPrune and not settings.Cluster:
             if settings.DFT == 'z' or settings.DFT == 'g' or settings.DFT == 'd':
                 adjRMSDcutoff = Gaussian.AdaptiveRMSD(inpfiles[0], settings)
             elif settings.DFT == 'n' or settings.DFT == 'w' or settings.DFT == 'm':
@@ -266,8 +267,11 @@ def main(filename, ExpNMR, nfiles):
             if settings.DFT == 'z' or settings.DFT == 'g' or settings.DFT == 'd':
                 print "\nGaussian setup for file " + ds + " (" + str(i) +\
                     " of " +  str(len(inpfiles)) + ")"
-                Gaussian.SetupGaussian(ds, ds + 'ginp', 3, settings,
-                                       adjRMSDcutoff)
+                if settings.Cluster == False:
+                    Gaussian.SetupGaussian(ds, ds + 'ginp', 3, settings,
+                                           adjRMSDcutoff)
+                else:
+                    Gaussian.SetupGaussianCluster(ds, ds + 'ginp', 3, settings)
             elif settings.DFT == 'n' or settings.DFT == 'w' or settings.DFT == 'm':
                 print "\nNWChem setup for file " + ds +\
                     " (" + str(i) + " of " + str(len(inpfiles)) + ")"
@@ -519,6 +523,8 @@ if __name__ == '__main__':
     default=settings.MaxCutoffEnergy)
     parser.add_argument("--StrictConfLimit", help="Strictly enforce per struct \
     conf limit at the cost of abandoning consistent RMSD cutoff value", action="store_true")
+    parser.add_argument("--Cluster", help="Use HDBSCAN clustering algorithm to decide which" \
+                        + " conformers to calculate", action="store_true")
     parser.add_argument("-r", "--rot5", help="Manually generate conformers for\
     5-memebered rings", action="store_true")
     parser.add_argument("--jJ", help="Calculate coupling constants at DFT\
@@ -673,6 +679,8 @@ if __name__ == '__main__':
         settings.GenOnly = True
     if args.StrictConfLimit:
         settings.StrictConfLimit = True
+    if args.Cluster:
+        settings.Cluster = True
     if args.NoConfPrune:
         settings.ConfPrune = False
     if args.AssumeDFTDone:

@@ -13,7 +13,7 @@ import glob
 import time
 import sys
 import os
-
+"""
 if os.name == 'nt':
     import pyximport
     pyximport.install()
@@ -22,7 +22,7 @@ else:
     import pyximport
     pyximport.install()
     import ConfPrune
-
+"""
 """
 main function that runs the Jaguar, checks for when it's done and
 submits the result to the NMRDP4 script for data extraction, processing

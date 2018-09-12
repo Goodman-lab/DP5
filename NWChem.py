@@ -17,7 +17,7 @@ import os
 import subprocess
 import time
 import socket
-
+"""
 if os.name == 'nt':
     import pyximport
     pyximport.install()
@@ -26,7 +26,7 @@ else:
     import pyximport
     pyximport.install()
     import ConfPrune
-
+"""
 
 def SetupNWChem(MMoutp, NWCheminp, numDigits, settings, adjRMSDcutoff):
 
