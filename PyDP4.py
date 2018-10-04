@@ -215,7 +215,7 @@ def main(filename, ExpNMR, nfiles):
                     MMRun = True
             else:
                 MMRun = False
-                mminpfiles.append(filename)
+                mminpfiles.append(f)
 
     if MMRun or settings.AssumeDone or settings.UseExistingInputs:
         print 'Conformation search has already been run for these inputs.\
