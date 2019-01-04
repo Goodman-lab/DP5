@@ -31,11 +31,6 @@ def main(f):
         Inchi2Struct(ds_inchis[ds], f[:-4] + str(ds+1), aux)
         RestoreNumsSDF(f[:-4] + str(ds+1) + '.sdf', f, aux)
 
-    """taut_inchis = GenTautomers(inchi)
-
-    for taut in range(0, len(taut_inchis)):
-        Inchi2Struct(taut_inchis[taut], 'taut' + str(taut), aux)"""
-
 
 def GetInchiRenumMap(AuxInfo):
 
@@ -181,7 +176,7 @@ def Inchi2Struct(inchi, f, aux):
     infile.close()
     
     outp = subprocess.check_output(MolConPath + ' sdf ' + fullf +
-        '.inchi -3:S{fine}[prehydrogenize] -o ' + fullf + '.sdf', shell=True)
+        '.inchi -3:c1S{fine}[prehydrogenize] -o ' + fullf + '.sdf', shell=True)
 
 
 def GenProtomers(structf, atoms):
