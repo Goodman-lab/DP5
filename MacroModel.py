@@ -16,9 +16,9 @@ import time
 import re
 
 
-def SetupMacromodel(numDS, settings, *args):
+def SetupMacromodel(settings, *args):
 
-    for f in args[0]:
+    for f in args:
         
         if settings.Rot5Cycle is True:
             if not os.path.exists(f+'rot.sdf'):
@@ -107,7 +107,7 @@ def RunMacromodel(numDS, settings, *args):
     else:
         MMPrefix = settings.SCHRODINGER + "/bmin "
 
-    for ds in args[0]:
+    for ds in args:
         if not os.path.exists(ds+'.log'):
             print MMPrefix + ds
             outp = subprocess.check_output(MMPrefix + ds, shell=True)

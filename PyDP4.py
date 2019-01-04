@@ -236,7 +236,9 @@ def main(filename, ExpNMR, nfiles):
         else:
             print 'Some Macromodel files missing.'
             print '\nSetting up Macromodel files...'
-            MacroModel.SetupMacromodel(len(inpfiles), settings, *mminpfiles)
+            print mminpfiles
+            print len(inpfiles)
+            MacroModel.SetupMacromodel(settings, *mminpfiles)
             if settings.GenOnly:
                 print "Input files generated, quitting..."
                 quit()
