@@ -24,14 +24,7 @@ import shutil
 import math
 import numpy
 
-if os.name == 'nt':
-    import pyximport
-    pyximport.install()
-    import ConfPrune
-else:
-    import pyximport
-    pyximport.install()
-    import ConfPrune
+
 
 from openbabel import *
 
