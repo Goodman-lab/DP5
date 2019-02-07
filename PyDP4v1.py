@@ -141,11 +141,16 @@ class Isomer:
         self.InputFile = InputFile  # Initial structure input file
         self.atoms = []             # Element labels
         self.Conformers = []        # from conformational search, list of atom coordinate lists
+        self.DFTConformers = []     # from DFT optimizations, list of atom coordinate lists
         self.ConfIndices = []       # List of conformer indices from the original conformational search for reference
         self.MMEnergies = []        # Corresponding MM energies
         self.DFTEnergies = []       # Corresponding DFT energies
-        self.NMRinputfiles = []     # list of DFT NMR input file names
-        self.NMRoutputfiles = []    # list of DFT NMR output file names
+        self.OptInputFiles = []     # list of DFT NMR input file names
+        self.OptOutputFiles = []    # list of DFT NMR output file names
+        self.EInputFiles = []     # list of DFT NMR input file names
+        self.EOutputFiles = []    # list of DFT NMR output file names
+        self.NMRInputFiles = []     # list of DFT NMR input file names
+        self.NMROutputFiles = []    # list of DFT NMR output file names
         self.Cshifts = []
         self.Hshifts = []
 
@@ -317,8 +322,7 @@ if __name__ == '__main__':
     default='m')
     parser.add_argument('-d', '--dft', help="Select DFT program, j for Jaguar,\
     g for Gaussian, n for NWChem, z for Gaussian on ziggy, d for Gaussian on \
-    Darwin, w for NWChem on ziggy, m for NWChem on Medivir cluster, default is z",
-        choices=['j', 'g', 'n', 'z', 'w', 'm', 'd'], default='z')
+    Darwin, default is g", choices=DFTpackages[0], default='g')
     parser.add_argument('--StepCount', help="Specify\
     stereocentres for diastereomer generation")
     parser.add_argument('StructureFiles', nargs='+', default=['-'], help=
@@ -443,9 +447,8 @@ if __name__ == '__main__':
     with open('cmd.log', 'a') as f:
         f.write(' '.join(sys.argv) + '\n')
 
-    inpfiles = [x.split('.')[0] for x in args.StructureFiles]
+    settings.InputFiles = args.StructureFiles
     
-    if len(inpfiles) == 1:
-        main(inpfiles[0], args.ExpNMR, 1)
-    else:
-        main(inpfiles, args.ExpNMR, len(inpfiles))
+    settings.NMRsource = args.ExpNMR
+    
+    main(settings)
