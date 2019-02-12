@@ -789,7 +789,7 @@ def RunOnDarwin(findex, GausJobs, settings):
     #                               '/' + folder + '/*.out ' + socket.getfqdn()
     #                               + ':' + os.getcwd(), shell=True)
         
-    outp = subprocess.Popen(['scp', 'darwin:' + fullfolder + '/*.out ',
+    outp = subprocess.Popen(['scp', 'darwin:' + fullfolder + '/*.out',
             os.getcwd() + '/'], \
             stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
 
