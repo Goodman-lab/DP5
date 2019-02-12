@@ -448,7 +448,7 @@ if __name__ == '__main__':
         f.write(' '.join(sys.argv) + '\n')
 
     settings.InputFiles = args.StructureFiles
-    
+
     settings.NMRsource = args.ExpNMR
     
     main(settings)
