@@ -393,7 +393,7 @@ def main(filename, ExpNMR, nfiles):
             #and time in the short 1 processor job queue
             #and wait until the last file is completed
             now = datetime.datetime.now()
-            MaxCon = settings.MaxConcurrentJobs
+            MaxCon = settings.MaxConcurrentJobs / settings.nProc
             if len(Files2Run) < MaxCon:
                 NWChem.RunOnZiggy(now.strftime('%d%b%H%M'), settings.queue,
                                   Files2Run, settings)
