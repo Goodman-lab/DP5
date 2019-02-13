@@ -842,6 +842,7 @@ def WriteSlurm(GausJobs, settings, scrfolder, index=''):
     slurmf = open(filename, 'r+')
     slurm = slurmf.readlines()
     slurm[12] = '#SBATCH -J ' + settings.Title + '\n'
+    slurm[14] = '#SBATCH -A ' + settings.project + '\n'
     slurm[19] = '#SBATCH --ntasks=' + str(len(GausJobs)*settings.nProc) + '\n'
     slurm[21] = '#SBATCH --time=' + format(settings.TimeLimit,"02") +\
         ':00:00\n'

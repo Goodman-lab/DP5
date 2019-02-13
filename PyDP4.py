@@ -79,6 +79,7 @@ class Settings:
     JDir = ''
     TimeLimit = 24
     queue = 's1'
+    project = 'GOODMAN-SL3-CPU'
     TinkerPath = '~/tinker7/bin/scan '
     OBPath = '/home/ke291/Tools/openbabel-install/lib/python2.7/site-packages/'
     SCHRODINGER = '/usr/local/shared/schrodinger/current'
@@ -508,6 +509,8 @@ if __name__ == '__main__':
     for dft calculations")
     parser.add_argument("-q", "--queue", help="Specify queue for job submission\
     on ziggy", default='s1')
+    parser.add_argument("--project", help="Specify project for job submission\
+    on darwin", default=settings.project)
     parser.add_argument("--TimeLimit", help="Specify job time limit for jobs\
     on ziggy or darwin", type=int)
     parser.add_argument("-t", "--ntaut", help="Specify number of explicit\
@@ -600,6 +603,7 @@ if __name__ == '__main__':
     settings.NTaut = args.ntaut
     settings.DFT = args.dft
     settings.queue = args.queue
+    settings.project = args.project
     settings.ScriptDir = getScriptPath()
     settings.ForceField = args.ff
     settings.PerStructConfLimit = args.ConfLimit
