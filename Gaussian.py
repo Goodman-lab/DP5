@@ -452,11 +452,14 @@ def WriteGausFileOpt(Gausinp, conformer, atoms, charge, settings):
         f1.write('%mem=6000MB\n%chk=' + fullscrfolder + Gausinp + '.chk\n')
     
     if settings.DFTOpt:
+        f1.write('# b3lyp/6-31g(d,p) Opt=(maxcycles=' + str(settings.MaxDFTOptCycles))
+        if (settings.OptStepSize != 30):
+            f1.write(',MaxStep=' + str(settings.OptStepSize))
+        f1.write(')')
         if settings.Solvent != '':
-            f1.write('# b3lyp/6-31g(d,p) Opt=(maxcycles=' + str(settings.MaxDFTOptCycles) + ') scrf=(solvent=' +
-                     settings.Solvent+')\n')
-        else:
-            f1.write('# b3lyp/6-31g(d,p) Opt=(maxcycles=' + str(settings.MaxDFTOptCycles) + ')\n')
+            f1.write(' scrf=(solvent=' + settings.Solvent + ')')
+        f1.write('\n')
+
     elif settings.PM6Opt:
         if settings.Solvent != '':
             f1.write('# pm6 Opt=(maxcycles=' + str(settings.MaxDFTOptCycles) + ') scrf=(solvent=' +

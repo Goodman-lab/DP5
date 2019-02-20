@@ -71,6 +71,7 @@ class Settings:
     HFOpt = False
     M06Opt = False
     MaxDFTOptCycles = 50
+    OptStepSize = 30
     jKarplus = False
     jFC = False
     jJ = False
@@ -362,7 +363,7 @@ def main(filename, ExpNMR, nfiles):
 
             #Run Gaussian jobs on Darwin cluster in folder named after date
             #and title and wait until the last file is completed
-            MaxCon = settings.MaxConcurrentJobsDarwin
+            MaxCon = int(math.ceil(settings.MaxConcurrentJobsDarwin / settings.nProc))
             
             if settings.DFTOpt or settings.PM6Opt or settings.HFOpt or settings.M06Opt:
                 for i in range(len(Files2Run)):
@@ -372,7 +373,7 @@ def main(filename, ExpNMR, nfiles):
                 Gaussian.RunOnDarwin(0, Files2Run, settings)
             else:
                 print "The DFT calculations will be done in " +\
-                    str(math.ceil(len(Files2Run)/MaxCon)) + " batches"
+                    str(int(math.ceil(len(Files2Run)/MaxCon))) + " batches"
                 i = 0
                 while (i+1)*MaxCon < len(Files2Run):
                     print "Starting batch nr " + str(i+1)
@@ -393,7 +394,7 @@ def main(filename, ExpNMR, nfiles):
             #and time in the short 1 processor job queue
             #and wait until the last file is completed
             now = datetime.datetime.now()
-            MaxCon = settings.MaxConcurrentJobs / settings.nProc
+            MaxCon = settings.MaxConcurrentJobs
             if len(Files2Run) < MaxCon:
                 NWChem.RunOnZiggy(now.strftime('%d%b%H%M'), settings.queue,
                                   Files2Run, settings)
@@ -583,6 +584,8 @@ if __name__ == '__main__':
     level before NMR prediction", action="store_true")
     parser.add_argument("--OptCycles", help="Specify max number of DFT geometry\
     optimization cycles", type=int, default=settings.MaxDFTOptCycles)
+    parser.add_argument("--OptStep", help="Specify the max step size\
+    Gaussian should take in optimization, default is 30", type=int, default=settings.OptStepSize)
     parser.add_argument('-n', '--Charge', help="Specify\
     charge of the molecule. Do not use when input files have different charges")
     parser.add_argument('-b', '--BasicAtoms', help="Generate protonated states\
@@ -613,6 +616,7 @@ if __name__ == '__main__':
     settings.nProc = args.nProc
     settings.MaxConcurrentJobs = args.batch
     settings.MaxDFTOptCycles = args.OptCycles
+    settings.OptStepSize = args.OptStep
     
     if settings.DFT == 'd' and not args.TimeLimit:
         print "For calculations on Darwin explicit time limit in hours " + \
