@@ -455,6 +455,8 @@ def WriteGausFileOpt(Gausinp, conformer, atoms, charge, settings):
         f1.write('# b3lyp/6-31g(d,p) Opt=(maxcycles=' + str(settings.MaxDFTOptCycles))
         if (settings.OptStepSize != 30):
             f1.write(',MaxStep=' + str(settings.OptStepSize))
+        if settings.CalcFC == True:
+            f1.write(',CalcFC')
         f1.write(')')
         if settings.Solvent != '':
             f1.write(' scrf=(solvent=' + settings.Solvent + ')')

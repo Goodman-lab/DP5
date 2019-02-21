@@ -72,6 +72,7 @@ class Settings:
     M06Opt = False
     MaxDFTOptCycles = 50
     OptStepSize = 30
+    CalcFC = False
     jKarplus = False
     jFC = False
     jJ = False
@@ -586,6 +587,7 @@ if __name__ == '__main__':
     optimization cycles", type=int, default=settings.MaxDFTOptCycles)
     parser.add_argument("--OptStep", help="Specify the max step size\
     Gaussian should take in optimization, default is 30", type=int, default=settings.OptStepSize)
+    parser.add_argument("--FC", help="Calculate force constants before optimization", action="store_true")
     parser.add_argument('-n', '--Charge', help="Specify\
     charge of the molecule. Do not use when input files have different charges")
     parser.add_argument('-b', '--BasicAtoms', help="Generate protonated states\
@@ -617,6 +619,8 @@ if __name__ == '__main__':
     settings.MaxConcurrentJobs = args.batch
     settings.MaxDFTOptCycles = args.OptCycles
     settings.OptStepSize = args.OptStep
+    if args.FC:
+        settings.CalcFC = True
     
     if settings.DFT == 'd' and not args.TimeLimit:
         print "For calculations on Darwin explicit time limit in hours " + \
