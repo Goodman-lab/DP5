@@ -452,7 +452,8 @@ def WriteGausFileOpt(Gausinp, conformer, atoms, charge, settings):
         f1.write('%mem=6000MB\n%chk=' + fullscrfolder + Gausinp + '.chk\n')
     
     if settings.DFTOpt:
-        f1.write('# b3lyp/6-31g(d,p) Opt=(maxcycles=' + str(settings.MaxDFTOptCycles))
+        f1.write('# ' + settings.OptFunctional + '/' + settings.OptBasisSet)
+        f1.write(' Opt=(maxcycles=' + str(settings.MaxDFTOptCycles))
         if (settings.OptStepSize != 30):
             f1.write(',MaxStep=' + str(settings.OptStepSize))
         if settings.CalcFC == True:

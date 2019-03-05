@@ -123,6 +123,8 @@ class Settings:
     ForceField = 'mmff'
     BasisSet = "6-31g(d,p)"
     Functional = "b3lyp"
+    OptBasisSet = ''
+    OptFunctional = ''
 
 settings = Settings()
 
@@ -593,9 +595,13 @@ if __name__ == '__main__':
     parser.add_argument('-b', '--BasicAtoms', help="Generate protonated states\
     on the specified atoms and consider as tautomers")
     parser.add_argument('-B', '--BasisSet', help="Selects the basis set for\
-    DFT calculations", default='6-31g(d,p)')
+    DFT calculations", default=settings.BasisSet)
     parser.add_argument('-F', '--Functional', help="Selects the functional for\
-    DFT calculations", default='b3lyp')
+    DFT calculations", default=settings.Functional)
+    parser.add_argument('--oB', help="Selects the basis set for DFT optimization,"+
+                        " 6-31g(d,p) is the default", default="6-31g(d,p)")
+    parser.add_argument('--oF', help="Selects the functional for DFT optimization,"+
+                        " B3LYP is the default", default='b3lyp')
     parser.add_argument('-x', '--OtherNuclei', help="Print predictions for\
      other nuclei")
     parser.add_argument('-f', '--ff', help="Selects force field for the \
@@ -619,6 +625,9 @@ if __name__ == '__main__':
     settings.MaxConcurrentJobs = args.batch
     settings.MaxDFTOptCycles = args.OptCycles
     settings.OptStepSize = args.OptStep
+    settings.OptBasisSet = args.oB
+    settings.OptFunctional = args.oF
+
     if args.FC:
         settings.CalcFC = True
     
