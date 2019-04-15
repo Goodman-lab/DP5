@@ -35,11 +35,11 @@ def main(f):
 
 def GetInchiRenumMap(AuxInfo):
 
-    for l in AuxInfo.split('/'):
+    for l in AuxInfo.decode().split('/'):
         if 'N:' in l:
             RenumLayer = l
             break
-    amap = [int(x) for x in RenumLayer[2:].split(',')]
+    amap = [int(x) for x in RenumLayer[2:].decode().split(',')]
     return amap
 
 
@@ -162,7 +162,7 @@ def GetInchi(f):
     
     cwd = os.getcwd()
     outp = subprocess.check_output(MolConPath + ' inchi ' + cwd + '/' + f, shell=True)
-    idata = outp.split('\n')
+    idata = outp.decode().split('\n')
 
     aux = idata[1][:]
     return idata[0], aux
@@ -182,7 +182,7 @@ def Inchi2Struct(inchi, f, aux):
 
 def GetTautProtons(inchi):
     #get the tautomer layer and pickup the data
-    layers = inchi.split('/')
+    layers = inchi.decode().split('/')
 
     for l in layers:
         if 'h' in l:
@@ -197,15 +197,15 @@ def GetTautProtons(inchi):
             ends.append(i)
     TautProts = []
     for i in range(0, len(starts)):
-        TautProts.append((ProtLayer[starts[i]+1:ends[i]]).split(','))
+        TautProts.append((ProtLayer[starts[i]+1:ends[i]]).decode().split(','))
 
     return TautProts
 
 
 #utility function that determines if an atom is a heteroatom
 def IsHetero(n, inchi):
-    layers = inchi.split('/')
-    nC = int((layers[1].split('H'))[0][1:])
+    layers = inchi.decode().split('/')
+    nC = int((layers[1].decode().split('H'))[0][1:])
     if (n > nC):
         return True
     else:
@@ -237,11 +237,11 @@ def GenSelectDSInchis(inchi, atoms):
     resinchis = []
 
     #get the number of potential diastereomers
-    layers = inchi.split('/')
+    layers = inchi.decode().split('/')
     for l in layers:
         if 't' in l:
             slayer = l
-            sc = l[1:].split(',')
+            sc = l[1:].decode().split(',')
 
     ignore = []
     for i in range(0, len(sc)):
