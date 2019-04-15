@@ -8,6 +8,7 @@ Code for diastereomer, tautomer and protomer generation via InChI strings.
 This file gets called by PyDP4.py if diastereomer and/or tautomer and/or
 protomer generation is used.
 """
+
 import sys
 sys.path.append('/home/ke291/Tools/openbabel-install/lib/python2.7/site-packages/')
 import os
