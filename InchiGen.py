@@ -176,7 +176,7 @@ def Inchi2Struct(inchi, f, aux):
     infile.close()
     
     outp = subprocess.check_output(MolConPath + ' sdf ' + fullf +
-        '.inchi -3:c1S{fine}[prehydrogenize] -o ' + fullf + '.sdf', shell=True)
+        '.inchi -3:S{fine}[prehydrogenize] -o ' + fullf + '.sdf', shell=True)
 
 
 def GenProtomers(structf, atoms):
