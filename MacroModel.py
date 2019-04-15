@@ -16,9 +16,19 @@ import time
 import re
 
 
-def SetupMacromodel(settings, *args):
+def SetupMacroModel(settings):
 
-    for f in args:
+    if settings.SCHRODINGER == '':
+        SchrodEnv = os.getenv('SCHRODINGER')
+        if SchrodEnv != None:
+            settings.SCHRODINGER = SchrodEnv
+        else:
+            if os.path.exists('/usr/local/shared/schrodinger/current'):
+                settings.SCHRODINGER = '/usr/local/shared/schrodinger/current'
+            else:
+                print('Could not find Schrodinger folder, please fill in PyDP4.py Settings with the path.')
+
+    for f in settings.InputFiles:
         
         if settings.Rot5Cycle is True:
             if not os.path.exists(f+'rot.sdf'):

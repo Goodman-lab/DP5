@@ -93,6 +93,7 @@ class Settings:
     MMfactor = 2500             # MMfactor*rotable_bonds gives number of steps to do if less than MMstepcount
     Rot5Cycle = False           # Special dealing with 5-membered saturated rings, see FiveConf.py
     RingAtoms = []              # Define the 5-membered ring, useful if several are present in molecule
+    SCHRODINGER = ''            # Define the root folder for Schrodinger software
 
     # --- Conformer pruning ---
     HardConfLimit = 10000       # Immediately stop if conformers to run exceed this number
