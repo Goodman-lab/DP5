@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 """
 PyDP4 integrated workflow for the running of MM, DFT GIAO calculations and
