@@ -14,7 +14,6 @@ import NWChem
 import Jaguar
 
 import sys
-import scipy.optimize as sciopt
 from numpy import mean
 import math
 import os
@@ -26,7 +25,7 @@ def main(numDS, settings, *args):
 
     #This function runs nmrPredict for each diastereomer and collects
     #the outputs
-    print '\nRunning NMRpredict script...'
+    print('\nRunning NMRpredict script...')
 
     if settings.DFT == 'z' or settings.DFT == 'g' or settings.DFT == 'd':
         (RelEs, populations, labels, BoltzmannShieldings, Jlabels, BoltzmannFCs,
@@ -57,11 +56,11 @@ def main(numDS, settings, *args):
         Cexp2, Hexp2, equivs, omits = ReadExpNMR(NMRfile2)
     
     for Es, pops in zip(RelEs, populations):
-        print '\nConformer relative energies (kJ/mol): ' + \
-            ', '.join(["{:5.2f}".format(float(x)) for x in Es])
+        print('\nConformer relative energies (kJ/mol): ' + \
+            ', '.join(["{:5.2f}".format(float(x)) for x in Es]))
 
-        print '\nPopulations (%): ' + \
-            ', '.join(["{:4.1f}".format(float(x)*100) for x in pops])
+        print('\nPopulations (%): ' + \
+            ', '.join(["{:4.1f}".format(float(x)*100) for x in pops]))
     
     #Convert shielding constants in chemical shifts and sort labels by nuclei
     Cvalues, Hvalues, Clabels, Hlabels = GetCalcShiftsLabels(numDS,
@@ -70,7 +69,7 @@ def main(numDS, settings, *args):
     if settings.OtherNuclei != "":
         Xvalues, Xlabels = GetOtherNuclei(numDS, BoltzmannShieldings, labels,
             omits, settings)
-        print Xlabels, Xvalues
+        print(Xlabels, Xvalues)
     else:
         Xvalues = []
         Xlabels = []
@@ -87,10 +86,10 @@ def main(numDS, settings, *args):
     OptHvalues = []
 
     for tindex in range(0, len(Ntaut)):
-        print 'looking at tautomers ' + str(tstart) + ' to ' + \
-            str(tstart+Ntaut[tindex])
+        print('looking at tautomers ' + str(tstart) + ' to ' + \
+            str(tstart+Ntaut[tindex]))
         if Ntaut[tindex] == 1:
-            print "Only one tautomer found, skipping optimisation."
+            print("Only one tautomer found, skipping optimisation.")
             OptCvalues.append(Cvalues[tstart])
             OptHvalues.append(Hvalues[tstart])
             tstart = tstart + Ntaut[tindex]
@@ -108,23 +107,23 @@ def main(numDS, settings, *args):
         NewBJs, NewJlabels = ZeroEquivJ(BoltzmannJs, Jlabels, equivs, omits)
         NewFCs, NewFClabels = ZeroEquivJ(BoltzmannFCs, Jlabels, equivs, omits)
     
-    print "The calculated data for other nuclei:"
+    print("The calculated data for other nuclei:")
     PrintOtherNuclei(numDS, Xlabels, Xvalues)
     
-    print "Conformation data:"
+    print("Conformation data:")
     PrintConformationData(SigConfs)
     
     import DP4
     #Run DP4 (or alternative, if set in settings) analysis and collect output
     if any([settings.jKarplus, settings.jJ, settings.jFC]):
-        print "\n J value matrixes after pruning: \n"
+        print("\n J value matrixes after pruning: \n")
         if settings.jFC:
             for i, Jvals in enumerate(NewFCs):
-                print "Isomer " + str(i) + ":"
+                print("Isomer " + str(i) + ":")
                 PrintJMatrixLim(Jvals, NewFClabels)
         else:
             for i, Jvals in enumerate(NewBJs):
-                print "Isomer " + str(i) + ":"
+                print("Isomer " + str(i) + ":")
                 PrintJMatrixLim(Jvals, NewJlabels)
         if settings.jFC:
             DP4outp = DP4.DP4j(Clabels, OptCvalues, Hlabels, OptHvalues, Cexp,
@@ -240,20 +239,20 @@ def PrintOtherNuclei(numDS, Xlabels, Xvalues):
     
     for DS in range(numDS):
         
-        print "\nOther nuclei results for isomer " + str(DS+1) + ":"
+        print("\nOther nuclei results for isomer " + str(DS+1) + ":")
         for i, label in enumerate(Xlabels):
-            print label + " " + format(Xvalues[DS][i], "4.2f")
+            print(label + " " + format(Xvalues[DS][i], "4.2f"))
 
 
 def PrintConformationData(AllSigConfs):
     for i, SigConfs in enumerate(AllSigConfs):
-        print "\nNumber of significant conformers for isomer "\
-            + str(i+1) + ": " + str(len(SigConfs)) + "\n(pop, filename)"
+        print("\nNumber of significant conformers for isomer "\
+            + str(i+1) + ": " + str(len(SigConfs)) + "\n(pop, filename)")
         for conf in SigConfs:
-            print "   " + format(conf[1]*100, "4.2f") + "%   " + conf[0]
-        print '----------------'
-        print "   " + format(100*sum([x[1] for x in SigConfs]), "4.2f") +\
-            "%   in total"
+            print("   " + format(conf[1]*100, "4.2f") + "%   " + conf[0])
+        print('----------------')
+        print("   " + format(100*sum([x[1] for x in SigConfs]), "4.2f") +\
+            "%   in total")
 
 
 def RemoveEquivalents(Noutp, equivs, OldCval, OldHval, OldClabels, OldHlabels):
@@ -322,7 +321,7 @@ def ReorderShieldings(shieldings, RenumberFile):
         tmp = line.split(',')
         RenumMaps.append([int(x)-1 for x in tmp])
     
-    print RenumMaps
+    print(RenumMaps)
     
     ReorderedShieldings = []
     
@@ -335,13 +334,13 @@ def ReorderShieldings(shieldings, RenumberFile):
         else:
             ReorderedShieldings.append(shields)
     
-    print "Before reordering:"
+    print("Before reordering:")
     for s in shieldings:
-        print ','.join([format(x, "4.2f") for x in s]) + '\n'
+        print(','.join([format(x, "4.2f") for x in s]) + '\n')
     
-    print "After reordering:"
+    print("After reordering:")
     for s in ReorderedShieldings:
-        print ','.join([format(x, "4.2f") for x in s]) + '\n'
+        print(','.join([format(x, "4.2f") for x in s]) + '\n')
         
     return ReorderedShieldings
 
@@ -362,8 +361,8 @@ def ZeroEquivJ(mat, matlabels, equivs, omits):
     #Zeros mutual coupling constants of equivalent atoms
     newmat = list(mat)
     toRemove = []
-    print equivs
-    print matlabels
+    print(equivs)
+    print(matlabels)
     for eqAtoms in equivs:
         AllAtomsPresent = False
         AllAtomsPresent = all([x[1:] in matlabels for x in eqAtoms])
@@ -425,16 +424,16 @@ def PrintJMatrix(mat, labels):
     
     for l, row in zip(labels, mat):
         formattedJ = ["{:4.1f}".format(x) for x in row]
-        print l + ': ' + ', '.join(formattedJ)
+        print(l + ': ' + ', '.join(formattedJ))
 
 
 def PrintJMatrixLim(mat, labels):
     
     for l, row in zip(labels, mat):
         formattedJ = ["{:4.1f}".format(x) for x in row if abs(x)>J_THRESHOLD]
-        print l + ': ' + ', '.join(formattedJ)
+        print(l + ': ' + ', '.join(formattedJ))
 
-
+"""
 def OptTautPop(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp):
     #Pairwise match exp signals to computed ones based on assignments first,
     #on erorrs afterwards
@@ -514,11 +513,11 @@ def OptTautPop(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp):
         f = lambda w: TautError(Cvalues, ExpCvalues, Hvalues, ExpHvalues, w)
         res = sciopt.minimize(f, tpops, method='nelder-mead')
         if float(res.fun) < MinMAE:
-            print "New min MAE: " + str(res.fun)
+            print("New min MAE: " + str(res.fun))
             MinMAE = float(res.fun)
             NewPops = list(res.x)
             NewPops.append(1-sum(NewPops))
-            print NewPops
+            print(NewPops)
 
     NewCvalues = []
     NewHvalues = []
@@ -538,12 +537,12 @@ def OptTautPop(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp):
 
     #Return the new Cvalues and Hvalues
     return (NewCvalues, NewHvalues)
-
+"""
 
 def TautError(Cs, CExp, Hs, HExp, TPopsIn):
 
     if len(Cs) != len(TPopsIn)+1 or len(Hs) != len(TPopsIn)+1:
-        print len(Cs), len(Hs), len(TPopsIn)
+        print(len(Cs), len(Hs), len(TPopsIn))
         print ("Input dimensions in TautError don't match, exiting...")
         return 1000
     TPops = list(TPopsIn)

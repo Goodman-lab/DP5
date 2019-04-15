@@ -95,7 +95,7 @@ def SetupMacromodel(settings, *args):
             comf.seek(0)
             comf.writelines(com)
             comf.close()
-        print "Macromodel input for " + f + " prepared."
+        print("Macromodel input for " + f + " prepared.")
 
 
 def RunMacromodel(numDS, settings, *args):
@@ -109,10 +109,10 @@ def RunMacromodel(numDS, settings, *args):
 
     for ds in args:
         if not os.path.exists(ds+'.log'):
-            print MMPrefix + ds
+            print(MMPrefix + ds)
             outp = subprocess.check_output(MMPrefix + ds, shell=True)
         else:
-            print ds + ".log exists, skipping"
+            print(ds + ".log exists, skipping")
             continue
 
         time.sleep(60)
@@ -121,20 +121,20 @@ def RunMacromodel(numDS, settings, *args):
         NCompleted = NCompleted + 1
 
         if settings.Rot5Cycle is True:
-            print "Macromodel job " + str(NCompleted) + " of " + str(numDS*2)\
-                + " completed."
+            print("Macromodel job " + str(NCompleted) + " of " + str(numDS*2)\
+                + " completed.")
 
-            print MMPrefix + ds + 'rot'
+            print(MMPrefix + ds + 'rot')
             outp = subprocess.check_output(MMPrefix + ds +'rot', shell=True)
             time.sleep(60)
             while(not IsMMCompleted(ds + 'rot.log')):
                 time.sleep(30)
             NCompleted = NCompleted + 1
-            print "Macromodel job " + str(NCompleted) + " of " + str(numDS*2)\
-                + " completed."
+            print("Macromodel job " + str(NCompleted) + " of " + str(numDS*2)\
+                + " completed.")
         else:
-            print "Macromodel job " + str(NCompleted) + " of " + str(numDS) +\
-                " completed."
+            print("Macromodel job " + str(NCompleted) + " of " + str(numDS) +\
+                " completed.")
 
 
 def ReadMacromodel(MMoutp, settings):
@@ -268,7 +268,7 @@ def GetMacromodelSymbol(atomType):
               ' ', ' ', 'S', 'S']
 
     if Lookup[atomType-1] == ' ':
-        print 'Unknown atom type'
+        print('Unknown atom type')
 
     return Lookup[atomType-1]
 

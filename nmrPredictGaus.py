@@ -130,7 +130,7 @@ def ReadEnergy(GOutpFile):
 
 def ReadShieldings(GOutpFile):
     
-    print GOutpFile
+    print(GOutpFile)
     gausfile = open(GOutpFile + '.out', 'r')
     GOutp = gausfile.readlines()
 
@@ -145,7 +145,7 @@ def ReadShieldings(GOutpFile):
     #Read shielding constants and labels
     for line in GOutp[index:]:
         if 'Isotropic' in line:
-            data = filter(None, line.split(' '))
+            data = [_f for _f in line.split(' ') if _f]
             shieldings.append(float(data[4]))
             labels.append(data[1]+data[0])
 
@@ -200,7 +200,7 @@ def ReadCMatrix(GOutpFile, title):
     started = False
     #Count total included atoms
     for i, line in enumerate(GOutp[index:], index):
-        data = filter(None, line.split(' '))
+        data = [_f for _f in line.split(' ') if _f]
         if 'D' in data[-1]:
             if not started:
                 started = True
@@ -217,9 +217,9 @@ def ReadCMatrix(GOutpFile, title):
     coln = 0
     rown = 0
 
-    while unicode(filter(None, GOutp[index].split(' '))[-2]).isnumeric():
+    while str(filter(None, GOutp[index].split(' '))[-2]).isnumeric():
         index += 1
-        data = filter(None, GOutp[index].split(' '))
+        data = [_f for _f in GOutp[index].split(' ') if _f]
         while 'D' in data[-1]:
             if len(matlabels) < natoms:
                 matlabels.append(data[0])
@@ -227,7 +227,7 @@ def ReadCMatrix(GOutpFile, title):
             Matrix[rown][coln:coln+len(jvals)] = jvals
             rown += 1
             index += 1
-            data = filter(None, GOutp[index].split(' '))
+            data = [_f for _f in GOutp[index].split(' ') if _f]
         coln += 5
         rown = coln
     for x in range(len(Matrix)): Matrix[x][x] = 0.0

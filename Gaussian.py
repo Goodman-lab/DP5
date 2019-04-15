@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from __future__ import division
+
 # -*- coding: utf-8 -*-
 """
 Created on Wed Nov 19 15:56:54 2014
@@ -18,11 +18,10 @@ import subprocess
 import socket
 import os
 import time
-import sys
 import glob
 import shutil
 import math
-import numpy
+
 
 
 
@@ -51,10 +50,10 @@ def SetupGaussian(MMoutp, Gausinp, numDigits, settings, adjRMSDcutoff):
         actualRMSDcutoff = adjRMSDcutoff
 
     if settings.ConfPrune:
-        print str(len(conformers) - len(pruned)) +\
+        print(str(len(conformers) - len(pruned)) +\
             " or " + "{:.1f}".format(100*(len(conformers) - len(pruned)) /
             len(conformers))+"% of conformations have been pruned based on " +\
-            str(actualRMSDcutoff) + " angstrom cutoff"
+            str(actualRMSDcutoff) + " angstrom cutoff")
     
     if not settings.PM7Opt:
         for num in range(0, len(pruned)):
@@ -66,28 +65,28 @@ def SetupGaussian(MMoutp, Gausinp, numDigits, settings, adjRMSDcutoff):
                 if not(os.path.exists(filename + 'temp.out')):
                     WriteGausFileOpt(filename, pruned[num], atoms, charge, settings)
                 else:
-                    print 'Reusing geometry from ' + filename + 'temp.out'
+                    print('Reusing geometry from ' + filename + 'temp.out')
                     tempatoms, tempcoords, tempcharge = ReadTempGeometry(filename + 'temp.out')
                     if (len(tempatoms) > 0) and (len(tempcoords) > 0):
                         WriteGausFileOpt(filename, tempcoords, tempatoms, tempcharge, settings)
                     else:
-                        print filename + 'temp.out is an invalid Gaussian output file. Falling back to MMFF geometry.'
+                        print(filename + 'temp.out is an invalid Gaussian output file. Falling back to MMFF geometry.')
                         WriteGausFileOpt(filename, pruned[num], atoms, charge, settings)
     else:
         for num in range(0, len(pruned)):
             filename = Gausinp+str(num+1).zfill(3)
             conformer = PM7opt(filename, pruned[num], atoms, charge, settings)
-            print "Conformer " + str(num+1) + " of " + str(len(pruned)) + \
-            " has been preoptimized at PM7 level"
+            print("Conformer " + str(num+1) + " of " + str(len(pruned)) + \
+            " has been preoptimized at PM7 level")
             WriteGausFile(filename, conformer, atoms, charge, settings)
 
-    print str(len(pruned)) + " .com files written"
+    print(str(len(pruned)) + " .com files written")
 
 
 def SetupGaussianCluster(MMoutp, Gausinp, numDigits, settings):
 
     if settings.MMTinker:
-        print "Clustering not implemented with Tinker..."
+        print("Clustering not implemented with Tinker...")
         quit()
     else:
         atoms, conformers, charge, AbsEs = MacroModel.ReadMacromodel(MMoutp,
@@ -97,22 +96,22 @@ def SetupGaussianCluster(MMoutp, Gausinp, numDigits, settings):
 
     oldconformers = conformers
     conformers = AdaptConfs(conformers)
-    print str(len(conformers)) + " Macromodel conformers read"
+    print(str(len(conformers)) + " Macromodel conformers read")
 
-    print "Absolute energies: " + ', '.join([format(x, "3.1f") for x in AbsEs])
+    print("Absolute energies: " + ', '.join([format(x, "3.1f") for x in AbsEs]))
     MinE = min(AbsEs)
     RelEs = [x-MinE for x in AbsEs]
-    print "Relative energies " + ', '.join([format(x-MinE, "3.1f") for x in AbsEs])
+    print("Relative energies " + ', '.join([format(x-MinE, "3.1f") for x in AbsEs]))
 
     obmols = BuildObMols(conformers, atoms)
     IntCoords = SelectCoords(obmols[0])
-    print str(len(IntCoords)) + " torsionable single bonds found"
-    print IntCoords
+    print(str(len(IntCoords)) + " torsionable single bonds found")
+    print(IntCoords)
 
     CoordData = GetCoordData(obmols, IntCoords)
     for data in CoordData[:3]:
-        print ' '.join([format(x, "8.1f") for x in data])
-    print '-'*20
+        print(' '.join([format(x, "8.1f") for x in data]))
+    print('-'*20)
 
     import hdbscan
 
@@ -120,9 +119,9 @@ def SetupGaussianCluster(MMoutp, Gausinp, numDigits, settings):
 
     clusterer.fit(CoordData)
     #clusterer.fit(TSNEdata)
-    print "Number of clusters: " + str(max(clusterer.labels_)+1)
-    print "Clustering results: "
-    print clusterer.labels_
+    print("Number of clusters: " + str(max(clusterer.labels_)+1))
+    print("Clustering results: ")
+    print(clusterer.labels_)
 
     Clusters = []
     MinEconfs = []
@@ -139,9 +138,9 @@ def SetupGaussianCluster(MMoutp, Gausinp, numDigits, settings):
         if tempmin != 10000:
             MinEconfs.append(tempmin)
         #MinE = min([filtRelEs[x] for x in cluster])
-        print "Cluster " + str(i) + ": " + str(cluster) + ", min E: " + format(MinE, ".1f") + ' kJ/mol (' + str(tempmin) + ')'
+        print("Cluster " + str(i) + ": " + str(cluster) + ", min E: " + format(MinE, ".1f") + ' kJ/mol (' + str(tempmin) + ')')
 
-    print MinEconfs
+    print(MinEconfs)
 
 
     for num in MinEconfs:
@@ -150,7 +149,7 @@ def SetupGaussianCluster(MMoutp, Gausinp, numDigits, settings):
                 and (not settings.M06Opt):
             WriteGausFile(filename, oldconformers[num], atoms, charge, settings)
 
-    print str(len(MinEconfs)) + " .com files written"
+    print(str(len(MinEconfs)) + " .com files written")
 
 
 def BuildObMols(conformers, atoms):
@@ -160,7 +159,7 @@ def BuildObMols(conformers, atoms):
         mol = BuildOBMol(atoms, conf)
         obmols.append(mol)
 
-    print str(len(obmols)) + " obmols generated"
+    print(str(len(obmols)) + " obmols generated")
 
     return obmols
 
@@ -360,7 +359,7 @@ def ReadMopacFile(filename):
         if len(line) < 3:
             break
         else:
-            data = filter(None, line[:-1].split(' '))
+            data = [_f for _f in line[:-1].split(' ') if _f]
             conformer.append([data[0]]+data[2:])
 
     return conformer
@@ -595,11 +594,11 @@ def RunLocally(GausJobs, settings):
 
     for f in GausJobs:
         time.sleep(3)
-        print GausPrefix + f + ' > ' + f[:-3] + 'out'
+        print(GausPrefix + f + ' > ' + f[:-3] + 'out')
         outp = subprocess.check_output(GausPrefix + f + ' > ' + f[:-3] + 'out', shell=True)
         NCompleted += 1
-        print "Gaussian job " + str(NCompleted) + " of " + str(len(GausJobs)) + \
-            " completed."
+        print("Gaussian job " + str(NCompleted) + " of " + str(len(GausJobs)) + \
+            " completed.")
 
 
 #Still need addition of support for geometry optimisation
@@ -612,17 +611,17 @@ def RunOnZiggy(findex, queue, GausFiles, settings):
 
     scrfolder = settings.StartTime + settings.Title
 
-    print "ziggy GAUSSIAN job submission script\n"
+    print("ziggy GAUSSIAN job submission script\n")
 
     #Check that folder does not exist, create job folder on ziggy
     outp = subprocess.check_output('ssh ziggy ls', shell=True)
     if folder in outp:
-        print "Folder exists on ziggy, choose another folder name."
+        print("Folder exists on ziggy, choose another folder name.")
         return
 
     outp = subprocess.check_output('ssh ziggy mkdir ' + folder, shell=True)
 
-    print "Results folder: " + folder
+    print("Results folder: " + folder)
 
     #Write the qsub scripts
     for f in GausFiles:
@@ -631,10 +630,10 @@ def RunOnZiggy(findex, queue, GausFiles, settings):
             WriteSubScript(f[:-4], queue, folder, settings)
         else:
             WriteSubScriptOpt(f[:-4], queue, folder, settings)
-    print str(len(GausFiles)) + ' slurm scripts generated'
+    print(str(len(GausFiles)) + ' slurm scripts generated')
 
     #Upload .com files and .qsub files to directory
-    print "Uploading files to ziggy..."
+    print("Uploading files to ziggy...")
     for f in GausFiles:
         if (not settings.DFTOpt) and (not settings.PM6Opt) and (not settings.HFOpt)\
             and (not settings.M06Opt):
@@ -648,18 +647,18 @@ def RunOnZiggy(findex, queue, GausFiles, settings):
         outp = subprocess.check_output('scp ' + f[:-4] +'slurm ziggy:~/' +
                                        folder, shell=True)
 
-    print str(len(GausFiles)) + ' .com and slurm files uploaded to ziggy'
+    print(str(len(GausFiles)) + ' .com and slurm files uploaded to ziggy')
 
     #Launch the calculations
     for f in GausFiles:
         job = '~/' + folder + '/' + f[:-4]
         outp = subprocess.check_output('ssh ziggy sbatch ' + job + 'slurm', shell=True)
 
-    print str(len(GausFiles)) + ' jobs submitted to the queue on ziggy'
+    print(str(len(GausFiles)) + ' jobs submitted to the queue on ziggy')
 
     outp = subprocess.check_output('ssh ziggy qstat', shell=True)
     if settings.user in outp:
-        print "Jobs are running on ziggy"
+        print("Jobs are running on ziggy")
 
     Jobs2Complete = list(GausFiles)
     n2complete = len(Jobs2Complete)
@@ -672,14 +671,14 @@ def RunOnZiggy(findex, queue, GausFiles, settings):
              not IsZiggyGComplete(job[:-3] + 'out', folder, settings)]
         if n2complete != len(Jobs2Complete):
             n2complete = len(Jobs2Complete)
-            print str(n2complete) + " remaining."
+            print(str(n2complete) + " remaining.")
 
         time.sleep(60)
 
     #When done, copy the results back
-    print "\nCopying the output files back to localhost..."
-    print 'ssh ziggy scp /home/' + settings.user + '/' + folder + '/*.out ' +\
-        socket.getfqdn() + ':' + os.getcwd()
+    print("\nCopying the output files back to localhost...")
+    print('ssh ziggy scp /home/' + settings.user + '/' + folder + '/*.out ' +\
+        socket.getfqdn() + ':' + os.getcwd())
     outp = subprocess.check_output('ssh ziggy scp /home/' + settings.user +
                                    '/' + folder + '/*.out ' + socket.getfqdn()
                                    + ':' + os.getcwd(), shell=True)
@@ -693,15 +692,15 @@ def RunOnDarwin(findex, GausJobs, settings):
 
     scrfolder = settings.StartTime + settings.Title
 
-    print "Darwin GAUSSIAN job submission script\n"
+    print("Darwin GAUSSIAN job submission script\n")
     
     #Check that results folder does not exist, create job folder on darwin
     outp = subprocess.Popen(['ssh', 'darwin', 'ls'], \
       stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
-    print "Results folder: " + folder
+    print("Results folder: " + folder)
     
     if folder in outp:
-        print "Results folder exists on Darwin, choose another folder name."
+        print("Results folder exists on Darwin, choose another folder name.")
         quit()
 
     outp = subprocess.Popen(['ssh', 'darwin', 'mkdir', folder], \
@@ -710,10 +709,10 @@ def RunOnDarwin(findex, GausJobs, settings):
     # Check that scratch directory does not exist, create job folder on darwin
     outp = subprocess.Popen(['ssh', 'darwin', 'ls ' + settings.DarwinScrDir], \
                             stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
-    print "Scratch directory: " + settings.DarwinScrDir + scrfolder
+    print("Scratch directory: " + settings.DarwinScrDir + scrfolder)
 
     if folder in outp:
-        print "Scratch folder exists on Darwin, choose another folder name."
+        print("Scratch folder exists on Darwin, choose another folder name.")
         quit()
 
     outp = subprocess.Popen(['ssh', 'darwin', 'mkdir', settings.DarwinScrDir + scrfolder], \
@@ -722,10 +721,10 @@ def RunOnDarwin(findex, GausJobs, settings):
     #Write the slurm scripts
     SubFiles = WriteDarwinScripts(GausJobs, settings, scrfolder)
         
-    print str(len(SubFiles)) + ' slurm scripts generated'
+    print(str(len(SubFiles)) + ' slurm scripts generated')
 
     #Upload .com files and slurm files to directory
-    print "Uploading files to darwin..."
+    print("Uploading files to darwin...")
     for f in GausJobs:
         if (not settings.DFTOpt) and (not settings.PM6Opt) and (not settings.HFOpt)\
             and (not settings.M06Opt):
@@ -747,18 +746,18 @@ def RunOnDarwin(findex, GausJobs, settings):
             'darwin:/home/' + settings.user + '/' + folder], \
             stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
 
-    print str(len(GausJobs)) + ' .com and ' + str(len(SubFiles)) +\
-        ' slurm files uploaded to darwin'
+    print(str(len(GausJobs)) + ' .com and ' + str(len(SubFiles)) +\
+        ' slurm files uploaded to darwin')
     
     fullfolder = '/home/' + settings.user + '/' + folder
     #Launch the calculations
     for f in SubFiles:
         outp = subprocess.Popen(['ssh', 'darwin', 'cd ' + fullfolder + ';sbatch', f], \
             stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
-        print outp.split('\n')[-2]
+        print(outp.split('\n')[-2])
 
-    print str(len(SubFiles)) + ' jobs submitted to the queue on darwin ' + \
-        'containing ' + str(len(GausJobs)) + ' Gaussian jobs'
+    print(str(len(SubFiles)) + ' jobs submitted to the queue on darwin ' + \
+        'containing ' + str(len(GausJobs)) + ' Gaussian jobs')
     
     Jobs2Complete = list(GausJobs)
     n2complete = len(Jobs2Complete)
@@ -771,13 +770,13 @@ def RunOnDarwin(findex, GausJobs, settings):
              not JobFinished[job[:-3] + 'out']]
         if n2complete != len(Jobs2Complete):
             n2complete = len(Jobs2Complete)
-            print str(n2complete) + " remaining."
+            print(str(n2complete) + " remaining.")
 
         time.sleep(180)
 
     #When done, copy the results back
-    print "\nCopying the output files back to localhost..."
-    print 'scp darwin:' + fullfolder + '/*.out ' + os.getcwd() + '/'
+    print("\nCopying the output files back to localhost...")
+    print('scp darwin:' + fullfolder + '/*.out ' + os.getcwd() + '/')
     #outp = subprocess.check_output('ssh darwin scp /home/' + settings.user +
     #                               '/' + folder + '/*.out ' + socket.getfqdn()
     #                               + ':' + os.getcwd(), shell=True)
@@ -787,8 +786,8 @@ def RunOnDarwin(findex, GausJobs, settings):
             stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
 
     fullscrfolder = settings.DarwinScrDir + scrfolder
-    print "\nDeleting scratch folder..."
-    print 'ssh darwin rm -r ' + fullscrfolder
+    print("\nDeleting scratch folder...")
+    print('ssh darwin rm -r ' + fullscrfolder)
     #outp = subprocess.check_output('ssh darwin rm /home/' + settings.user +
     #                               '/' + folder + '/*.chk', shell=True)
     outp = subprocess.Popen(['ssh', 'darwin', 'rm -r', fullscrfolder], \
@@ -806,20 +805,20 @@ def WriteDarwinScripts(GausJobs, settings, scrfolder):
         SubFiles.append(WriteSlurm(GausJobs, settings, scrfolder))
     
     else:
-        print "The Gaussian calculations will be submitted as " +\
+        print("The Gaussian calculations will be submitted as " +\
                     str(math.ceil(len(GausJobs)/AdjNodeSize)) + \
-                    " jobs"
+                    " jobs")
         i = 0
         while (i+1)*AdjNodeSize < len(GausJobs):
             PartGausJobs = list(GausJobs[(i*AdjNodeSize):((i+1)*AdjNodeSize)])
-            print "Writing script nr " + str(i+1)
+            print("Writing script nr " + str(i+1))
             
             SubFiles.append(WriteSlurm(PartGausJobs, settings, scrfolder, str(i+1)))
             
             i += 1
         
         PartGausJobs = list(GausJobs[(i*AdjNodeSize):])
-        print "Writing script nr " + str(i+1)
+        print("Writing script nr " + str(i+1))
         SubFiles.append(WriteSlurm(PartGausJobs, settings, scrfolder, str(i+1)))
         
     return SubFiles
@@ -886,7 +885,7 @@ def IsDarwinGComplete(GausJobs, folder, settings):
 def WriteSubScript(GausJob, queue, ZiggyJobFolder, settings):
 
     if not (os.path.exists(GausJob+'.com')):
-        print "The input file " + GausJob + ".com does not exist. Exiting..."
+        print("The input file " + GausJob + ".com does not exist. Exiting...")
         return
 
     #Create the submission script
@@ -940,10 +939,10 @@ def WriteSubScript(GausJob, queue, ZiggyJobFolder, settings):
 def WriteSubScriptOpt(GausJob, queue, ZiggyJobFolder, settings):
 
     if not (os.path.exists(GausJob+'a.com')):
-        print "The input file " + GausJob + "a.com does not exist. Exiting..."
+        print("The input file " + GausJob + "a.com does not exist. Exiting...")
         return
     if not (os.path.exists(GausJob+'b.com')):
-        print "The input file " + GausJob + "b.com does not exist. Exiting..."
+        print("The input file " + GausJob + "b.com does not exist. Exiting...")
         return
 
     #Create the submission script
@@ -1004,15 +1003,15 @@ def IsZiggyGComplete(f, folder, settings):
     path = '/home/' + settings.user + '/' + folder + '/'
     try:
         outp1 = subprocess.check_output('ssh ziggy ls ' + path, shell=True)
-    except subprocess.CalledProcessError, e:
-        print "ssh ziggy ls failed: " + str(e.output)
+    except subprocess.CalledProcessError as e:
+        print("ssh ziggy ls failed: " + str(e.output))
         return False
     if f in outp1:
         try:
             outp2 = subprocess.check_output('ssh ziggy cat ' + path + f,
                                             shell=True)
-        except subprocess.CalledProcessError, e:
-            print "ssh ziggy cat failed: " + str(e.output)
+        except subprocess.CalledProcessError as e:
+            print("ssh ziggy cat failed: " + str(e.output))
             return False
         if "Normal termination" in outp2[-90:]:
             return True
@@ -1044,7 +1043,7 @@ def ResubGeOpt(GoutpFiles, settings):
         for remf in glob.glob(f[:-8] + '*'):
             os.remove(remf)
         WriteGausFileOpt(f[:-8], coords,atoms,charge,settings)
-        print f[:-8] + '* deleted and new .com files written'
+        print(f[:-8] + '* deleted and new .com files written')
     if not os.path.exists('Reoptimized.log'):
         f = file('Reoptimized.log', 'w')
         f.write('\n'.join([x[:-8] for x in GoutpFiles]))
@@ -1056,8 +1055,8 @@ def ReadGeometry(GOutpFile):
     gausfile = open(GOutpFile, 'r')
     GOutp = gausfile.readlines()
 
-    print GOutpFile
-    print len(GOutp)
+    print(GOutpFile)
+    print(len(GOutp))
 
     index = 0
     atoms = []
@@ -1075,7 +1074,7 @@ def ReadGeometry(GOutpFile):
         if 'Recover connectivity' in line:
             break
         else:
-            data = filter(None, line[:-1].split(','))
+            data = [_f for _f in line[:-1].split(',') if _f]
             if data[0][-2:].isalpha():
                 atoms.append(data[0][-2:])
             else:
@@ -1119,7 +1118,7 @@ def ReadTempGeometry(GOutpFile):
         if '--------------' in line:
             break
         else:
-            data = filter(None, line[:-1].split(' '))
+            data = [_f for _f in line[:-1].split(' ') if _f]
             atoms.append(GetAtomSymbol(int(data[1])))
             coords.append(data[2:])
 
@@ -1142,7 +1141,7 @@ def GetAtomSymbol(AtomNum):
     if AtomNum > 0 and AtomNum < len(Lookup):
         return Lookup[AtomNum-1]
     else:
-        print "No such element with atomic number " + str(AtomNum)
+        print("No such element with atomic number " + str(AtomNum))
         return 0
 
 
@@ -1160,7 +1159,7 @@ def GetAtomNum(AtomSymbol):
     if AtomSymbol in PTable:
         return PTable.index(AtomSymbol)+1
     else:
-        print "No such element with symbol " + str(AtomSymbol)
+        print("No such element with symbol " + str(AtomSymbol))
         return 0
 
 
@@ -1180,8 +1179,8 @@ def RunNMRPredict(numDS, settings, *args):
     BoltzmannFCs = []
     SigConfs = []
 
-    print GausNames
-    print NTaut
+    print(GausNames)
+    print(NTaut)
     #This loop runs nmrPredict for each diastereomer and collects
     #the outputs    
     for i, isomer in enumerate(GausNames):

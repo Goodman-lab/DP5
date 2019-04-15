@@ -90,7 +90,7 @@ def ReadEnergy(JOutpFile):
 
 def ReadShieldings(JOutpFile):
     
-    print JOutpFile
+    print(JOutpFile)
     jagfile = open(JOutpFile + '.out', 'r')
     JOutp = jagfile.readlines()
 
@@ -104,10 +104,10 @@ def ReadShieldings(JOutpFile):
     for i in range(index, len(JOutp)):
         line = JOutp[i]
         if 'NMR Properties' in line:
-            data = filter(None, line.split(' '))
+            data = [_f for _f in line.split(' ') if _f]
             labels.append(data[-2])
             line = JOutp[i+3]
-            data = filter(None, line.split(' '))
+            data = [_f for _f in line.split(' ') if _f]
             shieldings.append(float(data[-1]))
             
     return labels, shieldings

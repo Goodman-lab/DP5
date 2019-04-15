@@ -15,7 +15,7 @@ import subprocess
 
 def SetupTinker(numDS, settings, *args):
 
-    print args
+    print(args)
     for ds in args:
         if settings.Rot5Cycle is True:
             if not os.path.exists(ds+'rot.sdf'):
@@ -48,12 +48,12 @@ def SetupTinker(numDS, settings, *args):
 
         outp = subprocess.check_output(convinp + ds + '.sdf', shell=True)
 
-        print "Tinker input for " + ds + " prepared."
+        print("Tinker input for " + ds + " prepared.")
 
         if settings.Rot5Cycle is True:
             outp = subprocess.check_output(convinp + ds + 'rot.sdf',
                                            shell=True)
-            print "Tinker input for " + ds + "rot prepared."
+            print("Tinker input for " + ds + "rot prepared.")
 
 
 def RunTinker(numDS, settings, *args):
@@ -62,22 +62,22 @@ def RunTinker(numDS, settings, *args):
     NCompleted = 0
 
     for ds in args:
-        print settings.TinkerPath + ds + ' 0 10 20 0.00001 | tee ./' + ds + \
-            '.tout'
+        print(settings.TinkerPath + ds + ' 0 10 20 0.00001 | tee ./' + ds + \
+            '.tout')
         outp = subprocess.check_output(settings.TinkerPath + ds +
             ' 0 10 20 0.00001 | tee ./' + ds + '.tout', shell=True)
         NCompleted = NCompleted + 1
-        print "Tinker job " + str(NCompleted) + " of " + str(numDS) + \
-            " completed."
+        print("Tinker job " + str(NCompleted) + " of " + str(numDS) + \
+            " completed.")
 
         if settings.Rot5Cycle is True:
-            print settings.TinkerPath + ds + 'rot 0 10 20 0.00001 | tee ./' + \
-                ds + 'rot.tout'
+            print(settings.TinkerPath + ds + 'rot 0 10 20 0.00001 | tee ./' + \
+                ds + 'rot.tout')
             outp = subprocess.check_output(settings.TinkerPath + ds +
                 'rot 0 10 20 0.00001 | tee ./' + ds + 'rot.tout', shell=True)
             NCompleted = NCompleted + 1
-            print "Tinker job " + str(NCompleted) + " of " + str(numDS*2) + \
-                " completed."
+            print("Tinker job " + str(NCompleted) + " of " + str(numDS*2) + \
+                " completed.")
 
 
 #Reads the relevant tinker geometry files
@@ -122,7 +122,7 @@ def ReadTinker(TinkerOutput, settings):
                 RotFileNums.append(conf[0].strip())
                 AcceptedEs.append(float(conf[1]))
 
-    print "Number of accepted conformers by energies: " + str(len(AcceptedEs))
+    print("Number of accepted conformers by energies: " + str(len(AcceptedEs)))
 
     Files = []
     #Generate conformer filenames
@@ -145,7 +145,7 @@ def ReadTinker(TinkerOutput, settings):
 
         for line in inp[1:]:
             data = line.split(' ')
-            data = filter(None, data)
+            data = [_f for _f in data if _f]
             if conformer == 0:
                 atoms.append(GetTinkerSymbol(int(data[5])))  # Add atom symbol
             conformers[conformer].append([])                # Add new atom
@@ -168,14 +168,14 @@ def GetEnergiesCharge(TinkerOutput, settings):
 
     inp = infile.readlines()
     if len(inp) < 56:
-        print "Tinker output " + TinkerOutput + " is corrupted, aborting."
+        print("Tinker output " + TinkerOutput + " is corrupted, aborting.")
         quit()
 
     #Get the conformer energies from the file
     ETable = []
     for line in inp[13:]:
         data = line.split('  ')
-        data = filter(None, data)
+        data = [_f for _f in data if _f]
         if len(data) >= 3:
             if 'Map' in data[0] and 'Minimum' in data[1]:
                 ETable.append(data[-2:])
@@ -218,7 +218,7 @@ def GetTinkerSymbol(atomType):
               'Ca', 'Cu', 'Cu', 'Mg']
 
     if Lookup[atomType-1] == ' ':
-        print 'Unknown atom type'
+        print('Unknown atom type')
 
     return Lookup[atomType-1]
 

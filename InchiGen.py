@@ -180,217 +180,6 @@ def Inchi2Struct(inchi, f, aux):
         '.inchi -3:c1S{fine}[prehydrogenize] -o ' + fullf + '.sdf', shell=True)
 
 
-def GenProtomers(structf, atoms):
-
-    f = structf + ".sdf"
-    inchi, aux = GetInchi(f)
-    print(inchi)
-    amap = GetInchiRenumMap(aux)
-
-    prot_atoms = []
-    for atom in atoms:
-        prot_atoms.append(amap.index(atom))
-
-    finchi = FixTautProtons(f, inchi, aux)
-    prot_inchis = GenProtInchis(finchi, prot_atoms)
-
-    print(prot_inchis)
-    filenames = []
-    for prot in range(0, len(prot_inchis)):
-        Inchi2Struct(prot_inchis[prot], f[:-4] + 'p' + str(prot+1), aux)
-        RestoreNumsSDF(f[:-4] + 'p' + str(prot+1) + '.sdf', f, aux)
-        filenames.append(f[:-4] + 'p' + str(prot+1))
-    return len(filenames), filenames
-
-
-def GenProtInchis(inchi, atoms):
-
-    #Read and interpret proton counts on heavy atoms from inchi,
-    # including tautomeric layers
-    protons, formula, tautomerics, fprotons = ReadProtonCounts(inchi)
-
-    #Construct list of heavy atoms with tautomeric protons and which system
-    #they belong to
-    tlist = [[], []]
-    i = 0
-    for tlayer in tautomerics:
-        temp = tlayer[1:-1].split(',')
-        tlist[0].extend([int(x) for x in temp[1:]])
-        tlist[1].extend([i for x in temp[1:]])
-    print(tlist)
-    #Increase H count and regenerate the formula
-    for i in range(0, len(formula)):
-        if formula[i][0] == 'H':
-            formula[i][1] += 1
-        formula[i][1] = str(formula[i][1])
-    formula = [''.join(x) for x in formula]
-    formula = ''.join(formula)
-
-    #For each basic atom in atoms, generate a copy of original protons
-    #add atom and save it
-    print("Protonating atoms with these InChI numbers: " +\
-        str([x+1 for x in atoms]))
-    protlayers = []
-    fprotlayers = []
-    for atom in atoms:
-        if atom+1 not in tlist[0]:
-            extraprotons = list(protons)
-            extrafprotons = list(fprotons)
-            extraprotons[atom] += 1
-            if tautomerics == []:
-                protlayers.append(WriteProtonCounts(extraprotons))
-            else:
-                protlayers.append(WriteProtonCounts(extraprotons) +
-                                  ',' + ','.join(tautomerics))
-            fprotlayers.append(WriteProtonCounts(extrafprotons))
-        else:
-            extraprotons = list(protons)
-            extrafprotons = list(fprotons)
-            extratautomerics = list(tautomerics)
-            extrafprotons[atom] += 1
-            #which tautomeric system atom belongs to?
-            tindex = tlist[0].index(atom+1)
-            tindex = tlist[1][tindex]
-            temp = tautomerics[tindex].split(',')
-            #Get the proton count and increase by 1
-            protcount = int(temp[0][2:]) + 1
-            #Write the proton count back
-            temp[0] = temp[0][:2] + str(protcount)
-            extratautomerics[tindex] = ','.join(temp)
-            protlayers.append(WriteProtonCounts(extraprotons)+',' +
-                              ','.join(extratautomerics))
-            fprotlayers.append(WriteProtonCounts(extrafprotons))
-    protinchis = []
-    protinchis.append(inchi)
-    for l in range(0, len(protlayers)):
-        layers = inchi.split('/')
-        MainLayerPassed = False
-        ChargeAdded = False
-        i = 1
-        while (i < len(layers)):
-            if 'h' in layers[i]:
-                if not MainLayerPassed:
-                    layers[i] = protlayers[l]
-                    MainLayerPassed = True
-                    if 'q' not in inchi:
-                        layers.insert(i+1, 'q+1')
-                        ChargeAdded = True
-                else:
-                    layers[i] = fprotlayers[l]
-            if ('q' in layers[i]) and ChargeAdded is False:
-                charge = int(layers[i][1:])
-                layers[i] = 'q'+"%+d" % charge
-            if 'C' in layers[i] and 'H' in layers[i]:
-                layers[i] = formula
-            i += 1
-        #insert charge layer here
-        protinchis.append('/'.join(layers))
-    return protinchis
-
-
-def WriteProtonCounts(protons):
-    collectedprotons = [[], [], [], []]
-
-    i = 1
-    lastcount = protons[0]
-    start = 0
-    while i < len(protons):
-        if protons[i] != lastcount:
-            if start == i-1:
-                collectedprotons[lastcount].append(str(start+1))
-            else:
-                collectedprotons[lastcount].append(str(start+1)+'-'+str(i))
-            lastcount = protons[i]
-            start = i
-        i += 1
-
-    if start == i-1:
-        collectedprotons[lastcount].append(str(start+1))
-    else:
-        collectedprotons[lastcount].append(str(start+1)+'-'+str(i))
-
-    hlayer = 'h'
-    if len(collectedprotons[1]) > 0:
-        hlayer += ','.join(collectedprotons[1])
-        hlayer += 'H,'
-    if len(collectedprotons[2]) > 0:
-        hlayer += ','.join(collectedprotons[2])
-        hlayer += 'H2,'
-    if len(collectedprotons[3]) > 0:
-        hlayer += ','.join(collectedprotons[3])
-        hlayer += 'H3,'
-    hlayer = hlayer[:-1]
-    return hlayer
-
-
-def ReadProtonCounts(inchi):
-    import re
-
-    #Get inchi layers
-    layers = inchi.split('/')
-    ProtLayer = ''
-    FixedLayer = ''
-    for l in layers[1:]:
-        if 'C' in l and 'H' in l:
-            atoms = re.findall(r"[a-zA-Z]+", l)
-            indexes = [int(x) for x in re.findall(r"\d+", l)]
-            formula = [list(x) for x in zip(atoms, indexes)]
-        if 'h' in l and ProtLayer != '':
-            FixedLayer = l[1:]
-        if 'h' in l and ProtLayer == '':
-            ProtLayer = l[1:]
-
-    #initialize proton list
-    nheavy = sum([x[1] for x in formula if x[0] != 'H'])
-
-    #Find, save and remove tautomeric portions from main proton layer
-    tautomerics = re.findall(r"\(.*?\)", ProtLayer)
-    ProtLayer = re.sub(r"\(.*?\)", "", ProtLayer)
-    if ProtLayer[-1] == ',':
-        ProtLayer = ProtLayer[:-1]
-
-    #Read the main and the fixed proton layer
-    protons = ReadPSections(ProtLayer, nheavy)
-    fprotons = ReadPSections(FixedLayer, nheavy)
-
-    return protons, formula, tautomerics, fprotons
-
-
-def ReadPSections(ProtLayer, nheavy):
-    import re
-    protons = [0 for x in range(0, nheavy)]
-    #seperate the 1proton, 2proton and 3proton atoms, then seperate the records
-    psections = [x for x in re.findall(r".*?(?=H)", ProtLayer) if x != '']
-    secvals = [0 for x in range(0, len(psections))]
-    psections[0] = psections[0].split(',')
-
-    #interpret each record and fill in the proton table
-    #start by finding the proton count value for each section
-    for i in range(1, len(psections)):
-        if psections[i][0] == ',':
-            secvals[i-1] = 1
-            psections[i] = psections[i][1:].split(',')
-        else:
-            secvals[i-1] = int(psections[i][0])
-            psections[i] = psections[i][2:].split(',')
-    if ProtLayer[-1] != 'H':
-        secvals[-1] = int(ProtLayer[-1])
-    else:
-        secvals[-1] = 1
-
-    #now expand each entry in the sections and fill the corresponding value
-    #in proton table
-    for i in range(0, len(psections)):
-        for s in psections[i]:
-            if '-' in s:
-                [start, finish] = [int(x) for x in s.split('-')]
-                protons[start-1:finish] = [secvals[i] for x in
-                    range(0, len(protons[start-1:finish]))]
-            else:
-                protons[int(s)-1] = secvals[i]
-    return protons
-
-
 def GetTautProtons(inchi):
     #get the tautomer layer and pickup the data
     layers = inchi.split('/')
@@ -413,118 +202,6 @@ def GetTautProtons(inchi):
     return TautProts
 
 
-def GenTautomers(structf):
-
-    f = structf + ".sdf"
-    inchi, aux = GetInchi(f)
-
-    abc = 'abcdefghijklmnopqrstuvwxyz'
-
-    t_inchis = GenTautInchis(inchi, aux, structf)
-    filenames = []
-    for ds in range(0, len(t_inchis)):
-        Inchi2Struct(t_inchis[ds], f[:-4] + abc[ds], aux)
-        RestoreNumsSDF(f[:-4] + abc[ds] + '.sdf', f, aux)
-        filenames.append(f[:-4] + abc[ds])
-    return len(filenames), filenames
-
-
-#For now only works on one tautomeric system - for nucleosides don't need more
-def GenTautInchis(inchi, aux, structf):
-
-    resinchis = []  # Inchis of all tautomers, including the parent structure
-
-    #Get tautomeric protons and atoms they are connected to
-    TautProts = GetTautProtons(inchi)
-
-    #The total number of tautomeric protons in the system
-    if str(TautProts[0][0][1:]) != '':
-        totprotons = int(str(TautProts[0][0][1:]))
-    else:
-        totprotons = 1
-
-    #Check for and remove non-hetero atoms
-    temp = [int(x) for x in TautProts[0][1:] if IsHetero(int(x), inchi)]
-
-    #Get the numbering map, to see which atomes are the tautomeric ones in the
-    #original structure file. From there determine their type and valency
-    #based on connectivity
-    amap = GetInchiRenumMap(aux)
-    OldTautProts = [amap[prot-1] for prot in temp]
-    valencies = GetTautValency(structf, OldTautProts)
-
-    #the multivalent atoms will always have at least one proton
-    superfixed = []
-    for i in range(0, len(valencies)):
-        if valencies[i] > 1:
-            superfixed.append(TautProts[0][i+1])
-            #TautProts.append(['H', TautProts[0][i+1]])
-
-    #Generate all the possible proton positions
-    #with repetitions for multivalency
-    fixedprotons = list(itertools.combinations(TautProts[0][1:],
-                        r=totprotons-len(superfixed)))
-
-    for i in range(0, len(fixedprotons)):
-        fixedprotons[i] = superfixed + list(fixedprotons[i])
-        fixedprotons[i].sort(key=int)
-
-    #Count the occurences of protons positions, save the counts and
-    #remove redundant positions
-    counts = []
-    for i in range(0, len(fixedprotons)):
-        counts.append([])
-        j = 0
-        while j < len(fixedprotons[i]):
-            counts[i].append(fixedprotons[i].count(fixedprotons[i][j]))
-            if counts[i][-1] > 1:
-                for _ in range(0, counts[i][-1]-1):
-                    fixedprotons[i].remove(fixedprotons[i][j])
-            #j+=counts[i][-1]
-            j += 1
-
-    fixprefix = '/f/h'
-    tauts = []
-    for i in range(0, len(fixedprotons)):
-        tauts.append(fixprefix)
-        for j in range(0, len(fixedprotons[i])):
-            if j > 0:
-                tauts[i] += ','
-            tauts[i] += fixedprotons[i][j] + 'H'
-            if counts[i][j] > 1:
-                tauts[i] += str(counts[i][j])
-
-    for taut in tauts:
-        resinchis.append(inchi + taut)
-
-    return resinchis
-
-
-def GetTautValency(structf, tautatoms):
-     #Read molecule from file
-    obconversion = OBConversion()
-    obconversion.SetInFormat("sdf")
-    obmol = OBMol()
-    obconversion.ReadFile(obmol, structf + ".sdf")
-
-    protvalency = []
-    for idx in tautatoms:
-        atom = obmol.GetAtom(idx)
-        corenum = atom.GetAtomicNum()
-        #If atom is hydrogen, check what it is connected to
-        nheavynbr = 0
-        for NbrAtom in OBAtomAtomIter(atom):
-            nbrnum = NbrAtom.GetAtomicNum()
-            if nbrnum > 1:
-                nheavynbr += 1
-        if corenum == 8:
-            protvalency.append(1)
-        if corenum == 7:
-            protvalency.append(3-nheavynbr)
-
-    return protvalency
-
-
 #utility function that determines if an atom is a heteroatom
 def IsHetero(n, inchi):
     layers = inchi.split('/')
@@ -537,7 +214,7 @@ def IsHetero(n, inchi):
 
 def GenSelectDiastereomers(structf, atoms):
 
-    f = structf + ".sdf"
+    f = structf
     inchi, aux = GetInchi(f)
     amap = GetInchiRenumMap(aux)
 
@@ -552,7 +229,7 @@ def GenSelectDiastereomers(structf, atoms):
         Inchi2Struct(ds_inchis[ds], f[:-4] + str(ds+1), aux)
         RestoreNumsSDF(f[:-4] + str(ds+1) + '.sdf', f, aux)
         filenames.append(f[:-4] + str(ds+1))
-    return len(filenames), filenames
+    return filenames
 
 
 def GenSelectDSInchis(inchi, atoms):
@@ -607,9 +284,12 @@ def GenSelectDSInchis(inchi, atoms):
     return resinchis
 
 
-def GenDiastereomers(structf):
+def GenDiastereomers(structf, atoms=[]):
 
-    f = structf + ".sdf"
+    if len(atoms) > 0:
+        return GenSelectDiastereomers(structf, atoms)
+
+    f = structf
     inchi, aux = GetInchi(f)
 
     print(inchi)
@@ -621,7 +301,7 @@ def GenDiastereomers(structf):
         Inchi2Struct(ds_inchis[ds], f[:-4] + str(ds+1), aux)
         RestoreNumsSDF(f[:-4] + str(ds+1) + '.sdf', f, aux)
         filenames.append(f[:-4] + str(ds+1))
-    return len(filenames), filenames
+    return filenames
 
 
 def GenDSInchis(inchi):

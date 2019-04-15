@@ -47,16 +47,16 @@ def SetupNWChem(MMoutp, NWCheminp, numDigits, settings, adjRMSDcutoff):
     else:
         pruned = conformers
 
-    print str(len(conformers) - len(pruned)) +\
+    print(str(len(conformers) - len(pruned)) +\
         " or " + "{:.1f}".format(100 * (len(conformers) - len(pruned)) /
         len(conformers)) + "% of conformations have been pruned based on " + \
-        str(adjRMSDcutoff) + " angstrom cutoff"
+        str(adjRMSDcutoff) + " angstrom cutoff")
 
     for num in range(0, len(pruned)):
         filename = NWCheminp+str(num+1).zfill(3)
         WriteNWChemFile(filename, pruned[num], atoms, charge, settings)
 
-    print str(len(pruned)) + " .nw files written"
+    print(str(len(pruned)) + " .nw files written")
 
 
 #Adjust the RMSD cutoff to keep the conformation numbers reasonable
@@ -160,12 +160,12 @@ def RunNWChem(inpfiles, settings):
     NWChemPrefix = "nwchem "
 
     for f in inpfiles:
-        print NWChemPrefix + f + ' > ' + f[:-2] + 'nwo'
+        print(NWChemPrefix + f + ' > ' + f[:-2] + 'nwo')
         outp = subprocess.check_output(NWChemPrefix + f + ' > ' + f[:-2] +
                                        'nwo', shell=True)
         NCompleted += 1
-        print "NWChem job " + str(NCompleted) + " of " + str(len(inpfiles)) + \
-            " completed."
+        print("NWChem job " + str(NCompleted) + " of " + str(len(inpfiles)) + \
+            " completed.")
 
 
 def RunNMRPredict(numDS, *args):
@@ -182,8 +182,8 @@ def RunNMRPredict(numDS, *args):
     BoltzmannShieldings = []
     SigConfs = []
 
-    print NWNames
-    print NTaut
+    print(NWNames)
+    print(NTaut)
     #This loop runs nmrPredict for each diastereomer and collects
     #the outputs    
     for isomer in NWNames:
@@ -215,29 +215,29 @@ def IsNWChemCompleted(f):
 
 def RunOnZiggy(folder, queue, NWFiles, settings):
 
-    print "ziggy NWChem job submission script\n"
+    print("ziggy NWChem job submission script\n")
 
     #Check that folder does not exist, create job folder on ziggy
     outp = subprocess.check_output('ssh ziggy ls', shell=True)
     if folder in outp:
-        print "Folder exists on ziggy, choose another folder name."
+        print("Folder exists on ziggy, choose another folder name.")
         return
 
     outp = subprocess.check_output('ssh ziggy mkdir ' + folder, shell=True)
     #Write the qsub scripts
     for f in NWFiles:
         WriteSubScript(f[:-3], queue, folder, settings)
-    print str(len(NWFiles)) + ' .qsub scripts generated'
+    print(str(len(NWFiles)) + ' .qsub scripts generated')
 
     #Upload .com files and .qsub files to directory
-    print "Uploading files to ziggy..."
+    print("Uploading files to ziggy...")
     for f in NWFiles:
         outp = subprocess.check_output('scp ' + f +' ziggy:~/' + folder,
                                        shell=True)
         outp = subprocess.check_output('scp ' + f[:-3] +'.qsub ziggy:~/' +
                                        folder, shell=True)
 
-    print str(len(NWFiles)) + ' .nw and .qsub files uploaded to ziggy'
+    print(str(len(NWFiles)) + ' .nw and .qsub files uploaded to ziggy')
 
     #Launch the calculations
     for f in NWFiles:
@@ -247,11 +247,11 @@ def RunOnZiggy(folder, queue, NWFiles, settings):
             job + '.qsub', shell=True)
         time.sleep(3)
 
-    print str(len(NWFiles)) + ' jobs submitted to the queue on ziggy'
+    print(str(len(NWFiles)) + ' jobs submitted to the queue on ziggy')
 
     outp = subprocess.check_output('ssh ziggy showq', shell=True)
     if settings.user in outp:
-        print "Jobs are running on ziggy"
+        print("Jobs are running on ziggy")
 
     Jobs2Complete = list(NWFiles)
     n2complete = len(Jobs2Complete)
@@ -264,14 +264,14 @@ def RunOnZiggy(folder, queue, NWFiles, settings):
              not IsZiggyGComplete(job[:-2] + 'nwo', folder, settings)]
         if n2complete != len(Jobs2Complete):
             n2complete = len(Jobs2Complete)
-            print str(n2complete) + " remaining."
+            print(str(n2complete) + " remaining.")
 
         time.sleep(60)
 
     #When done, copy the results back
-    print "\nCopying the output files back to localhost..."
-    print 'ssh ziggy scp /home/' + settings.user + '/' + folder + '/*.nwo ' +\
-        socket.getfqdn() + ':' + os.getcwd()
+    print("\nCopying the output files back to localhost...")
+    print('ssh ziggy scp /home/' + settings.user + '/' + folder + '/*.nwo ' +\
+        socket.getfqdn() + ':' + os.getcwd())
     outp = subprocess.check_output('ssh ziggy scp /home/' + settings.user + '/'
                                    + folder + '/*.nwo ' + socket.getfqdn() + ':'
                                    + os.getcwd(), shell=True)
@@ -279,12 +279,12 @@ def RunOnZiggy(folder, queue, NWFiles, settings):
 
 def RunOnMedivir(NWFiles, settings):
 
-    print "Medivir NWChem job submission script\n"
+    print("Medivir NWChem job submission script\n")
 
     #Write the qsub scripts
     for f in NWFiles:
         WriteMedivirSubScript(f[:-3], settings)
-    print str(len(NWFiles)) + ' .qsub scripts generated'
+    print(str(len(NWFiles)) + ' .qsub scripts generated')
 
     #Launch the calculations
     for f in NWFiles:
@@ -292,11 +292,11 @@ def RunOnMedivir(NWFiles, settings):
         outp = subprocess.check_output('qsub ' + job + '.qsub', shell=True)
         time.sleep(3)
 
-    print str(len(NWFiles)) + ' jobs submitted to the queue on ziggy'
+    print(str(len(NWFiles)) + ' jobs submitted to the queue on ziggy')
 
     outp = subprocess.check_output('qstat', shell=True)
     if 'nwinp' in outp:
-        print "Jobs are running on the cluster"
+        print("Jobs are running on the cluster")
 
     Jobs2Complete = list(NWFiles)
     n2complete = len(Jobs2Complete)
@@ -309,17 +309,17 @@ def RunOnMedivir(NWFiles, settings):
              not IsMedivirComplete(job[:-2] + 'nwo', settings)]
         if n2complete != len(Jobs2Complete):
             n2complete = len(Jobs2Complete)
-            print str(n2complete) + " remaining."
+            print(str(n2complete) + " remaining.")
 
         time.sleep(60)
 
-    print "Calculation on the cluster done.\n"
+    print("Calculation on the cluster done.\n")
                                    
                                    
 def WriteSubScript(NWJob, queue, ZiggyJobFolder, settings):
 
     if not (os.path.exists(NWJob+'.nw')):
-        print "The input file " + NWJob + ".nw does not exist. Exiting..."
+        print("The input file " + NWJob + ".nw does not exist. Exiting...")
         return
 
     #Create the submission script
@@ -368,7 +368,7 @@ def WriteSubScript(NWJob, queue, ZiggyJobFolder, settings):
 def WriteMedivirSubScript(NWJob, settings):
 
     if not (os.path.exists(NWJob+'.nw')):
-        print "The input file " + NWJob + ".nw does not exist. Exiting..."
+        print("The input file " + NWJob + ".nw does not exist. Exiting...")
         return
 
     #Create the submission script
@@ -399,15 +399,15 @@ def IsZiggyGComplete(f, folder, settings):
     path = '/home/' + settings.user + '/' + folder + '/'
     try:
         outp1 = subprocess.check_output('ssh ziggy ls ' + path, shell=True)
-    except subprocess.CalledProcessError, e:
-        print "ssh ziggy ls failed: " + str(e.output)
+    except subprocess.CalledProcessError as e:
+        print("ssh ziggy ls failed: " + str(e.output))
         return False
     if f in outp1:
         try:
             outp2 = subprocess.check_output('ssh ziggy cat ' + path + f,
                                             shell=True)
-        except subprocess.CalledProcessError, e:
-            print "ssh ziggy cat failed: " + str(e.output)
+        except subprocess.CalledProcessError as e:
+            print("ssh ziggy cat failed: " + str(e.output))
             return False
         if "AUTHORS" in outp2:
             return True
@@ -418,14 +418,14 @@ def IsMedivirComplete(f, settings):
 
     try:
         outp1 = subprocess.check_output('ls ', shell=True)
-    except subprocess.CalledProcessError, e:
-        print "ls failed: " + str(e.output)
+    except subprocess.CalledProcessError as e:
+        print("ls failed: " + str(e.output))
         return False
     if f in outp1:
         try:
             outp2 = subprocess.check_output('cat ' + f, shell=True)
-        except subprocess.CalledProcessError, e:
-            print "cat failed: " + str(e.output)
+        except subprocess.CalledProcessError as e:
+            print("cat failed: " + str(e.output))
             return False
         if "AUTHORS" in outp2:
             return True

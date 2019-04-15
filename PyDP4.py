@@ -34,8 +34,6 @@ The main file, that should be called to start the PyDP4 workflow.
 Interprets the arguments and takes care of the general workflow logic.
 """
 
-
-
 import NMRAnalysis
 import Tinker
 import MacroModel
@@ -164,12 +162,11 @@ def main(settings):
     print("Distributed under MIT license")
     print("==========================\n\n")
 
+    print(settings.InputFiles)
     # Check the number of input files, generate some if necessary
     if ('g' in settings.Workflow) and len(settings.InputFiles) == 1:
         import InchiGen
-        if len(settings.SelectedStereocentres) > 0:
-            settings.InputFiles = InchiGen.GenSelectDiastereomers(settings.InputFiles,
-                                                                  settings.SelectedStereocentres)
+        settings.InputFiles = InchiGen.GenDiastereomers(settings.InputFiles[0], settings.SelectedStereocentres)
 
     print("Input files: " + str(settings.InputFiles))
     print("NMR file: " + str(settings.NMRsource))
@@ -380,9 +377,9 @@ if __name__ == '__main__':
     parser.add_argument('-n', '--Charge', help="Specify\
     charge of the molecule. Do not use when input files have different charges")
     parser.add_argument('-B', '--BasisSet', help="Selects the basis set for\
-    DFT calculations", default=settings.BasisSet)
+    DFT calculations", default=settings.nBasisSet)
     parser.add_argument('-F', '--Functional', help="Selects the functional for\
-    DFT calculations", default=settings.Functional)
+    DFT calculations", default=settings.nFunctional)
     parser.add_argument('-f', '--ff', help="Selects force field for the \
     conformational search, implemented options 'mmff' and 'opls' (2005\
     version)", choices=['mmff', 'opls'], default=settings.ForceField)
@@ -398,8 +395,8 @@ if __name__ == '__main__':
     settings.ForceField = args.ff
     settings.PerStructConfLimit = args.ConfLimit
     settings.MaxCutoffEnergy = args.MaxConfE
-    settings.BasisSet = args.BasisSet
-    settings.Functional = args.Functional
+    settings.nBasisSet = args.BasisSet
+    settings.nFunctional = args.Functional
     settings.nProc = args.nProc
     settings.MaxConcurrentJobs = args.batch
     settings.MaxDFTOptCycles = args.OptCycles
@@ -422,8 +419,6 @@ if __name__ == '__main__':
     if args.StereoCentres is not None:
         settings.SelectedStereocentres =\
             [int(x) for x in (args.StereoCentres).split(',')]
-    if args.StrictConfLimit:
-        settings.StrictConfLimit = True
     if args.NoConfPrune:
         settings.ConfPrune = False
     if args.AssumeDFTDone:

@@ -52,16 +52,16 @@ def SetupJaguar(MMoutp, Jaginp, numDigits, settings, adjRMSDcutoff):
         actualRMSDcutoff = adjRMSDcutoff
 
     if settings.ConfPrune:
-        print str(len(conformers) - len(pruned)) +\
+        print(str(len(conformers) - len(pruned)) +\
             " or " + "{:.1f}".format(100*(len(conformers) - len(pruned)) /
             len(conformers))+"% of conformations have been pruned based on " +\
-            str(actualRMSDcutoff) + " angstrom cutoff"
+            str(actualRMSDcutoff) + " angstrom cutoff")
     
     for num in range(0, len(pruned)):
         filename = Jaginp+str(num+1).zfill(3)
         WriteJagFile(filename, pruned[num], atoms, charge, settings)
  
-    print str(len(pruned)) + " .in files written"
+    print(str(len(pruned)) + " .in files written")
 
 
 #Adjust the RMSD cutoff to keep the conformation numbers reasonable
@@ -122,7 +122,7 @@ def GetFiles2Run(inpfiles, settings):
     JinpFiles = []
     for filename in inpfiles:
         JinpFiles = JinpFiles + glob.glob(filename + 'jinp???.in')
-    print JinpFiles
+    print(JinpFiles)
     Files2Run = []
 
     #for every input file check that there is a completed output file,
@@ -150,11 +150,11 @@ def RunJaguar(JagFiles, settings):
 
     for f in JagFiles:
         time.sleep(3)
-        print JagPrefix + f
+        print(JagPrefix + f)
         outp = subprocess.check_output(JagPrefix + f, shell=True)
         NCompleted += 1
-        print "Jaguar job " + str(NCompleted) + " of " + str(len(JagFiles)) + \
-            " completed."
+        print("Jaguar job " + str(NCompleted) + " of " + str(len(JagFiles)) + \
+            " completed.")
 
 
 def IsJagCompleted(f):
@@ -183,12 +183,12 @@ def RunNMRPredict(numDS, settings, *args):
     BoltzmannShieldings = []
     SigConfs = []
 
-    print JagNames
-    print NTaut
+    print(JagNames)
+    print(NTaut)
     #This loop runs nmrPredict for each diastereomer and collects
     #the outputs    
     for i, isomer in enumerate(JagNames):
-        print isomer
+        print(isomer)
         JagFiles = glob.glob(isomer + 'jinp*.out')
         JagFiles = [x[:-4] for x in JagFiles]
 
