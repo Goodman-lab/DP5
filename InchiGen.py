@@ -35,11 +35,11 @@ def main(f):
 
 def GetInchiRenumMap(AuxInfo):
 
-    for l in AuxInfo.decode().split('/'):
+    for l in AuxInfo.split('/'):
         if 'N:' in l:
             RenumLayer = l
             break
-    amap = [int(x) for x in RenumLayer[2:].decode().split(',')]
+    amap = [int(x) for x in RenumLayer[2:].split(',')]
     return amap
 
 
@@ -182,7 +182,7 @@ def Inchi2Struct(inchi, f, aux):
 
 def GetTautProtons(inchi):
     #get the tautomer layer and pickup the data
-    layers = inchi.decode().split('/')
+    layers = inchi.split('/')
 
     for l in layers:
         if 'h' in l:
@@ -197,7 +197,7 @@ def GetTautProtons(inchi):
             ends.append(i)
     TautProts = []
     for i in range(0, len(starts)):
-        TautProts.append((ProtLayer[starts[i]+1:ends[i]]).decode().split(','))
+        TautProts.append((ProtLayer[starts[i]+1:ends[i]]).split(','))
 
     return TautProts
 
@@ -314,7 +314,7 @@ def GenDSInchis(inchi):
     layers = inchi.split('/')
     for l in layers:
         if 't' in l:
-            numds = 2**(len(l.translate(None, 't,1234567890'))-1)
+            numds = 2**(len(l.translate({ord(i): None for i in 't,1234567890'}))-1)
 
     print("Number of diastereomers to be generated: " + str(numds))
 
