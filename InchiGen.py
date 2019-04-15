@@ -14,7 +14,7 @@ sys.path.append('/home/' + settings.user + '/Tools/openbabel-install/lib/python2
 import os
 from openbabel import *
 import subprocess
-import itertools
+
 
 MolConPath = '/home/' + settings.user + '/chemaxon/marvinsuite/bin/molconvert'
 
@@ -177,7 +177,7 @@ def Inchi2Struct(inchi, f, aux):
     infile.close()
     
     outp = subprocess.check_output(MolConPath + ' sdf ' + fullf +
-        '.inchi -3:c1S{fine}[prehydrogenize] -o ' + fullf + '.sdf', shell=True)
+        '.inchi -3:S{fine}[prehydrogenize] -o ' + fullf + '.sdf', shell=True)
 
 
 def GetTautProtons(inchi):
@@ -200,16 +200,6 @@ def GetTautProtons(inchi):
         TautProts.append((ProtLayer[starts[i]+1:ends[i]]).split(','))
 
     return TautProts
-
-
-#utility function that determines if an atom is a heteroatom
-def IsHetero(n, inchi):
-    layers = inchi.decode().split('/')
-    nC = int((layers[1].decode().split('H'))[0][1:])
-    if (n > nC):
-        return True
-    else:
-        return False
 
 
 def GenSelectDiastereomers(structf, atoms):
