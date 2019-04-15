@@ -8,22 +8,22 @@ Code for diastereomer, tautomer and protomer generation via InChI strings.
 This file gets called by PyDP4.py if diastereomer and/or tautomer and/or
 protomer generation is used.
 """
-
+from PyDP4 import settings
 import sys
-sys.path.append('/home/ke291/Tools/openbabel-install/lib/python2.7/site-packages/')
+sys.path.append('/home/' + settings.user + '/Tools/openbabel-install/lib/python2.7/site-packages/')
 import os
 from openbabel import *
 import subprocess
 import itertools
 
-MolConPath = '/home/ke291/chemaxon/marvinsuite/bin/molconvert'
+MolConPath = '/home/' + settings.user + '/chemaxon/marvinsuite/bin/molconvert'
 
 
 def main(f):
 
     inchi, aux = GetInchi(f)
 
-    print inchi
+    print(inchi)
 
     ds_inchis = GenDiastereomers(inchi)
     ds_inchis = [FixTautProtons(f, i, aux) for i in ds_inchis]
@@ -184,7 +184,7 @@ def GenProtomers(structf, atoms):
 
     f = structf + ".sdf"
     inchi, aux = GetInchi(f)
-    print inchi
+    print(inchi)
     amap = GetInchiRenumMap(aux)
 
     prot_atoms = []
@@ -194,7 +194,7 @@ def GenProtomers(structf, atoms):
     finchi = FixTautProtons(f, inchi, aux)
     prot_inchis = GenProtInchis(finchi, prot_atoms)
 
-    print prot_inchis
+    print(prot_inchis)
     filenames = []
     for prot in range(0, len(prot_inchis)):
         Inchi2Struct(prot_inchis[prot], f[:-4] + 'p' + str(prot+1), aux)
@@ -217,7 +217,7 @@ def GenProtInchis(inchi, atoms):
         temp = tlayer[1:-1].split(',')
         tlist[0].extend([int(x) for x in temp[1:]])
         tlist[1].extend([i for x in temp[1:]])
-    print tlist
+    print(tlist)
     #Increase H count and regenerate the formula
     for i in range(0, len(formula)):
         if formula[i][0] == 'H':
@@ -228,8 +228,8 @@ def GenProtInchis(inchi, atoms):
 
     #For each basic atom in atoms, generate a copy of original protons
     #add atom and save it
-    print "Protonating atoms with these InChI numbers: " +\
-        str([x+1 for x in atoms])
+    print("Protonating atoms with these InChI numbers: " +\
+        str([x+1 for x in atoms]))
     protlayers = []
     fprotlayers = []
     for atom in atoms:
@@ -577,7 +577,7 @@ def GenSelectDSInchis(inchi, atoms):
         return 0
 
     numds = 2**(len(sc))
-    print "Number of diastereomers to be generated: " + str(numds)
+    print("Number of diastereomers to be generated: " + str(numds))
     temps = []
     #Generate inversion patterns - essentially just binary strings
     for i in range(0, numds):
@@ -600,7 +600,7 @@ def GenSelectDSInchis(inchi, atoms):
         for stereocentre in range(0, len(sc)):
             newlayer = newlayer.replace(sc[stereocentre], newds[stereocentre])
         reslayers.append(newlayer)
-    print reslayers
+    print(reslayers)
     resinchis = []
     for layer in reslayers:
         resinchis.append(inchi.replace(slayer, layer))
@@ -612,7 +612,7 @@ def GenDiastereomers(structf):
     f = structf + ".sdf"
     inchi, aux = GetInchi(f)
 
-    print inchi
+    print(inchi)
 
     ds_inchis = GenDSInchis(inchi)
     ds_inchis = [FixTautProtons(f, i, aux) for i in ds_inchis]
@@ -636,7 +636,7 @@ def GenDSInchis(inchi):
         if 't' in l:
             numds = 2**(len(l.translate(None, 't,1234567890'))-1)
 
-    print "Number of diastereomers to be generated: " + str(numds)
+    print("Number of diastereomers to be generated: " + str(numds))
 
     #find configuration sites (+ and -)
     bs = ilist.index('t')
