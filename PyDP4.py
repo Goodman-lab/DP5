@@ -42,7 +42,6 @@ import sys
 import os
 import datetime
 import argparse
-import math
 import importlib
 
 DFTpackages = [['n', 'w', 'j', 'g', 'z', 'd'],
@@ -138,6 +137,7 @@ settings = Settings()
 class Isomer:
     def __init__(self, InputFile):
         self.InputFile = InputFile  # Initial structure input file
+        self.BaseName = InputFile[:-4] # Basename for other files
         self.atoms = []             # Element labels
         self.Conformers = []        # from conformational search, list of atom coordinate lists
         self.DFTConformers = []     # from DFT optimizations, list of atom coordinate lists
@@ -163,14 +163,17 @@ def main(settings):
     print("Distributed under MIT license")
     print("==========================\n\n")
 
-    print(settings.InputFiles)
+    print("Initial input files: " + str(settings.InputFiles))
+    print("NMR file: " + str(settings.NMRsource))
+    print("Workflow: " + str(settings.Workflow))
+
     # Check the number of input files, generate some if necessary
     if ('g' in settings.Workflow) and len(settings.InputFiles) == 1:
         import InchiGen
+        print("\nGenerating diastereomers...")
         settings.InputFiles = InchiGen.GenDiastereomers(settings.InputFiles[0], settings.SelectedStereocentres)
 
-    print("Input files: " + str(settings.InputFiles))
-    print("NMR file: " + str(settings.NMRsource))
+    print("Generated input files: " + str(settings.InputFiles) + '\n')
 
     # Create isomer data structures
     Isomers = [Isomer(f) for f in settings.InputFiles]
@@ -189,11 +192,14 @@ def main(settings):
         elif settings.MM == 'm':
             print('\nSetting up MacroModel files...')
             MacroModelInputs = MacroModel.SetupMacroModel(settings)
-
-            print('\nRunning Tinker...')
+            print("MacroModel inputs: " + str(MacroModelInputs))
+            print('Running MacroModel...')
             MacroModelOutputs = MacroModel.RunMacroModel(MacroModelInputs, settings)
-
-            Isomers = MacroModel.ReadConformers(MacroModelOutputs, Isomers)
+            print('\nReading conformers...')
+            Isomers = MacroModel.ReadConformers(MacroModelOutputs, Isomers, settings)
+            print('Energy window: ' + str(settings.MaxCutoffEnergy) + ' kJ/mol')
+            for iso in Isomers:
+                print(str(len(iso.Conformers)) + ' conformers within energy window read for structure ' + iso.InputFile)
 
     else:
         print('No conformational search was requested. Skipping...')
@@ -207,6 +213,8 @@ def main(settings):
     if ('d' in settings.Workflow) or ('o' in settings.Workflow) \
             or ('e' in settings.Workflow) or settings.AssumeDone:
         DFT = ImportDFT(settings.DFT)
+    else:
+        print('No DFT calculations were requested. Skipping...')
 
     if not(settings.AssumeDone):
 
@@ -389,6 +397,7 @@ if __name__ == '__main__':
     print(args.ExpNMR)
     settings.Title = args.ExpNMR
     settings.NMRsource = args.ExpNMR
+    settings.Workflow = args.workflow
 
     settings.DFT = args.dft
     settings.queue = args.queue

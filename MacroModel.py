@@ -28,6 +28,8 @@ def SetupMacroModel(settings):
             else:
                 print('Could not find Schrodinger folder, please fill in PyDP4.py Settings with the path.')
 
+    MacroModelInputs = []
+
     for f in settings.InputFiles:
         
         if settings.Rot5Cycle is True:
@@ -47,6 +49,7 @@ def SetupMacroModel(settings):
             convinp = settings.SCHRODINGER + '/utilities/sdconvert -isd '
         outp = subprocess.check_output(convinp + f + '.sdf -omae ' + f +
                                        '.mae', shell=True)
+        MacroModelInputs.append(f + '.mae')
 
         #Copy default com file to directory
         shutil.copyfile(scriptdir + '/default.com', cwd + '/' + f + '.com')
@@ -84,8 +87,9 @@ def SetupMacroModel(settings):
                 convinp = '"' + settings.SCHRODINGER + '/utilities/sdconvert" -isd '
             else:
                 convinp = settings.SCHRODINGER + '/utilities/sdconvert -isd '
-            outp = subprocess.check_output(convinp + f + '.sdf -omae ' + f +
-                                           '.mae', shell=True)
+            outp = subprocess.check_output(convinp + f + 'rot.sdf -omae ' + f +
+                                           'rot.mae', shell=True)
+            MacroModelInputs.append(f + 'rot.mae')
 
             #Copy default com file to directory
             shutil.copyfile(scriptdir + '/default.com', cwd + '/' + f +
@@ -107,9 +111,15 @@ def SetupMacroModel(settings):
             comf.close()
         print("Macromodel input for " + f + " prepared.")
 
+    return MacroModelInputs
 
-def RunMacromodel(numDS, settings, *args):
+
+def RunMacroModel(MacroModelInputs, settings):
+    #not args, but MacroModelInputs, numDS removed
     #Run Macromodel conformation search for all diastereomeric inputs
+
+    MacroModelBaseNames = [x[:-4] for x in MacroModelInputs]
+    MacroModelOutputs = []
     NCompleted = 0
     
     if os.name == 'nt':
@@ -117,34 +127,32 @@ def RunMacromodel(numDS, settings, *args):
     else:
         MMPrefix = settings.SCHRODINGER + "/bmin "
 
-    for ds in args:
-        if not os.path.exists(ds+'.log'):
-            print(MMPrefix + ds)
-            outp = subprocess.check_output(MMPrefix + ds, shell=True)
+    for isomer in MacroModelBaseNames:
+        if not os.path.exists(isomer + '.log'):
+            print(MMPrefix + isomer)
+            outp = subprocess.check_output(MMPrefix + isomer, shell=True)
         else:
-            print(ds + ".log exists, skipping")
+            if IsMMCompleted(isomer + '.log'):
+                print("Valid " + isomer + ".log exists, skipping...")
+                NCompleted = NCompleted + 1
+                MacroModelOutputs.append(isomer + '.log')
+            else:
+                print("Incomplete " + isomer + ".log exists, consider deleting it. Skipping...")
             continue
 
         time.sleep(60)
-        while(not IsMMCompleted(ds + '.log')):
+        while(not IsMMCompleted(isomer + '.log')):
             time.sleep(30)
         NCompleted = NCompleted + 1
+        MacroModelOutputs.append(isomer + '.log')
 
-        if settings.Rot5Cycle is True:
-            print("Macromodel job " + str(NCompleted) + " of " + str(numDS*2)\
-                + " completed.")
+        print("Macromodel job " + str(NCompleted) + " of " + str(len(MacroModelBaseNames)) + " completed.")
 
-            print(MMPrefix + ds + 'rot')
-            outp = subprocess.check_output(MMPrefix + ds +'rot', shell=True)
-            time.sleep(60)
-            while(not IsMMCompleted(ds + 'rot.log')):
-                time.sleep(30)
-            NCompleted = NCompleted + 1
-            print("Macromodel job " + str(NCompleted) + " of " + str(numDS*2)\
-                + " completed.")
-        else:
-            print("Macromodel job " + str(NCompleted) + " of " + str(numDS) +\
-                " completed.")
+    return MacroModelOutputs
+
+
+def ReadConformers(MacroModelOutputs, Isomers, settings):
+    pass
 
 
 def ReadMacromodel(MMoutp, settings):
