@@ -152,7 +152,17 @@ def RunMacroModel(MacroModelInputs, settings):
 
 
 def ReadConformers(MacroModelOutputs, Isomers, settings):
-    pass
+    MatchingOutput = ''
+    for iso in Isomers:
+        for outp in MacroModelOutputs:
+            if (outp[:-4] == iso.BaseName) and IsMMCompleted(outp):
+                print(outp + ' is matching conformational search output for ' + iso.BaseName)
+                atoms, conformers, charge, AbsEs = ReadMacromodel(iso.BaseName, settings)
+                iso.Atoms = atoms
+                iso.Conformers = conformers
+                iso.MMCharge = charge
+                iso.MMEnergies = AbsEs
+    return Isomers
 
 
 def ReadMacromodel(MMoutp, settings):
@@ -160,114 +170,105 @@ def ReadMacromodel(MMoutp, settings):
     conformers = []
     conformer = -1
     AbsEs = []
+    ConfAbsEs = []
 
     atoms = []
     charge = 0
     MaeInps = []
 
-    MaeFile = file(MMoutp + '-out.mae', 'r')
-    MaeInps.append(MaeFile.readlines())
+    MaeFile = open(MMoutp + '-out.mae', 'r')
+    MaeInp = MaeFile.readlines()
     MaeFile.close()
 
-    if settings.Rot5Cycle is True:
-        MaeFile = file(MMoutp + 'rot-out.mae', 'r')
-        MaeInps.append(MaeFile.readlines())
-        MaeFile.close()
+    AbsEOffsets = []
+    #find conformer description blocks
+    blocks = []
+    DataIndexes = []
+    for i in range(len(MaeInp)):
+        if 'f_m_ct' in MaeInp[i]:
+            blocks.append(i)
+        if 'p_m_ct' in MaeInp[i]:
+            blocks.append(i)
 
-    for MaeInp in MaeInps:
-        index = 0
-        AbsEOffsets = []
-        #find conformer description blocks
-        blocks = []
-        DataIndexes = []
-        for i in range(len(MaeInp)):
-            if 'f_m_ct' in MaeInp[i]:
-                blocks.append(i)
-            if 'p_m_ct' in MaeInp[i]:
-                blocks.append(i)
+    #find absolute energy offsets
+    for block in blocks:
+        for i in range(block, len(MaeInp)):
+            if 'mmod_Potential_Energy' in MaeInp[i]:
+                AbsEOffsets.append(i-block)
+                break
 
-        #find absolute energy offsets
-        for block in blocks:
-            for i in range(block, len(MaeInp)):
-                if 'mmod_Potential_Energy' in MaeInp[i]:
-                    AbsEOffsets.append(i-block)
-                    break
+    #Get absolute energies for conformers
+    for i in range(len(blocks)):
+        for line in range(blocks[i], len(MaeInp)):
+            if ':::' in MaeInp[line]:
+                AbsEs.append(float(MaeInp[line+AbsEOffsets[i]]))
+                break
 
-        #Get absolute energies for conformers
-        for i in range(len(blocks)):
-            for line in range(blocks[i], len(MaeInp)):
-                if ':::' in MaeInp[line]:
-                    AbsEs.append(float(MaeInp[line+AbsEOffsets[i]]))
-                    break
-        
-        #Pick only the conformers in the energy window
-        MinE = min(AbsEs)
+    #Pick only the conformers in the energy window
+    MinE = min(AbsEs)
 
-        #find geometry descriptions for each block
-        for i in range(len(blocks)):
-            for line in (MaeInp[blocks[i]:]):
-                if 'm_atom' in line:
+    #find geometry descriptions for each block
+    for i in range(len(blocks)):
+        for line in (MaeInp[blocks[i]:]):
+            if 'm_atom' in line:
+                blocks[i] = blocks[i] + MaeInp[blocks[i]:].index(line)
+                break
+
+    #find start of atom coordinates for each block
+    for i in range(len(blocks)):
+        if (AbsEs[i] < MinE+settings.MaxCutoffEnergy):
+            #Save the locations of atom number, xyz and charge
+            DataIndex = [0, 0, 0, 0, 0]
+            for offset, line in enumerate(MaeInp[blocks[i]:]):
+                if 'i_m_mmod_type' in line:
+                    DataIndex[0] = offset-1
+                if 'r_m_x_coord' in line:
+                    DataIndex[1] = offset-1
+                if 'r_m_y_coord' in line:
+                    DataIndex[2] = offset-1
+                if 'r_m_z_coord' in line:
+                    DataIndex[3] = offset-1
+                if 'r_m_charge1' in line:
+                    DataIndex[4] = offset-1
+                if ':::' in line:
                     blocks[i] = blocks[i] + MaeInp[blocks[i]:].index(line)
                     break
+            DataIndexes.append(DataIndex)
+        else:
+            break
 
-        #find start of atom coordinates for each block
-        for i in range(len(blocks)):
-            if (AbsEs[i] < MinE+settings.MaxCutoffEnergy) or (settings.Cluster == True):
-                #Save the locations of atom number, xyz and charge
-                DataIndex = [0, 0, 0, 0, 0]
-                for offset, line in enumerate(MaeInp[blocks[i]:]):
-                    if 'i_m_mmod_type' in line:
-                        DataIndex[0] = offset-1
-                    if 'r_m_x_coord' in line:
-                        DataIndex[1] = offset-1
-                    if 'r_m_y_coord' in line:
-                        DataIndex[2] = offset-1
-                    if 'r_m_z_coord' in line:
-                        DataIndex[3] = offset-1
-                    if 'r_m_charge1' in line:
-                        DataIndex[4] = offset-1
-                    if ':::' in line:
-                        blocks[i] = blocks[i] + MaeInp[blocks[i]:].index(line)
-                        break
-                DataIndexes.append(DataIndex)
-            else:
-                break
+    #Read the atom numbers and coordinates
+    for i, block in enumerate(blocks):
+        if (AbsEs[i] < MinE+settings.MaxCutoffEnergy):
+            conformers.append([])
+            ConfAbsEs.append(AbsEs[i])
+            conformer = conformer + 1
+            index = block+1
+            atom = 0
+            while not ':::' in MaeInp[index]:
+                #Replace quoted fields with x
+                line = (re.sub(r"\".*?\"", "x", MaeInp[index],
+                                    flags=re.DOTALL)).split(' ')
+                line = [word for word in line[:-1] if word != '']
+                conformers[conformer].append([])
+                if conformer == 0:
+                    atoms.append(GetMacromodelSymbol(int(line[DataIndexes[i][0]])))
+                    conformers[0][atom].append(line[DataIndexes[i][1]])  # add X
+                    conformers[0][atom].append(line[DataIndexes[i][2]])  # add Y
+                    conformers[0][atom].append(line[DataIndexes[i][3]])  # add Z
+                    charge = charge + float(line[DataIndexes[i][4]])
 
-        #Read the atom numbers and coordinates
-        for i, block in enumerate(blocks):
-            if (AbsEs[i] < MinE+settings.MaxCutoffEnergy) or (settings.Cluster == True):
-                conformers.append([])
-                conformer = conformer + 1
-                index = block+1
-                atom = 0
-                while not ':::' in MaeInp[index]:
-                    #Replace quoted fields with x
-                    line = (re.sub(r"\".*?\"", "x", MaeInp[index],
-                                        flags=re.DOTALL)).split(' ')
-                    line = [word for word in line[:-1] if word != '']
-                    conformers[conformer].append([])
-                    if conformer == 0:
-                        atoms.append(GetMacromodelSymbol(int(line[DataIndexes[i][0]])))
-                        conformers[0][atom].append(line[0])  # add atom number
-                        conformers[0][atom].append(line[DataIndexes[i][1]])  # add X
-                        conformers[0][atom].append(line[DataIndexes[i][2]])  # add Y
-                        conformers[0][atom].append(line[DataIndexes[i][3]])  # add Z
-                        charge = charge + float(line[DataIndexes[i][4]])
-                        
-                    else:
-                        conformers[conformer][atom].append(line[0])  # add atom number
-                        conformers[conformer][atom].append(line[DataIndexes[i][1]])  # add X
-                        conformers[conformer][atom].append(line[DataIndexes[i][2]])  # add Y
-                        conformers[conformer][atom].append(line[DataIndexes[i][3]])  # add Z
-                        
-                    index = index + 1   # Move to next line
-                    atom = atom + 1     # Move to next atom
-            else:
-                break
-    if settings.Cluster == False:
-        return atoms, conformers, int(charge)
-    else:
-        return atoms, conformers, int(charge), AbsEs
+                else:
+                    conformers[conformer][atom].append(line[DataIndexes[i][1]])  # add X
+                    conformers[conformer][atom].append(line[DataIndexes[i][2]])  # add Y
+                    conformers[conformer][atom].append(line[DataIndexes[i][3]])  # add Z
+
+                index = index + 1   # Move to next line
+                atom = atom + 1     # Move to next atom
+        else:
+            break
+
+    return atoms, conformers, int(charge), ConfAbsEs
 
 
 def GetMacromodelSymbol(atomType):

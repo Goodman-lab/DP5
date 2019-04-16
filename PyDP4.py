@@ -137,9 +137,11 @@ settings = Settings()
 class Isomer:
     def __init__(self, InputFile):
         self.InputFile = InputFile  # Initial structure input file
-        self.BaseName = InputFile[:-4] # Basename for other files
-        self.atoms = []             # Element labels
+        self.BaseName = InputFile # Basename for other files
+        self.Atoms = []             # Element labels
         self.Conformers = []        # from conformational search, list of atom coordinate lists
+        self.MMCharge = 0           # charge from conformational search
+        self.RMSDCutoff = 0
         self.DFTConformers = []     # from DFT optimizations, list of atom coordinate lists
         self.ConfIndices = []       # List of conformer indices from the original conformational search for reference
         self.MMEnergies = []        # Corresponding MM energies
@@ -199,8 +201,7 @@ def main(settings):
             Isomers = MacroModel.ReadConformers(MacroModelOutputs, Isomers, settings)
             print('Energy window: ' + str(settings.MaxCutoffEnergy) + ' kJ/mol')
             for iso in Isomers:
-                print(str(len(iso.Conformers)) + ' conformers within energy window read for structure ' + iso.InputFile)
-
+                print(iso.InputFile + ": "+ str(len(iso.Conformers)) + ' conformers read within energy window' )
     else:
         print('No conformational search was requested. Skipping...')
         settings.ConfPrune = False
@@ -208,13 +209,17 @@ def main(settings):
     # Prune conformations, if requested.
     # For each isomer, the conformers list is replaced with a smaller list of conformers
     if (settings.ConfPrune) and not(settings.AssumeDone or settings.UseExistingInputs):
-        Isomers = ConfPrune.AdaptRMSDPrune(Isomers, settings)
+        print('\nPruning conformers...')
+        Isomers = ConfPrune.RMSDPrune(Isomers, settings)
+        for iso in Isomers:
+            print(iso.InputFile + ": " + str(len(iso.Conformers)) + ' conformers after pruning with ' +
+                  str(iso.RMSDCutoff) + 'A RMSD cutoff')
 
     if ('d' in settings.Workflow) or ('o' in settings.Workflow) \
             or ('e' in settings.Workflow) or settings.AssumeDone:
         DFT = ImportDFT(settings.DFT)
     else:
-        print('No DFT calculations were requested. Skipping...')
+        print('\nNo DFT calculations were requested. Skipping...')
 
     if not(settings.AssumeDone):
 
@@ -254,7 +259,7 @@ def main(settings):
 
     if not(NMRDataValid(Isomers)) or ('n' not in settings.Workflow):
 
-        print('No NMR data calculated, quitting...')
+        print('\nNo NMR data calculated, quitting...')
         quit()
 
     NMRAnalysis.main(Isomers, settings)
