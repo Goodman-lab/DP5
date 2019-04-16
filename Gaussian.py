@@ -10,8 +10,6 @@ Contains all of the Gaussian specific code for input generation and calculation
 execution. Called by PyDP4.py.
 """
 
-import Tinker
-import MacroModel
 import nmrPredictGaus
 
 import subprocess
@@ -23,351 +21,59 @@ import shutil
 import math
 
 
+def SetupNMRCalcs(Isomers, settings):
+
+    jobdir = os.getcwd()
+
+    if not os.path.exists('./nmr'):
+        os.mkdir('./nmr')
+    os.chdir('./nmr')
+
+    for iso in Isomers:
+        if iso.ExtCharge > -10:
+            charge = iso.ExtCharge
+        else:
+            charge = iso.MMCharge
+
+        for num in range(0, len(iso.Conformers)):
+            filename = iso.BaseName + 'ginp' + str(num + 1).zfill(3)
+
+            if os.path.exists(filename + '.out') and IsGausCompleted(filename + '.out'):
+                continue
+
+            WriteGausFile(filename, iso.Conformers[num], iso.Atoms, charge, settings)
+
+    os.chdir(jobdir)
 
 
-from openbabel import *
+def SetupGaussian(Gausinp, settings):
 
-def SetupGaussian(MMoutp, Gausinp, numDigits, settings, adjRMSDcutoff):
-
-    if settings.MMTinker:
-        #Reads conformer geometry, energies and atom labels from Tinker output
-        (atoms, conformers, charge) = Tinker.ReadTinker(MMoutp, settings)
-    else:
-        (atoms, conformers, charge) = MacroModel.ReadMacromodel(MMoutp,
-                                                                settings)
     if settings.charge is not None:
         charge = settings.charge
 
-    #Prune similar conformations, if the number exceeds the limit
-    if len(conformers) > settings.PerStructConfLimit and settings.ConfPrune:
-        pruned = ConfPrune.RMSDPrune(conformers, atoms, adjRMSDcutoff)
-        actualRMSDcutoff = adjRMSDcutoff
-        if len(pruned) > settings.PerStructConfLimit and settings.StrictConfLimit:
-            pruned, actualRMSDcutoff = ConfPrune.StrictRMSDPrune(conformers, atoms, adjRMSDcutoff,
-                                               settings.PerStructConfLimit)
-    else:
-        pruned = conformers
-        actualRMSDcutoff = adjRMSDcutoff
-
-    if settings.ConfPrune:
-        print(str(len(conformers) - len(pruned)) +\
-            " or " + "{:.1f}".format(100*(len(conformers) - len(pruned)) /
-            len(conformers))+"% of conformations have been pruned based on " +\
-            str(actualRMSDcutoff) + " angstrom cutoff")
-    
-    if not settings.PM7Opt:
-        for num in range(0, len(pruned)):
-            filename = Gausinp+str(num+1).zfill(3)
-            if (not settings.DFTOpt) and (not settings.PM6Opt) and (not settings.HFOpt)\
-                and (not settings.M06Opt):
-                WriteGausFile(filename, pruned[num], atoms, charge, settings)
+    for num in range(0, len(pruned)):
+        filename = Gausinp+str(num+1).zfill(3)
+        if (not settings.DFTOpt) and (not settings.PM6Opt) and (not settings.HFOpt)\
+            and (not settings.M06Opt):
+            WriteGausFile(filename, pruned[num], atoms, charge, settings)
+        else:
+            if not(os.path.exists(filename + 'temp.out')):
+                WriteGausFileOpt(filename, pruned[num], atoms, charge, settings)
             else:
-                if not(os.path.exists(filename + 'temp.out')):
-                    WriteGausFileOpt(filename, pruned[num], atoms, charge, settings)
+                print('Reusing geometry from ' + filename + 'temp.out')
+                tempatoms, tempcoords, tempcharge = ReadTempGeometry(filename + 'temp.out')
+                if (len(tempatoms) > 0) and (len(tempcoords) > 0):
+                    WriteGausFileOpt(filename, tempcoords, tempatoms, tempcharge, settings)
                 else:
-                    print('Reusing geometry from ' + filename + 'temp.out')
-                    tempatoms, tempcoords, tempcharge = ReadTempGeometry(filename + 'temp.out')
-                    if (len(tempatoms) > 0) and (len(tempcoords) > 0):
-                        WriteGausFileOpt(filename, tempcoords, tempatoms, tempcharge, settings)
-                    else:
-                        print(filename + 'temp.out is an invalid Gaussian output file. Falling back to MMFF geometry.')
-                        WriteGausFileOpt(filename, pruned[num], atoms, charge, settings)
-    else:
-        for num in range(0, len(pruned)):
-            filename = Gausinp+str(num+1).zfill(3)
-            conformer = PM7opt(filename, pruned[num], atoms, charge, settings)
-            print("Conformer " + str(num+1) + " of " + str(len(pruned)) + \
-            " has been preoptimized at PM7 level")
-            WriteGausFile(filename, conformer, atoms, charge, settings)
+                    print(filename + 'temp.out is an invalid Gaussian output file. Falling back to MMFF geometry.')
+                    WriteGausFileOpt(filename, pruned[num], atoms, charge, settings)
 
     print(str(len(pruned)) + " .com files written")
 
 
-def SetupGaussianCluster(MMoutp, Gausinp, numDigits, settings):
-
-    if settings.MMTinker:
-        print("Clustering not implemented with Tinker...")
-        quit()
-    else:
-        atoms, conformers, charge, AbsEs = MacroModel.ReadMacromodel(MMoutp,
-                                                                settings)
-    if settings.charge is not None:
-        charge = settings.charge
-
-    oldconformers = conformers
-    conformers = AdaptConfs(conformers)
-    print(str(len(conformers)) + " Macromodel conformers read")
-
-    print("Absolute energies: " + ', '.join([format(x, "3.1f") for x in AbsEs]))
-    MinE = min(AbsEs)
-    RelEs = [x-MinE for x in AbsEs]
-    print("Relative energies " + ', '.join([format(x-MinE, "3.1f") for x in AbsEs]))
-
-    obmols = BuildObMols(conformers, atoms)
-    IntCoords = SelectCoords(obmols[0])
-    print(str(len(IntCoords)) + " torsionable single bonds found")
-    print(IntCoords)
-
-    CoordData = GetCoordData(obmols, IntCoords)
-    for data in CoordData[:3]:
-        print(' '.join([format(x, "8.1f") for x in data]))
-    print('-'*20)
-
-    import hdbscan
-
-    clusterer = hdbscan.HDBSCAN(min_cluster_size=4, min_samples=1)
-
-    clusterer.fit(CoordData)
-    #clusterer.fit(TSNEdata)
-    print("Number of clusters: " + str(max(clusterer.labels_)+1))
-    print("Clustering results: ")
-    print(clusterer.labels_)
-
-    Clusters = []
-    MinEconfs = []
-    for i in range(-1, max(clusterer.labels_)):
-        Clusters.append([j for j, x in enumerate(clusterer.labels_) if x == i])
-
-    for i, cluster in enumerate(Clusters):
-        MinE = 1000
-        tempmin = 10000
-        for x in cluster:
-            if RelEs[x] < MinE:
-                tempmin = x
-                MinE = RelEs[x]
-        if tempmin != 10000:
-            MinEconfs.append(tempmin)
-        #MinE = min([filtRelEs[x] for x in cluster])
-        print("Cluster " + str(i) + ": " + str(cluster) + ", min E: " + format(MinE, ".1f") + ' kJ/mol (' + str(tempmin) + ')')
-
-    print(MinEconfs)
-
-
-    for num in MinEconfs:
-        filename = Gausinp + str(num + 1).zfill(3)
-        if (not settings.DFTOpt) and (not settings.PM6Opt) and (not settings.HFOpt) \
-                and (not settings.M06Opt):
-            WriteGausFile(filename, oldconformers[num], atoms, charge, settings)
-
-    print(str(len(MinEconfs)) + " .com files written")
-
-
-def BuildObMols(conformers, atoms):
-    obmols = []
-
-    for conf in conformers:
-        mol = BuildOBMol(atoms, conf)
-        obmols.append(mol)
-
-    print(str(len(obmols)) + " obmols generated")
-
-    return obmols
-
-
-def BuildOBMol(atoms, coords):
-
-    mol = OBMol()
-    for anum, acoords in zip(atoms, coords):
-        atom = OBAtom()
-        atom.SetAtomicNum(GetAtomNum(anum))
-        atom.SetVector(acoords[0],acoords[1], acoords[2])
-        mol.AddAtom(atom)
-
-    #Restore the bonds
-    mol.ConnectTheDots()
-    mol.PerceiveBondOrders()
-
-    #mol.Kekulize()
-
-    return mol
-
-
-def AdaptConfs(conformers):
-
-    newconfs = []
-
-    for conf in conformers:
-        newconf = []
-        for coord in conf:
-            newconf.append([float(x) for x in coord[1:]])
-        newconfs.append(newconf)
-
-    return newconfs
-
-
-def SelectCoords(mol):
-
-    TorsAtoms = []
-
-    ntorsions = 0
-    for bond in OBMolBondIter(mol):
-        if bond.IsSingle() and (not IsTerminating(bond)) and (not OnlyHSubst(bond)):
-            ntorsions += 1
-            TorsAtoms.append(ChooseTorsAtoms(bond))
-
-    ntorsionsb = 0
-
-    for tors in OBMolTorsionIter(mol):
-        ntorsionsb += 1
-
-    return TorsAtoms
-
-
-def GetCoordData(obmols, TorsAtoms, ExtraCoords = []):
-    coords = []
-
-    for mol in obmols:
-        moldata = []
-        for tors in TorsAtoms:
-            moldata.append(mol.GetTorsion(tors[0], tors[1], tors[2], tors[3]))
-
-        if len(ExtraCoords) > 0:
-            for coord in ExtraCoords:
-                if len(coord) == 2:
-                    moldata.append(GetDistance(mol, coord))
-                elif len(coord) == 3:
-                    moldata.append(mol.GetAngle(coord[0], coord[1], coord[2]))
-                elif len(coord) == 4:
-                    moldata.append(mol.GetTorsion(coord[0], coord[1], coord[2], coord[3]))
-
-        coords.append(moldata)
-
-    return coords
-
-def GetDistance(mol, atoms):
-
-    a1 = mol.GetAtom(atoms[0])
-
-    return a1.GetDistance(atoms[1])
-
-
-def IsTerminating(bond):
-
-    BAtom = bond.GetBeginAtom()
-    EAtom = bond.GetEndAtom()
-
-    if (GetNNeighbours(BAtom) <= 1) or (GetNNeighbours(EAtom) <= 1):
-        return True
-    else:
-        return False
-
-
-def GetNNeighbours(atom):
-    NNeighbours = 0
-
-    for NbrAtom in OBAtomAtomIter(atom):
-        NNeighbours += 1
-
-    return NNeighbours
-
-
-def OnlyHSubst(bond):
-    BAtom = bond.GetBeginAtom()
-    EAtom = bond.GetEndAtom()
-
-    if (BAtom.GetHvyValence() <= 1) or (EAtom.GetHvyValence() <= 1):
-        return True
-    else:
-        return False
-
-
-def ChooseTorsAtoms(bond):
-    BAtom = bond.GetBeginAtom()
-    CAtom = bond.GetEndAtom()
-
-    max = 0
-    for NbrAtom in OBAtomAtomIter(BAtom):
-        if (NbrAtom.GetIdx() != CAtom.GetIdx()) and (NbrAtom.GetAtomicNum() > max):
-            AAtom = NbrAtom
-            max = NbrAtom.GetAtomicNum()
-
-    max = 0
-    for NbrAtom in OBAtomAtomIter(CAtom):
-        if (NbrAtom.GetIdx() != BAtom.GetIdx()) and (NbrAtom.GetAtomicNum() > max):
-            DAtom = NbrAtom
-            max = NbrAtom.GetAtomicNum()
-    AtomIDs = [AAtom.GetIdx(), BAtom.GetIdx(), CAtom.GetIdx(), DAtom.GetIdx()]
-
-    return AtomIDs
-
-
-#Adjust the RMSD cutoff to keep the conformation numbers reasonable
-def AdaptiveRMSD(MMoutp, settings):
-
-    if settings.MMTinker:
-        #Reads conformer geometry, energies and atom labels from Tinker output
-        (atoms, conformers, charge) = Tinker.ReadTinker(MMoutp, settings)
-    else:
-        (atoms, conformers, charge) = MacroModel.ReadMacromodel(MMoutp,
-                                                                settings)
-
-    return ConfPrune.AdaptRMSDPrune(conformers, atoms,
-                                    settings.InitialRMSDcutoff,
-                                    settings.PerStructConfLimit)
-
-
-def PM7opt(Gausinp, conformer, atoms, charge, settings):
-    
-    WriteMopacFile(Gausinp, conformer, atoms, charge)
-    #outp = subprocess.check_output(settings.MOPAC + Gausinp + 'm.mop', shell=True)
-    outp = subprocess.Popen([settings.MOPAC, Gausinp + 'm.mop'], \
-      stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
-    OptConformer = ReadMopacFile(Gausinp+'m.out')
-    
-    os.rename(Gausinp+'m.out',Gausinp+'.mopout')
-    return OptConformer
-    
-
-def WriteMopacFile(Gausinp, conformer, atoms, charge):
-    
-    f = file(Gausinp + 'm.mop', 'w')
-
-    f.write(" AUX LARGE CHARGE=" + str(charge) + " SINGLET\n")
-    #f.write(" AUX LARGE CHARGE=" + str(charge) + " SINGLET RECALC=1 DMAX=0.05 RELSCF=0.01\n")
-    f.write(Gausinp+'\n\n')
-    
-    natom = 0
-
-    for atom in conformer:
-        f.write(atoms[natom] + '  ' + atom[1] + '  1  ' + atom[2] + '  1  ' +
-                atom[3] + '  1 \n')
-        natom = natom + 1
-    f.write('\n')
-    
-    f.close()
-
-
-def ReadMopacFile(filename):
-
-    mofile = open(filename, 'r')
-    MopacOutp = mofile.readlines()
-    mofile.close()
-    
-    index = 0
-    conformer = []
-    
-    while not 'COMPUTATION TIME' in MopacOutp[index]:
-        index = index + 1
-    #Find the NMR shielding calculation section
-    while not 'CARTESIAN COORDINATES' in MopacOutp[index]:
-        index = index + 1
-    
-    index = index + 2
-    
-    #Read shielding constants and labels
-    for line in MopacOutp[index:]:
-        if len(line) < 3:
-            break
-        else:
-            data = [_f for _f in line[:-1].split(' ') if _f]
-            conformer.append([data[0]]+data[2:])
-
-    return conformer
-
-
 def WriteGausFile(Gausinp, conformer, atoms, charge, settings):
 
-    f = file(Gausinp + '.com', 'w')
+    f = open(Gausinp + '.com', 'w')
     if(settings.nProc > 1):
         f.write('%nprocshared=' + str(settings.nProc) + '\n')
     if settings.DFT == 'g':
@@ -375,29 +81,26 @@ def WriteGausFile(Gausinp, conformer, atoms, charge, settings):
     else:
         f.write('%mem=6000MB\n%chk='+Gausinp + '.chk\n')
     
-    if (settings.Functional).lower() == 'wp04':
+    if (settings.nFunctional).lower() == 'wp04':
         func1 = '# blyp/'
         func2 = ' iop(3/76=1000001189,3/77=0961409999,3/78=0000109999)' + \
             ' nmr='
         
-    elif (settings.Functional).lower() == 'm062x':
+    elif (settings.nFunctional).lower() == 'm062x':
         func1 = '# m062x/'
         func2 = ' int=ultrafine nmr='
         
     else:
-        func1 = '# ' + settings.Functional + '/'
+        func1 = '# ' + settings.nFunctional + '/'
         func2 = ' nmr='
             
-    if (settings.BasisSet).lower()[:3] == 'pcs':
+    if (settings.nBasisSet).lower()[:3] == 'pcs':
         basis1 = 'gen'
     else:
-        basis1 = settings.BasisSet
+        basis1 = settings.nBasisSet
             
     CompSettings = func1 + basis1 + func2
-    if settings.jJ or settings.jFC:
-        CompSettings += '(giao,spinspin,mixed,readatoms)'
-    else:
-        CompSettings += 'giao'
+    CompSettings += 'giao'
     
     if settings.Solvent != '':
         CompSettings += ' scrf=(solvent=' + settings.Solvent+')\n'
@@ -411,21 +114,18 @@ def WriteGausFile(Gausinp, conformer, atoms, charge, settings):
     natom = 0
 
     for atom in conformer:
-        f.write(atoms[natom] + '  ' + atom[1] + '  ' + atom[2] + '  ' +
-                atom[3] + '\n')
+        f.write(atoms[natom] + '  ' + atom[0] + '  ' + atom[1] + '  ' +
+                atom[2] + '\n')
         natom = natom + 1
     f.write('\n')
-    if (settings.BasisSet).lower()[:3] == 'pcs':
+    if (settings.nBasisSet).lower()[:3] == 'pcs':
         basisfile = file(settings.ScriptDir + '/' + 
-                         (settings.BasisSet).lower(), 'r')
+                         (settings.nBasisSet).lower(), 'r')
         inp = basisfile.readlines()
         basisfile.close()
         for line in inp:
             f.write(line)
         f.write('\n')
-    
-    if settings.jJ or settings.jFC:
-        f.write('atoms=H\n')
     
     f.close()
 

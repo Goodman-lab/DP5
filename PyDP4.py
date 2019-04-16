@@ -45,7 +45,7 @@ import argparse
 import importlib
 
 DFTpackages = [['n', 'w', 'j', 'g', 'z', 'd'],
-    ['NWChem.py', 'NWChemZiggy.py', 'Jaguar.py', 'Gaussian.py', 'GaussianZiggy.py', 'GaussianDarwin.py']]
+    ['NWChem.py', 'NWChemZiggy.py', 'Jaguar.py', 'Gaussian', 'GaussianZiggy.py', 'GaussianDarwin.py']]
 
 if os.name == 'nt':
     import pyximport
@@ -135,12 +135,13 @@ settings = Settings()
 
 # Data struture keeping all of isomer data in one place.
 class Isomer:
-    def __init__(self, InputFile):
+    def __init__(self, InputFile, Charge=-100):
         self.InputFile = InputFile  # Initial structure input file
         self.BaseName = InputFile # Basename for other files
         self.Atoms = []             # Element labels
         self.Conformers = []        # from conformational search, list of atom coordinate lists
         self.MMCharge = 0           # charge from conformational search
+        self.ExtCharge = Charge     # externally provided charge
         self.RMSDCutoff = 0
         self.DFTConformers = []     # from DFT optimizations, list of atom coordinate lists
         self.ConfIndices = []       # List of conformer indices from the original conformational search for reference
@@ -215,7 +216,7 @@ def main(settings):
             print(iso.InputFile + ": " + str(len(iso.Conformers)) + ' conformers after pruning with ' +
                   str(iso.RMSDCutoff) + 'A RMSD cutoff')
 
-    if ('d' in settings.Workflow) or ('o' in settings.Workflow) \
+    if ('n' in settings.Workflow) or ('o' in settings.Workflow) \
             or ('e' in settings.Workflow) or settings.AssumeDone:
         DFT = ImportDFT(settings.DFT)
     else:
@@ -236,7 +237,7 @@ def main(settings):
             Isomers = DFT.ReadDFTEnergies(Isomers, settings)
 
         # Run DFT NMR calculations, if requested
-        if ('d' in settings.Workflow):
+        if ('n' in settings.Workflow):
             Isomers = DFT.SetupNMRCalcs(Isomers, settings)
             DFT.RunNMRCalcs(Isomers, settings)
             SetTMSConstants(settings)
@@ -252,7 +253,7 @@ def main(settings):
             Isomers = DFT.ReadDFTEnergies(Isomers, settings)
 
         # Run DFT NMR calculations, if requested
-        if ('d' in settings.Workflow):
+        if ('n' in settings.Workflow):
             SetTMSConstants(settings)
             Isomers = DFT.ReadNMRShifts(Isomers, settings)
 
