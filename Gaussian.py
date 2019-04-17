@@ -13,12 +13,9 @@ execution. Called by PyDP4.py.
 import nmrPredictGaus
 
 import subprocess
-import socket
 import os
 import time
 import glob
-import shutil
-import math
 
 
 def SetupNMRCalcs(Isomers, settings):
@@ -46,31 +43,6 @@ def SetupNMRCalcs(Isomers, settings):
     os.chdir(jobdir)
 
 
-def SetupGaussian(Gausinp, settings):
-
-    if settings.charge is not None:
-        charge = settings.charge
-
-    for num in range(0, len(pruned)):
-        filename = Gausinp+str(num+1).zfill(3)
-        if (not settings.DFTOpt) and (not settings.PM6Opt) and (not settings.HFOpt)\
-            and (not settings.M06Opt):
-            WriteGausFile(filename, pruned[num], atoms, charge, settings)
-        else:
-            if not(os.path.exists(filename + 'temp.out')):
-                WriteGausFileOpt(filename, pruned[num], atoms, charge, settings)
-            else:
-                print('Reusing geometry from ' + filename + 'temp.out')
-                tempatoms, tempcoords, tempcharge = ReadTempGeometry(filename + 'temp.out')
-                if (len(tempatoms) > 0) and (len(tempcoords) > 0):
-                    WriteGausFileOpt(filename, tempcoords, tempatoms, tempcharge, settings)
-                else:
-                    print(filename + 'temp.out is an invalid Gaussian output file. Falling back to MMFF geometry.')
-                    WriteGausFileOpt(filename, pruned[num], atoms, charge, settings)
-
-    print(str(len(pruned)) + " .com files written")
-
-
 def WriteGausFile(Gausinp, conformer, atoms, charge, settings):
 
     f = open(Gausinp + '.com', 'w')
@@ -80,34 +52,8 @@ def WriteGausFile(Gausinp, conformer, atoms, charge, settings):
         f.write('%mem=2000MB\n%chk='+Gausinp + '.chk\n')
     else:
         f.write('%mem=6000MB\n%chk='+Gausinp + '.chk\n')
-    
-    if (settings.nFunctional).lower() == 'wp04':
-        func1 = '# blyp/'
-        func2 = ' iop(3/76=1000001189,3/77=0961409999,3/78=0000109999)' + \
-            ' nmr='
-        
-    elif (settings.nFunctional).lower() == 'm062x':
-        func1 = '# m062x/'
-        func2 = ' int=ultrafine nmr='
-        
-    else:
-        func1 = '# ' + settings.nFunctional + '/'
-        func2 = ' nmr='
-            
-    if (settings.nBasisSet).lower()[:3] == 'pcs':
-        basis1 = 'gen'
-    else:
-        basis1 = settings.nBasisSet
-            
-    CompSettings = func1 + basis1 + func2
-    CompSettings += 'giao'
-    
-    if settings.Solvent != '':
-        CompSettings += ' scrf=(solvent=' + settings.Solvent+')\n'
-    else:
-        CompSettings += '\n'
-        
-    f.write(CompSettings)
+
+    f.write(NMRroute(settings))
     f.write('\n'+Gausinp+'\n\n')
     f.write(str(charge) + ' 1\n')
 
@@ -118,16 +64,38 @@ def WriteGausFile(Gausinp, conformer, atoms, charge, settings):
                 atom[2] + '\n')
         natom = natom + 1
     f.write('\n')
-    if (settings.nBasisSet).lower()[:3] == 'pcs':
-        basisfile = file(settings.ScriptDir + '/' + 
-                         (settings.nBasisSet).lower(), 'r')
-        inp = basisfile.readlines()
-        basisfile.close()
-        for line in inp:
-            f.write(line)
-        f.write('\n')
-    
+
     f.close()
+
+
+def NMRroute(settings):
+
+    route = '# ' + settings.nFunctional + '/' + settings.nBasisSet
+    if (settings.nFunctional).lower() == 'm062x':
+        route += ' int=ultrafine'
+
+    route += ' nmr=giao'
+
+    if settings.Solvent != '':
+        route += ' scrf=(solvent=' + settings.Solvent + ')'
+
+    route += '\n'
+
+    return route
+
+
+def Eroute(settings):
+
+    route = '# ' + settings.eFunctional + '/' + settings.eBasisSet
+    if (settings.eFunctional).lower() == 'm062x':
+        route += ' int=ultrafine'
+
+    if settings.Solvent != '':
+        route += ' scrf=(solvent=' + settings.Solvent + ')'
+
+    route += '\n'
+
+    return route
 
 
 def WriteGausFileOpt(Gausinp, conformer, atoms, charge, settings):
@@ -299,423 +267,6 @@ def RunLocally(GausJobs, settings):
         NCompleted += 1
         print("Gaussian job " + str(NCompleted) + " of " + str(len(GausJobs)) + \
             " completed.")
-
-
-#Still need addition of support for geometry optimisation
-def RunOnZiggy(findex, queue, GausFiles, settings):
-
-    if findex == 0:
-        folder = settings.StartTime + settings.Title
-    else:
-        folder = settings.StartTime + findex + settings.Title
-
-    scrfolder = settings.StartTime + settings.Title
-
-    print("ziggy GAUSSIAN job submission script\n")
-
-    #Check that folder does not exist, create job folder on ziggy
-    outp = subprocess.check_output('ssh ziggy ls', shell=True)
-    if folder in outp:
-        print("Folder exists on ziggy, choose another folder name.")
-        return
-
-    outp = subprocess.check_output('ssh ziggy mkdir ' + folder, shell=True)
-
-    print("Results folder: " + folder)
-
-    #Write the qsub scripts
-    for f in GausFiles:
-        if (not settings.DFTOpt) and (not settings.PM6Opt) and (not settings.HFOpt)\
-            and (not settings.M06Opt):
-            WriteSubScript(f[:-4], queue, folder, settings)
-        else:
-            WriteSubScriptOpt(f[:-4], queue, folder, settings)
-    print(str(len(GausFiles)) + ' slurm scripts generated')
-
-    #Upload .com files and .qsub files to directory
-    print("Uploading files to ziggy...")
-    for f in GausFiles:
-        if (not settings.DFTOpt) and (not settings.PM6Opt) and (not settings.HFOpt)\
-            and (not settings.M06Opt):
-            outp = subprocess.check_output('scp ' + f +' ziggy:~/' + folder,
-                                           shell=True)
-        else:
-            outp = subprocess.check_output('scp ' + f[:-4] +'a.com ziggy:~/' +
-                                           folder, shell=True)
-            outp = subprocess.check_output('scp ' + f[:-4] +'b.com ziggy:~/' +
-                                           folder, shell=True)
-        outp = subprocess.check_output('scp ' + f[:-4] +'slurm ziggy:~/' +
-                                       folder, shell=True)
-
-    print(str(len(GausFiles)) + ' .com and slurm files uploaded to ziggy')
-
-    #Launch the calculations
-    for f in GausFiles:
-        job = '~/' + folder + '/' + f[:-4]
-        outp = subprocess.check_output('ssh ziggy sbatch ' + job + 'slurm', shell=True)
-
-    print(str(len(GausFiles)) + ' jobs submitted to the queue on ziggy')
-
-    outp = subprocess.check_output('ssh ziggy qstat', shell=True)
-    if settings.user in outp:
-        print("Jobs are running on ziggy")
-
-    Jobs2Complete = list(GausFiles)
-    n2complete = len(Jobs2Complete)
-
-    #Check and report on the progress of calculations
-    while len(Jobs2Complete) > 0:
-        JustCompleted = [job for job in Jobs2Complete if
-            IsZiggyGComplete(job[:-3] + 'out', folder, settings)]
-        Jobs2Complete[:] = [job for job in Jobs2Complete if
-             not IsZiggyGComplete(job[:-3] + 'out', folder, settings)]
-        if n2complete != len(Jobs2Complete):
-            n2complete = len(Jobs2Complete)
-            print(str(n2complete) + " remaining.")
-
-        time.sleep(60)
-
-    #When done, copy the results back
-    print("\nCopying the output files back to localhost...")
-    print('ssh ziggy scp /home/' + settings.user + '/' + folder + '/*.out ' +\
-        socket.getfqdn() + ':' + os.getcwd())
-    outp = subprocess.check_output('ssh ziggy scp /home/' + settings.user +
-                                   '/' + folder + '/*.out ' + socket.getfqdn()
-                                   + ':' + os.getcwd(), shell=True)
-
-def RunOnDarwin(findex, GausJobs, settings):
-
-    if findex == 0:
-        folder = settings.StartTime + settings.Title
-    else:
-        folder = settings.StartTime + findex + settings.Title
-
-    scrfolder = settings.StartTime + settings.Title
-
-    print("Darwin GAUSSIAN job submission script\n")
-    
-    #Check that results folder does not exist, create job folder on darwin
-    outp = subprocess.Popen(['ssh', 'darwin', 'ls'], \
-      stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
-    print("Results folder: " + folder)
-    
-    if folder in outp:
-        print("Results folder exists on Darwin, choose another folder name.")
-        quit()
-
-    outp = subprocess.Popen(['ssh', 'darwin', 'mkdir', folder], \
-      stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
-
-    # Check that scratch directory does not exist, create job folder on darwin
-    outp = subprocess.Popen(['ssh', 'darwin', 'ls ' + settings.DarwinScrDir], \
-                            stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
-    print("Scratch directory: " + settings.DarwinScrDir + scrfolder)
-
-    if folder in outp:
-        print("Scratch folder exists on Darwin, choose another folder name.")
-        quit()
-
-    outp = subprocess.Popen(['ssh', 'darwin', 'mkdir', settings.DarwinScrDir + scrfolder], \
-                            stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
-
-    #Write the slurm scripts
-    SubFiles = WriteDarwinScripts(GausJobs, settings, scrfolder)
-        
-    print(str(len(SubFiles)) + ' slurm scripts generated')
-
-    #Upload .com files and slurm files to directory
-    print("Uploading files to darwin...")
-    for f in GausJobs:
-        if (not settings.DFTOpt) and (not settings.PM6Opt) and (not settings.HFOpt)\
-            and (not settings.M06Opt):
-            outp = subprocess.Popen(['scp', f,
-            'darwin:/home/' + settings.user + '/' + folder],
-            stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
-        
-        else:
-            outp = subprocess.Popen(['scp', f[:-4] + 'a.com',
-                'darwin:/home/' + settings.user + '/' + folder],
-                stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
-            outp = subprocess.Popen(['scp', f[:-4] + 'b.com',
-                'darwin:/home/' + settings.user + '/' + folder],
-                stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
-    
-    for f in SubFiles:
-        
-        outp = subprocess.Popen(['scp', f,
-            'darwin:/home/' + settings.user + '/' + folder], \
-            stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
-
-    print(str(len(GausJobs)) + ' .com and ' + str(len(SubFiles)) +\
-        ' slurm files uploaded to darwin')
-    
-    fullfolder = '/home/' + settings.user + '/' + folder
-    #Launch the calculations
-    for f in SubFiles:
-        outp = subprocess.Popen(['ssh', 'darwin', 'cd ' + fullfolder + ';sbatch', f], \
-            stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
-        print(outp.split('\n')[-2])
-
-    print(str(len(SubFiles)) + ' jobs submitted to the queue on darwin ' + \
-        'containing ' + str(len(GausJobs)) + ' Gaussian jobs')
-    
-    Jobs2Complete = list(GausJobs)
-    n2complete = len(Jobs2Complete)
-    
-    #Check and report on the progress of calculations
-    while len(Jobs2Complete) > 0:
-        JobFinished = IsDarwinGComplete(Jobs2Complete, folder, settings)
-        
-        Jobs2Complete[:] = [job for job in Jobs2Complete if
-             not JobFinished[job[:-3] + 'out']]
-        if n2complete != len(Jobs2Complete):
-            n2complete = len(Jobs2Complete)
-            print(str(n2complete) + " remaining.")
-
-        time.sleep(180)
-
-    #When done, copy the results back
-    print("\nCopying the output files back to localhost...")
-    print('scp darwin:' + fullfolder + '/*.out ' + os.getcwd() + '/')
-    #outp = subprocess.check_output('ssh darwin scp /home/' + settings.user +
-    #                               '/' + folder + '/*.out ' + socket.getfqdn()
-    #                               + ':' + os.getcwd(), shell=True)
-        
-    outp = subprocess.Popen(['scp', 'darwin:' + fullfolder + '/*.out ',
-            os.getcwd() + '/'], \
-            stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
-
-    fullscrfolder = settings.DarwinScrDir + scrfolder
-    print("\nDeleting scratch folder...")
-    print('ssh darwin rm -r ' + fullscrfolder)
-    #outp = subprocess.check_output('ssh darwin rm /home/' + settings.user +
-    #                               '/' + folder + '/*.chk', shell=True)
-    outp = subprocess.Popen(['ssh', 'darwin', 'rm -r', fullscrfolder], \
-            stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
-    
-
-def WriteDarwinScripts(GausJobs, settings, scrfolder):
-
-    SubFiles = []
-    NodeSize = settings.DarwinNodeSize
-    AdjNodeSize = int(math.floor(settings.DarwinNodeSize/settings.nProc))
-
-    if len(GausJobs) <= AdjNodeSize:
-
-        SubFiles.append(WriteSlurm(GausJobs, settings, scrfolder))
-    
-    else:
-        print("The Gaussian calculations will be submitted as " +\
-                    str(math.ceil(len(GausJobs)/AdjNodeSize)) + \
-                    " jobs")
-        i = 0
-        while (i+1)*AdjNodeSize < len(GausJobs):
-            PartGausJobs = list(GausJobs[(i*AdjNodeSize):((i+1)*AdjNodeSize)])
-            print("Writing script nr " + str(i+1))
-            
-            SubFiles.append(WriteSlurm(PartGausJobs, settings, scrfolder, str(i+1)))
-            
-            i += 1
-        
-        PartGausJobs = list(GausJobs[(i*AdjNodeSize):])
-        print("Writing script nr " + str(i+1))
-        SubFiles.append(WriteSlurm(PartGausJobs, settings, scrfolder, str(i+1)))
-        
-    return SubFiles
-
-
-def WriteSlurm(GausJobs, settings, scrfolder, index=''):
-    
-    cwd = os.getcwd()
-    filename = settings.Title + 'slurm' + index
-    
-    shutil.copyfile(settings.ScriptDir + '/Defaultslurm',
-                    cwd + '/' + filename)
-    slurmf = open(filename, 'r+')
-    slurm = slurmf.readlines()
-    slurm[12] = '#SBATCH -J ' + settings.Title + '\n'
-    slurm[19] = '#SBATCH --ntasks=' + str(len(GausJobs)*settings.nProc) + '\n'
-    slurm[21] = '#SBATCH --time=' + format(settings.TimeLimit,"02") +\
-        ':00:00\n'
-
-    slurm[61] = 'export GAUSS_SCRDIR=' + settings.DarwinScrDir + scrfolder + '\n'
-    
-    if (not settings.DFTOpt) and (not settings.PM6Opt) and (not settings.HFOpt)\
-        and (not settings.M06Opt):
-            
-        for f in GausJobs:
-            slurm.append('srun --exclusive -n1 $application < ' + f[:-3] + \
-                'com > ' + f[:-3] + 'out 2> error &\n')
-            #slurm.append('$application < ' + f[:-3] + \
-            #             'com > ' + f[:-3] + 'out 2> error &\n')
-        slurm.append('wait\n')
-    else:
-        for f in GausJobs:
-            slurm.append('(srun --exclusive -n1 -c' + str(settings.nProc) + ' $application < ' + f[:-4] + \
-                'a.com > ' + f[:-4] + 'temp.out 2> error;')
-            slurm.append('srun --exclusive -n1 -c' + str(settings.nProc) + ' $application < ' + f[:-4] + \
-                         'b.com > ' + f[:-4] + '.out 2> error) &\n')
-        slurm.append('wait\n')
-
-    slurmf.truncate(0)
-    slurmf.seek(0)
-    slurmf.writelines(slurm)
-    
-    return filename
-
-
-def IsDarwinGComplete(GausJobs, folder, settings):
-
-    path = '/home/' + settings.user + '/' + folder + '/'
-    results = {}
-    
-    for f in GausJobs:
-        outp = subprocess.Popen(['ssh', 'darwin', 'cat', path + f[:-3] + 'out'], \
-            stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
-        #outp = subprocess.check_output('ssh darwin cat ' + path + f,
-        #                                    shell=True)
-        if "Normal termination" in outp[-90:]:
-            results[f[:-3] + 'out'] = True
-        else:
-            results[f[:-3] + 'out'] = False
-    
-    return results
-
-
-def WriteSubScript(GausJob, queue, ZiggyJobFolder, settings):
-
-    if not (os.path.exists(GausJob+'.com')):
-        print("The input file " + GausJob + ".com does not exist. Exiting...")
-        return
-
-    #Create the submission script
-    QSub = open(GausJob + "slurm", 'w')
-
-    #Choose the queue
-    QSub.write('#!/bin/bash\n\n')
-    QSub.write('#SBATCH -p SWAN\n')
-    if settings.nProc >1:
-        QSub.write('#SBATCH --nodes=1\n#SBATCH --cpus-per-task=' + str(settings.nProc) + '\n')
-    else:
-        QSub.write('#SBATCH --nodes=1\n#SBATCH --cpus-per-task=1\n')
-    QSub.write('#SBATCH --time=' + format(settings.TimeLimit,"02") +':00:00\n\n')
-
-    #define input files and output files
-    QSub.write('file=' + GausJob + '\n\n')
-    QSub.write('inpfile=${file}.com\noutfile=${file}.out\n')
-
-    #define cwd and scratch folder and ask the machine
-    #to make it before running the job
-    QSub.write('HERE=/home/' + settings.user +'/' + ZiggyJobFolder + '\n')
-    QSub.write('SCRATCH=/scratch/' + settings.user + '/' +
-               GausJob + '\n')
-    QSub.write('mkdir ${SCRATCH}\n')
-
-    #Setup GAUSSIAN environment variables
-    QSub.write('set OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK\n')
-    
-    QSub.write('export GAUSS_EXEDIR=/usr/local/shared/gaussian/em64t/09-D01/g09\n')
-    QSub.write('export g09root=/usr/local/shared/gaussian/em64t/09-D01\n')
-    QSub.write('export PATH=/usr/local/shared/gaussian/em64t/09-D01/g09:$PATH\n')
-    QSub.write('export GAUSS_SCRDIR=$SCRATCH\n')
-    QSub.write('exe=$GAUSS_EXEDIR/g09\n')
-    #copy the input file to scratch
-    QSub.write('cp ${HERE}/${inpfile}  $SCRATCH\ncd $SCRATCH\n')
-
-    #write useful info to the job output file (not the gaussian)
-    QSub.write('echo "Starting job $SLURM_JOBID"\necho\n')
-    QSub.write('echo "SLURM assigned me this node:"\nsrun hostname\necho\n')
-
-    QSub.write('ln -s $HERE/$outfile $SCRATCH/$outfile\n')
-    QSub.write('srun $exe > $outfile < $inpfile\n')
-
-    #Cleanup
-    QSub.write('rm -rf ${SCRATCH}/\n')
-    
-    QSub.close()
-
-
-#Function to write ziggy script when dft optimisation is used
-def WriteSubScriptOpt(GausJob, queue, ZiggyJobFolder, settings):
-
-    if not (os.path.exists(GausJob+'a.com')):
-        print("The input file " + GausJob + "a.com does not exist. Exiting...")
-        return
-    if not (os.path.exists(GausJob+'b.com')):
-        print("The input file " + GausJob + "b.com does not exist. Exiting...")
-        return
-
-    #Create the submission script
-    QSub = open(GausJob + "slurm", 'w')
-
-    #Choose the queue
-    QSub.write('#!/bin/bash\n\n')
-    QSub.write('#SBATCH -p SWAN\n')
-    if settings.nProc >1:
-        QSub.write('#SBATCH --nodes=1\n#SBATCH --cpus-per-task=' + str(settings.nProc) + '\n')
-    else:
-        QSub.write('#SBATCH --nodes=1\n#SBATCH --cpus-per-task=1\n')
-    QSub.write('#SBATCH --time=' + format(settings.TimeLimit,"02") +':00:00\n\n')
-
-    #define input files and output files
-    QSub.write('file=' + GausJob + '\n\n')
-    QSub.write('inpfile1=${file}a.com\ninpfile2=${file}b.com\n')
-    QSub.write('outfile1=${file}temp.out\noutfile2=${file}.out\n')
-
-    #define cwd and scratch folder and ask the machine
-    #to make it before running the job
-    QSub.write('HERE=/home/' + settings.user +'/' + ZiggyJobFolder + '\n')
-    QSub.write('SCRATCH=/scratch/' + settings.user + '/' +
-               GausJob + '\n')
-    QSub.write('mkdir ${SCRATCH}\n')
-
-    #Setup GAUSSIAN environment variables
-    QSub.write('set OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK\n')
-    
-    QSub.write('export GAUSS_EXEDIR=/usr/local/shared/gaussian/em64t/09-D01/g09\n')
-    QSub.write('export g09root=/usr/local/shared/gaussian/em64t/09-D01\n')
-    QSub.write('export PATH=/usr/local/shared/gaussian/em64t/09-D01/g09:$PATH\n')
-    QSub.write('export GAUSS_SCRDIR=$SCRATCH\n')
-    QSub.write('exe=$GAUSS_EXEDIR/g09\n')
-
-    #copy the input files to scratch
-    QSub.write('cp ${HERE}/${inpfile1}  $SCRATCH\n')
-    QSub.write('cp ${HERE}/${inpfile2}  $SCRATCH\ncd $SCRATCH\n')
-
-    #write useful info to the job output file (not the gaussian)
-    QSub.write('echo "Starting job $SLURM_JOBID"\necho\n')
-    QSub.write('echo "SLURM assigned me this node:"\nsrun hostname\necho\n')
-    
-    QSub.write('ln -s $HERE/$outfile1 $SCRATCH/$outfile1\n')
-    QSub.write('ln -s $HERE/$outfile2 $SCRATCH/$outfile2\n')
-    QSub.write('srun $exe < $inpfile1 > $outfile1\n')
-    QSub.write('wait\n')
-    QSub.write('srun $exe < $inpfile2 > $outfile2\n')
-
-    #Cleanup
-    QSub.write('rm -rf ${SCRATCH}/\n')
-    
-    QSub.close()
-
-
-def IsZiggyGComplete(f, folder, settings):
-
-    path = '/home/' + settings.user + '/' + folder + '/'
-    try:
-        outp1 = subprocess.check_output('ssh ziggy ls ' + path, shell=True)
-    except subprocess.CalledProcessError as e:
-        print("ssh ziggy ls failed: " + str(e.output))
-        return False
-    if f in outp1:
-        try:
-            outp2 = subprocess.check_output('ssh ziggy cat ' + path + f,
-                                            shell=True)
-        except subprocess.CalledProcessError as e:
-            print("ssh ziggy cat failed: " + str(e.output))
-            return False
-        if "Normal termination" in outp2[-90:]:
-            return True
-    return False
 
 
 def CheckConvergence(inpfiles):
