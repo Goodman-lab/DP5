@@ -3,6 +3,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on Wed Nov 19 15:56:54 2014
+Rewritten during April 2019
 
 @author: ke291
 
@@ -42,8 +43,40 @@ def SetupNMRCalcs(Isomers, settings):
                 else:
                     os.remove(filename + '.out')
 
-            WriteGausFile(filename, iso.Conformers[num], iso.Atoms, charge, settings)
+            WriteGausFile(filename, iso.Conformers[num], iso.Atoms, charge, settings, 'nmr')
             iso.NMRInputFiles.append(filename + '.com')
+
+    os.chdir(jobdir)
+
+    return Isomers
+
+
+def SetupECalcs(Isomers, settings):
+
+    jobdir = os.getcwd()
+
+    if not os.path.exists('e'):
+        os.mkdir('e')
+    os.chdir('e')
+
+    for iso in Isomers:
+        if iso.ExtCharge > -10:
+            charge = iso.ExtCharge
+        else:
+            charge = iso.MMCharge
+
+        for num in range(0, len(iso.Conformers)):
+            filename = iso.BaseName + 'ginp' + str(num + 1).zfill(3)
+
+            if os.path.exists(filename + '.out'):
+                if IsGausCompleted(filename + '.out'):
+                    iso.EOutputFiles.append(filename + '.out')
+                    continue
+                else:
+                    os.remove(filename + '.out')
+
+            WriteGausFile(filename, iso.Conformers[num], iso.Atoms, charge, settings, 'e')
+            iso.EInputFiles.append(filename + '.com')
 
     os.chdir(jobdir)
 
@@ -71,13 +104,13 @@ def RunNMRCalcs(Isomers, settings):
         print(GausPrefix + f + ' > ' + f[:-3] + 'out')
         outp = subprocess.check_output(GausPrefix + f + ' > ' + f[:-3] + 'out', shell=True)
 
+        NCompleted += 1
         if IsGausCompleted(f[:-4] + '.out'):
             Completed.append(f[:-4] + '.out')
             print("Gaussian job " + str(NCompleted) + " of " + str(len(GausJobs)) + \
                 " completed.")
         else:
             print("Gaussian job terminated with an error. Continuing.")
-        NCompleted += 1
 
     for iso in Isomers:
         iso.NMROutputFiles.extend([x[:-4] + '.out' for x in iso.NMRInputFiles if (x[:-4] + '.out') in Completed])
@@ -87,8 +120,44 @@ def RunNMRCalcs(Isomers, settings):
     return Isomers
 
 
+def RunECalcs(Isomers, settings):
 
-def WriteGausFile(Gausinp, conformer, atoms, charge, settings):
+    jobdir = os.getcwd()
+
+    os.chdir('e')
+
+    GausJobs = []
+
+    for iso in Isomers:
+        GausJobs.extend([x for x in iso.EInputFiles if (x[:-4] + '.out') not in iso.EOutputFiles])
+
+    NCompleted = 0
+    Completed = []
+    gausdir = os.environ['GAUSS_EXEDIR']
+    GausPrefix = gausdir + "/g09 < "
+
+    for f in GausJobs:
+        time.sleep(3)
+        print(GausPrefix + f + ' > ' + f[:-3] + 'out')
+        outp = subprocess.check_output(GausPrefix + f + ' > ' + f[:-3] + 'out', shell=True)
+
+        NCompleted += 1
+        if IsGausCompleted(f[:-4] + '.out'):
+            Completed.append(f[:-4] + '.out')
+            print("Gaussian job " + str(NCompleted) + " of " + str(len(GausJobs)) + \
+                " completed.")
+        else:
+            print("Gaussian job terminated with an error. Continuing.")
+
+    for iso in Isomers:
+        iso.EOutputFiles.extend([x[:-4] + '.out' for x in iso.EInputFiles if (x[:-4] + '.out') in Completed])
+
+    os.chdir(jobdir)
+
+    return Isomers
+
+
+def WriteGausFile(Gausinp, conformer, atoms, charge, settings, type):
 
     f = open(Gausinp + '.com', 'w')
     if(settings.nProc > 1):
@@ -98,7 +167,13 @@ def WriteGausFile(Gausinp, conformer, atoms, charge, settings):
     else:
         f.write('%mem=6000MB\n%chk='+Gausinp + '.chk\n')
 
-    f.write(NMRroute(settings))
+    if type == 'nmr':
+        f.write(NMRroute(settings))
+    elif type == 'e':
+        f.write(Eroute(settings))
+    elif type == 'opt':
+        f.write(Optroute(settings))
+
     f.write('\n'+Gausinp+'\n\n')
     f.write(str(charge) + ' 1\n')
 
@@ -143,110 +218,22 @@ def Eroute(settings):
     return route
 
 
-def WriteGausFileOpt(Gausinp, conformer, atoms, charge, settings):
+def Optroute(settings):
 
-    #write the initial DFT geometry optimisation input file first
-    f1 = file(Gausinp + 'a.com', 'w')
-    if(settings.nProc > 1):
-        f1.write('%nprocshared=' + str(settings.nProc) + '\n')
+    route = '# ' + settings.oFunctional + '/' + settings.oBasisSet
 
-    if settings.DFT != 'd':
-        f1.write('%mem=6000MB\n%chk='+Gausinp + '.chk\n')
-    else:
-        fullscrfolder = settings.DarwinScrDir + settings.StartTime + settings.Title + '/'
-        f1.write('%mem=6000MB\n%chk=' + fullscrfolder + Gausinp + '.chk\n')
-    
-    if settings.DFTOpt:
-        if settings.Solvent != '':
-            f1.write('# b3lyp/6-31g(d,p) Opt=(maxcycles=' + str(settings.MaxDFTOptCycles) + ') scrf=(solvent=' +
-                     settings.Solvent+')\n')
-        else:
-            f1.write('# b3lyp/6-31g(d,p) Opt=(maxcycles=' + str(settings.MaxDFTOptCycles) + ')\n')
-    elif settings.PM6Opt:
-        if settings.Solvent != '':
-            f1.write('# pm6 Opt=(maxcycles=' + str(settings.MaxDFTOptCycles) + ') scrf=(solvent=' +
-                     settings.Solvent+')\n')
-        else:
-            f1.write('# pm6 Opt=(maxcycles=' + str(settings.MaxDFTOptCycles) + ')\n')
-    elif settings.HFOpt:
-        if settings.Solvent != '':
-            f1.write('# rhf/6-31g(d,p) Opt=(maxcycles=' + str(settings.MaxDFTOptCycles) + ') scrf=(solvent=' +
-                     settings.Solvent+')\n')
-        else:
-            f1.write('# rhf/6-31g(d,p) Opt=(maxcycles=' + str(settings.MaxDFTOptCycles) + ')\n')
-    elif settings.M06Opt:
-        if settings.Solvent != '':
-            f1.write('# m062x/6-31g(d,p) Opt=(maxcycles=' + str(settings.MaxDFTOptCycles) + ') scrf=(solvent=' +
-                     settings.Solvent+')\n')
-        else:
-            f1.write('# m062x/6-31g(d,p) Opt=(maxcycles=' + str(settings.MaxDFTOptCycles) + ')\n')
-            
+    if (settings.oFunctional).lower() == 'm062x':
+        route += ' int=ultrafine'
 
-    f1.write('\n'+Gausinp+'\n\n')
-    f1.write(str(charge) + ' 1\n')
+    route += ' Opt=(maxcycles=' + str(settings.MaxDFTOptCycles)
+    if settings.CalcFC == True:
+        route += ',CalcFC'
+    route += ')'
 
-    natom = 0
-
-    for atom in conformer:
-        f1.write(atoms[natom] + '  ' + atom[1] + '  ' + atom[2] + '  ' +
-                 atom[3] + '\n')
-        natom = natom + 1
-    f1.write('\n')
-    f1.close()
-
-    #Write the nmr prediction input file,
-    #using the geometry from checkpoint file
-    f2 = file(Gausinp + 'b.com', 'w')
-    if(settings.nProc > 1):
-        f2.write('%nprocshared=' + str(settings.nProc) + '\n')
-
-    if settings.DFT != 'd':
-        f2.write('%mem=6000MB\n%chk=' + Gausinp + '.chk\n')
-    else:
-        fullscrfolder = settings.DarwinScrDir + settings.StartTime + settings.Title + '/'
-        f2.write('%mem=6000MB\n%chk=' + fullscrfolder + Gausinp + '.chk\n')
-
-    if (settings.Functional).lower() == 'wp04':
-        func1 = '# blyp/'
-        func2 = ' iop(3/76=1000001189,3/77=0961409999,3/78=0000109999)' + \
-            ' geom=checkpoint nmr='
-        
-    elif (settings.Functional).lower() == 'm062x':
-        func1 = '# m062x/'
-        func2 = ' int=ultrafine geom=checkpoint nmr='
-        
-    else:
-        func1 = '# ' + settings.Functional + '/'
-        func2 = ' geom=checkpoint nmr='
-            
-    if (settings.BasisSet).lower()[:3] == 'pcs':
-        basis1 = 'gen'
-    else:
-        basis1 = settings.BasisSet
-            
-    CompSettings = func1 + basis1 + func2
-    if settings.jJ or settings.jFC:
-        CompSettings += '(giao,spinspin,mixed)'
-    else:
-        CompSettings += 'giao'
-    
     if settings.Solvent != '':
-        CompSettings += ' scrf=(solvent=' + settings.Solvent+')\n'
-    else:
-        CompSettings += '\n'
-    f2.write(CompSettings)
-    f2.write('\n'+Gausinp+'\n\n')
-    f2.write(str(charge) + ' 1\n')
-    f2.write('\n')
-    if (settings.BasisSet).lower()[:3] == 'pcs':
-        basisfile = file(settings.ScriptDir + '/' + 
-                         (settings.BasisSet).lower(), 'r')
-        inp = basisfile.readlines()
-        basisfile.close()
-        for line in inp:
-            f2.write(line)
-        f2.write('\n')
-    f2.close()
+        route += ' scrf=(solvent=' + settings.Solvent + ')'
+
+    route += '\n'
 
 
 def IsGausCompleted(f):
