@@ -227,19 +227,19 @@ def main(settings):
         # Run DFT optimizations, if requested
         if ('o' in settings.Workflow):
             Isomers = DFT.SetupOptCalcs(Isomers, settings)
-            DFT.RunOptCalcs(Isomers, settings)
+            Isomers = DFT.RunOptCalcs(Isomers, settings)
             Isomers = DFT.ReadDFTGeometries(Isomers, settings)
 
         # Run DFT single-point energy calculations, if requested
         if ('e' in settings.Workflow):
             Isomers = DFT.SetupECalcs(Isomers, settings)
-            DFT.RunECalcs(Isomers, settings)
+            Isomers = DFT.RunECalcs(Isomers, settings)
             Isomers = DFT.ReadDFTEnergies(Isomers, settings)
 
         # Run DFT NMR calculations, if requested
         if ('n' in settings.Workflow):
             Isomers = DFT.SetupNMRCalcs(Isomers, settings)
-            DFT.RunNMRCalcs(Isomers, settings)
+            Isomers = DFT.RunNMRCalcs(Isomers, settings)
             SetTMSConstants(settings)
             Isomers = DFT.ReadNMRShifts(Isomers, settings)
 

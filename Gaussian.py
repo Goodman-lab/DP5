@@ -22,9 +22,9 @@ def SetupNMRCalcs(Isomers, settings):
 
     jobdir = os.getcwd()
 
-    if not os.path.exists('./nmr'):
-        os.mkdir('./nmr')
-    os.chdir('./nmr')
+    if not os.path.exists('nmr'):
+        os.mkdir('nmr')
+    os.chdir('nmr')
 
     for iso in Isomers:
         if iso.ExtCharge > -10:
@@ -35,12 +35,57 @@ def SetupNMRCalcs(Isomers, settings):
         for num in range(0, len(iso.Conformers)):
             filename = iso.BaseName + 'ginp' + str(num + 1).zfill(3)
 
-            if os.path.exists(filename + '.out') and IsGausCompleted(filename + '.out'):
-                continue
+            if os.path.exists(filename + '.out'):
+                if IsGausCompleted(filename + '.out'):
+                    iso.NMROutputFiles.append(filename + '.out')
+                    continue
+                else:
+                    os.remove(filename + '.out')
 
             WriteGausFile(filename, iso.Conformers[num], iso.Atoms, charge, settings)
+            iso.NMRInputFiles.append(filename + '.com')
 
     os.chdir(jobdir)
+
+    return Isomers
+
+
+def RunNMRCalcs(Isomers, settings):
+
+    jobdir = os.getcwd()
+
+    os.chdir('nmr')
+
+    GausJobs = []
+
+    for iso in Isomers:
+        GausJobs.extend([x for x in iso.NMRInputFiles if (x[:-4] + '.out') not in iso.NMROutputFiles])
+
+    NCompleted = 0
+    Completed = []
+    gausdir = os.environ['GAUSS_EXEDIR']
+    GausPrefix = gausdir + "/g09 < "
+
+    for f in GausJobs:
+        time.sleep(3)
+        print(GausPrefix + f + ' > ' + f[:-3] + 'out')
+        outp = subprocess.check_output(GausPrefix + f + ' > ' + f[:-3] + 'out', shell=True)
+
+        if IsGausCompleted(f[:-4] + '.out'):
+            Completed.append(f[:-4] + '.out')
+            print("Gaussian job " + str(NCompleted) + " of " + str(len(GausJobs)) + \
+                " completed.")
+        else:
+            print("Gaussian job terminated with an error. Continuing.")
+        NCompleted += 1
+
+    for iso in Isomers:
+        iso.NMROutputFiles.extend([x[:-4] + '.out' for x in iso.NMRInputFiles if (x[:-4] + '.out') in Completed])
+
+    os.chdir(jobdir)
+
+    return Isomers
+
 
 
 def WriteGausFile(Gausinp, conformer, atoms, charge, settings):
@@ -204,45 +249,6 @@ def WriteGausFileOpt(Gausinp, conformer, atoms, charge, settings):
     f2.close()
 
 
-def GetFiles2Run(inpfiles, settings):
-    #Get the names of all relevant input files
-    GinpFiles = []
-    for filename in inpfiles:
-        if (not settings.DFTOpt) and (not settings.PM6Opt) and (not settings.HFOpt)\
-            and (not settings.M06Opt):
-            GinpFiles = GinpFiles + glob.glob(filename + 'ginp???.com')
-        else:
-            GinpFiles = GinpFiles + glob.glob(filename + 'ginp???a.com')
-    Files2Run = []
-
-    #for every input file check that there is a completed output file,
-    #delete the incomplete outputs and add the inputs to be done to Files2Run
-    for filename in GinpFiles:
-        if (not settings.DFTOpt) and (not settings.PM6Opt) and (not settings.HFOpt)\
-            and (not settings.M06Opt):
-            if not os.path.exists(filename[:-3]+'out'):
-                Files2Run.append(filename)
-            else:
-                if IsGausCompleted(filename[:-3] + 'out'):
-                    #print filename[:-3]+'out already exists'
-                    continue
-                else:
-                    os.remove(filename[:-3] + 'out')
-                    Files2Run.append(filename)
-        else:
-            if not os.path.exists(filename[:-5]+'.out'):
-                Files2Run.append(filename)
-            else:
-                if IsGausCompleted(filename[:-5] + '.out'):
-                    #print filename[:-3]+'out already exists'
-                    continue
-                else:
-                    os.remove(filename[:-5] + '.out')
-                    Files2Run.append(filename)
-
-    return Files2Run
-
-
 def IsGausCompleted(f):
     Gfile = open(f, 'r')
     outp = Gfile.readlines()
@@ -253,20 +259,6 @@ def IsGausCompleted(f):
         return True
     else:
         return False
-
-
-def RunLocally(GausJobs, settings):
-    NCompleted = 0
-    gausdir = os.environ['GAUSS_EXEDIR']
-    GausPrefix = gausdir + "/g09 < "
-
-    for f in GausJobs:
-        time.sleep(3)
-        print(GausPrefix + f + ' > ' + f[:-3] + 'out')
-        outp = subprocess.check_output(GausPrefix + f + ' > ' + f[:-3] + 'out', shell=True)
-        NCompleted += 1
-        print("Gaussian job " + str(NCompleted) + " of " + str(len(GausJobs)) + \
-            " completed.")
 
 
 def CheckConvergence(inpfiles):
