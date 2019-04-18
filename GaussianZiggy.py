@@ -10,18 +10,74 @@ Contains all of the Gaussian specific code for input generation and calculation
 execution. Called by PyDP4.py.
 """
 
-import nmrPredictGaus
-
 import subprocess
 import socket
 import os
 import time
-import glob
-import shutil
 import math
 
+import Gaussian
 
-#Still need addition of support for geometry optimisation
+SetupNMRCalcs = Gaussian.SetupNMRCalcs
+
+SetupECalcs = Gaussian.SetupECalcs
+
+ReadShieldings = Gaussian.ReadShieldings
+
+ReadDFTEnergies = Gaussian.ReadDFTEnergies
+
+IsGausCompleted = Gaussian.IsGausCompleted
+
+def RunNMRCalcs(Isomers, settings):
+    print('\nRunning Gaussian NMR calculations on Ziggy...')
+
+    # Run Gaussian jobs on Ziggy cluster in folder named after date and time
+    # Split in batches, if needed
+
+    jobdir = os.getcwd()
+    os.chdir('nmr')
+
+    GausJobs = []
+
+    for iso in Isomers:
+        GausJobs.extend([x for x in iso.NMRInputFiles if (x[:-4] + '.out') not in iso.NMROutputFiles])
+
+    MaxCon = settings.MaxConcurrentJobs
+
+    if len(GausJobs) < MaxCon:
+        if len(GausJobs) > 0:
+            RunOnZiggy(0, settings.queue, GausJobs, settings)
+    else:
+        if len(GausJobs) > 0:
+            print("The DFT calculations will be done in " + \
+                  str(math.ceil(len(GausJobs) / MaxCon)) + " batches")
+            i = 0
+            while (i + 1) * MaxCon < len(GausJobs):
+                print("Starting batch nr " + str(i + 1))
+                RunOnZiggy(str(i + 1), settings.queue, GausJobs[(i * MaxCon):((i + 1) * MaxCon)], settings)
+                i += 1
+            print("Starting batch nr " + str(i + 1))
+            RunOnZiggy(str(i + 1), settings.queue, GausJobs[(i * MaxCon):], settings)
+
+    NCompleted = 0
+    Completed = []
+
+    for f in GausJobs:
+        if IsGausCompleted(f[:-4] + '.out'):
+            Completed.append(f[:-4] + '.out')
+            NCompleted += 1
+
+    print(str(NCompleted) + "Gaussian jobs of " + str(len(GausJobs)) + \
+        " completed successfully.")
+
+    for iso in Isomers:
+        iso.NMROutputFiles.extend([x[:-4] + '.out' for x in iso.NMRInputFiles if (x[:-4] + '.out') in Completed])
+
+    os.chdir(jobdir)
+
+    return Isomers
+
+
 def RunOnZiggy(findex, queue, GausFiles, settings):
 
     if findex == 0:
@@ -31,11 +87,9 @@ def RunOnZiggy(findex, queue, GausFiles, settings):
 
     scrfolder = settings.StartTime + settings.Title
 
-    print("ziggy GAUSSIAN job submission script\n")
-
     #Check that folder does not exist, create job folder on ziggy
     outp = subprocess.check_output('ssh ziggy ls', shell=True)
-    if folder in outp:
+    if folder in outp.decode():
         print("Folder exists on ziggy, choose another folder name.")
         return
 
@@ -45,25 +99,14 @@ def RunOnZiggy(findex, queue, GausFiles, settings):
 
     #Write the qsub scripts
     for f in GausFiles:
-        if (not settings.DFTOpt) and (not settings.PM6Opt) and (not settings.HFOpt)\
-            and (not settings.M06Opt):
-            WriteSubScript(f[:-4], queue, folder, settings)
-        else:
-            WriteSubScriptOpt(f[:-4], queue, folder, settings)
+        WriteSubScript(f, queue, folder, settings)
     print(str(len(GausFiles)) + ' slurm scripts generated')
 
     #Upload .com files and .qsub files to directory
     print("Uploading files to ziggy...")
     for f in GausFiles:
-        if (not settings.DFTOpt) and (not settings.PM6Opt) and (not settings.HFOpt)\
-            and (not settings.M06Opt):
-            outp = subprocess.check_output('scp ' + f +' ziggy:~/' + folder,
+        outp = subprocess.check_output('scp ' + f +' ziggy:~/' + folder,
                                            shell=True)
-        else:
-            outp = subprocess.check_output('scp ' + f[:-4] +'a.com ziggy:~/' +
-                                           folder, shell=True)
-            outp = subprocess.check_output('scp ' + f[:-4] +'b.com ziggy:~/' +
-                                           folder, shell=True)
         outp = subprocess.check_output('scp ' + f[:-4] +'slurm ziggy:~/' +
                                        folder, shell=True)
 
@@ -77,7 +120,7 @@ def RunOnZiggy(findex, queue, GausFiles, settings):
     print(str(len(GausFiles)) + ' jobs submitted to the queue on ziggy')
 
     outp = subprocess.check_output('ssh ziggy qstat', shell=True)
-    if settings.user in outp:
+    if settings.user in outp.decode():
         print("Jobs are running on ziggy")
 
     Jobs2Complete = list(GausFiles)
@@ -106,12 +149,12 @@ def RunOnZiggy(findex, queue, GausFiles, settings):
 
 def WriteSubScript(GausJob, queue, ZiggyJobFolder, settings):
 
-    if not (os.path.exists(GausJob+'.com')):
-        print("The input file " + GausJob + ".com does not exist. Exiting...")
+    if not (os.path.exists(GausJob)):
+        print("The input file " + GausJob + " does not exist. Exiting...")
         return
 
     #Create the submission script
-    QSub = open(GausJob + "slurm", 'w')
+    QSub = open(GausJob[:-4] + "slurm", 'w')
 
     #Choose the queue
     QSub.write('#!/bin/bash\n\n')
@@ -123,14 +166,14 @@ def WriteSubScript(GausJob, queue, ZiggyJobFolder, settings):
     QSub.write('#SBATCH --time=' + format(settings.TimeLimit,"02") +':00:00\n\n')
 
     #define input files and output files
-    QSub.write('file=' + GausJob + '\n\n')
+    QSub.write('file=' + GausJob[:-4] + '\n\n')
     QSub.write('inpfile=${file}.com\noutfile=${file}.out\n')
 
     #define cwd and scratch folder and ask the machine
     #to make it before running the job
     QSub.write('HERE=/home/' + settings.user +'/' + ZiggyJobFolder + '\n')
     QSub.write('SCRATCH=/scratch/' + settings.user + '/' +
-               GausJob + '\n')
+               GausJob[:-4] + '\n')
     QSub.write('mkdir ${SCRATCH}\n')
 
     #Setup GAUSSIAN environment variables
@@ -157,69 +200,6 @@ def WriteSubScript(GausJob, queue, ZiggyJobFolder, settings):
     QSub.close()
 
 
-#Function to write ziggy script when dft optimisation is used
-def WriteSubScriptOpt(GausJob, queue, ZiggyJobFolder, settings):
-
-    if not (os.path.exists(GausJob+'a.com')):
-        print("The input file " + GausJob + "a.com does not exist. Exiting...")
-        return
-    if not (os.path.exists(GausJob+'b.com')):
-        print("The input file " + GausJob + "b.com does not exist. Exiting...")
-        return
-
-    #Create the submission script
-    QSub = open(GausJob + "slurm", 'w')
-
-    #Choose the queue
-    QSub.write('#!/bin/bash\n\n')
-    QSub.write('#SBATCH -p SWAN\n')
-    if settings.nProc >1:
-        QSub.write('#SBATCH --nodes=1\n#SBATCH --cpus-per-task=' + str(settings.nProc) + '\n')
-    else:
-        QSub.write('#SBATCH --nodes=1\n#SBATCH --cpus-per-task=1\n')
-    QSub.write('#SBATCH --time=' + format(settings.TimeLimit,"02") +':00:00\n\n')
-
-    #define input files and output files
-    QSub.write('file=' + GausJob + '\n\n')
-    QSub.write('inpfile1=${file}a.com\ninpfile2=${file}b.com\n')
-    QSub.write('outfile1=${file}temp.out\noutfile2=${file}.out\n')
-
-    #define cwd and scratch folder and ask the machine
-    #to make it before running the job
-    QSub.write('HERE=/home/' + settings.user +'/' + ZiggyJobFolder + '\n')
-    QSub.write('SCRATCH=/scratch/' + settings.user + '/' +
-               GausJob + '\n')
-    QSub.write('mkdir ${SCRATCH}\n')
-
-    #Setup GAUSSIAN environment variables
-    QSub.write('set OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK\n')
-    
-    QSub.write('export GAUSS_EXEDIR=/usr/local/shared/gaussian/em64t/09-D01/g09\n')
-    QSub.write('export g09root=/usr/local/shared/gaussian/em64t/09-D01\n')
-    QSub.write('export PATH=/usr/local/shared/gaussian/em64t/09-D01/g09:$PATH\n')
-    QSub.write('export GAUSS_SCRDIR=$SCRATCH\n')
-    QSub.write('exe=$GAUSS_EXEDIR/g09\n')
-
-    #copy the input files to scratch
-    QSub.write('cp ${HERE}/${inpfile1}  $SCRATCH\n')
-    QSub.write('cp ${HERE}/${inpfile2}  $SCRATCH\ncd $SCRATCH\n')
-
-    #write useful info to the job output file (not the gaussian)
-    QSub.write('echo "Starting job $SLURM_JOBID"\necho\n')
-    QSub.write('echo "SLURM assigned me this node:"\nsrun hostname\necho\n')
-    
-    QSub.write('ln -s $HERE/$outfile1 $SCRATCH/$outfile1\n')
-    QSub.write('ln -s $HERE/$outfile2 $SCRATCH/$outfile2\n')
-    QSub.write('srun $exe < $inpfile1 > $outfile1\n')
-    QSub.write('wait\n')
-    QSub.write('srun $exe < $inpfile2 > $outfile2\n')
-
-    #Cleanup
-    QSub.write('rm -rf ${SCRATCH}/\n')
-    
-    QSub.close()
-
-
 def IsZiggyGComplete(f, folder, settings):
 
     path = '/home/' + settings.user + '/' + folder + '/'
@@ -228,14 +208,14 @@ def IsZiggyGComplete(f, folder, settings):
     except subprocess.CalledProcessError as e:
         print("ssh ziggy ls failed: " + str(e.output))
         return False
-    if f in outp1:
+    if f in outp1.decode():
         try:
             outp2 = subprocess.check_output('ssh ziggy cat ' + path + f,
                                             shell=True)
         except subprocess.CalledProcessError as e:
-            print("ssh ziggy cat failed: " + str(e.output))
+            print("ssh ziggy cat failed: " + str(e.output).decode())
             return False
-        if "Normal termination" in outp2[-90:]:
+        if "Normal termination" in outp2[-90:].decode():
             return True
     return False
 
