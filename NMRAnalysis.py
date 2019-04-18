@@ -15,10 +15,105 @@ import Jaguar
 
 import sys
 from numpy import mean
-import math
 import os
+import math
 
 J_THRESHOLD = 0.1
+
+gasConstant = 8.3145
+temperature = 298.15
+hartreeEnergy = 2625.499629554010
+
+
+def CalcBolztmannWeightedShifts(Isomers, settings):
+    labels = []
+    allshieldings = []
+    energies = []
+
+    # For every file run ReadShieldings and store the extracted shielding
+    # constants
+    for f in args:
+        (labels, shieldings) = ReadShieldings(f)
+        allshieldings.append(shieldings)
+        energy = ReadEnergy(settings.EnergyDir + f)
+        energies.append(energy)
+
+    minE = min(energies)
+
+    relEs = []
+
+    # Calculate rel. energies in kJ/mol
+    for e in energies:
+        relEs.append(((e - minE) * hartreeEnergy))
+
+    populations = []
+
+    # Calculate Boltzmann populations
+    for e in relEs:
+        populations.append(math.exp(-e * 1000 / (gasConstant * temperature)))
+
+    q = sum(populations)
+
+    for i in range(0, len(populations)):
+        populations[i] = populations[i] / q
+
+    # Make a list of populations and corresponding files for reporting
+    # significant conformations
+    from operator import itemgetter
+    ConfsPops = [list(x) for x in zip(args, populations)]
+    ConfsPops.sort(key=itemgetter(1), reverse=True)
+    totpop = 0
+    i = 0
+    while totpop < 0.8:
+        totpop += ConfsPops[i][1]
+        i += 1
+    SigConfs = ConfsPops[:i]
+
+    # Calculate Boltzmann weighed shielding constants
+    # by summing the shifts multiplied by the isomers population
+    Natoms = len(labels)
+    BoltzmannShieldings = []
+
+    for atom in range(Natoms):
+        shielding = 0
+        for conformer in range(len(allshieldings)):
+            shielding = shielding + allshieldings[conformer][atom] * \
+                        populations[conformer]
+        BoltzmannShieldings.append(shielding)
+
+    return (relEs, populations, labels, BoltzmannShieldings, SigConfs)
+
+
+def SetTMSConstants(settings):
+    TMSfile = open(settings.ScriptDir + '/TMSdata', 'r')
+    TMSdata = TMSfile.readlines()
+    TMSfile.close()
+
+    for i, line in enumerate(TMSdata):
+        buf = line.split(' ')
+        if len(buf) > 1:
+            if settings.Solvent != '':
+                if buf[0].lower() == settings.nFunctional.lower() and \
+                        buf[1].lower() == settings.nBasisSet.lower() and \
+                        buf[2].lower() == settings.Solvent.lower():
+                    print("Setting TMS references to " + buf[3] + " and " + \
+                          buf[4] + "\n")
+                    settings.TMS_SC_C13 = float(buf[3])
+                    settings.TMS_SC_H1 = float(buf[4])
+                    return
+            else:
+                if buf[0].lower() == settings.nFunctional.lower() and \
+                        buf[1].lower() == settings.nBasisSet.lower() and \
+                        buf[2].lower() == 'none':
+                    print("Setting TMS references to " + buf[3] + " and " + \
+                          buf[4] + "\n")
+                    settings.TMS_SC_C13 = float(buf[3])
+                    settings.TMS_SC_H1 = float(buf[4])
+                    return
+
+    print("No TMS reference data found for these conditions, using defaults\n")
+    print("Unscaled shifts might be inaccurate, use of unscaled models is" + \
+          " not recommended.")
 
 
 def main(numDS, settings, *args):
@@ -211,39 +306,6 @@ def GetCalcShiftsLabels(numDS, BShieldings, labels, omits, settings):
     return Cvalues, Hvalues, Clabels, Hlabels
 
 
-def GetOtherNuclei(numDS, BShieldings, labels, omits, settings):
-    Xlabels = []
-    Xvalues = []
-    
-    for DS in range(numDS):
-
-        Xvalues.append([])
-
-        #loops through particular output and collects shielding constants
-        #and calculates shifts relative to TMS
-        for atom in range(len(BShieldings[DS])):
-            shift = 0
-            if labels[atom][0] in settings.OtherNuclei:
-                
-                # only read labels once, i.e. the first diastereomer
-                if DS == 0:
-                    Xlabels.append(labels[atom])
-                shift = (settings.CFCl3_SC_F19-BShieldings[DS][atom]) / \
-                    (1-(settings.CFCl3_SC_F19/10**6))
-                Xvalues[DS].append(shift)
-
-    return Xvalues, Xlabels
-
-
-def PrintOtherNuclei(numDS, Xlabels, Xvalues):
-    
-    for DS in range(numDS):
-        
-        print("\nOther nuclei results for isomer " + str(DS+1) + ":")
-        for i, label in enumerate(Xlabels):
-            print(label + " " + format(Xvalues[DS][i], "4.2f"))
-
-
 def PrintConformationData(AllSigConfs):
     for i, SigConfs in enumerate(AllSigConfs):
         print("\nNumber of significant conformers for isomer "\
@@ -432,153 +494,6 @@ def PrintJMatrixLim(mat, labels):
     for l, row in zip(labels, mat):
         formattedJ = ["{:4.1f}".format(x) for x in row if abs(x)>J_THRESHOLD]
         print(l + ': ' + ', '.join(formattedJ))
-
-"""
-def OptTautPop(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp):
-    #Pairwise match exp signals to computed ones based on assignments first,
-    #on erorrs afterwards
-    ExpCvalues = [-1 for i in range(0, len(Clabels))]
-    ExpHvalues = [-1 for i in range(0, len(Hlabels))]
-
-    Hdata = Hexp.split(',')
-    for s in range(0, len(Hdata)):
-        Hdata[s] = Hdata[s].strip()
-
-    Cdata = Cexp.split(',')
-    for s in range(0, len(Cdata)):
-        Cdata[s] = Cdata[s].strip()
-
-    UAExpCshifts = list(Cdata)
-    UAExpHshifts = list(Hdata)
-
-    #Assign known(experimentally assigned) signals first
-    for l in range(0, len(Clabels)):
-        for s in Cdata:
-            if (Clabels[l] + ')') in s and (not 'or' in s) and (not 'OR' in s):
-                shiftend = s.find('(')
-                ExpCvalues[l] = float(s[:shiftend])
-                UAExpCshifts.remove(s)
-                break
-    for l in range(0, len(Hlabels)):
-        for s in Hdata:
-            if (Hlabels[l] + ')') in s and (not 'or' in s) and (not 'OR' in s):
-                shiftend = s.find('(')
-                ExpHvalues[l] = float(s[:shiftend])
-                UAExpHshifts.remove(s)
-                break
-
-    #Prepare unassigned experimental values for matching
-    for i in range(0, len(UAExpHshifts)):
-        shiftend = UAExpHshifts[i].find('(')
-        UAExpHshifts[i] = float(UAExpHshifts[i][:shiftend])
-
-    for i in range(0, len(UAExpCshifts)):
-        shiftend = UAExpCshifts[i].find('(')
-        UAExpCshifts[i] = float(UAExpCshifts[i][:shiftend])
-
-    #Try to assign unassigned values based on every calculated tautomer
-    MinMAE = 1000
-    for k in range(0, len(Cvalues)):
-        #Pick out unassigned computational values for matching
-        UACompCshifts = []
-        UACompHshifts = []
-        for i in range(0, len(ExpCvalues)):
-            if ExpCvalues[i] == -1:
-                UACompCshifts.append(Cvalues[k][i])
-        for i in range(0, len(ExpHvalues)):
-            if ExpHvalues[i] == -1:
-                UACompHshifts.append(Hvalues[k][i])
-
-        #Sort both sets of data - this essentially pairs them up
-        UAExpCshifts.sort()
-        UAExpHshifts.sort()
-        UACompCshifts.sort()
-        UACompHshifts.sort()
-
-        #Go through half-assigned experimental data and fill in the holes with
-        #paired data
-        for i in range(0, len(ExpCvalues)):
-            if ExpCvalues[i] == -1 and len(UAExpCshifts) > 0:
-                j = UACompCshifts.index(Cvalues[k][i])
-                ExpCvalues[i] = UAExpCshifts[j]
-        for i in range(0, len(ExpHvalues)):
-            if ExpHvalues[i] == -1 and len(UAExpHshifts) > 0:
-                j = UACompHshifts.index(Hvalues[k][i])
-                ExpHvalues[i] = UAExpHshifts[j]
-
-        #Optimize tautomer populations for
-        #tpops is 1 shorter than the number of tautomers,
-        #the remaining weight is 1-sum(rest)
-        tpops = [1.0/len(Cvalues) for i in range(len(Cvalues)-1)]
-        f = lambda w: TautError(Cvalues, ExpCvalues, Hvalues, ExpHvalues, w)
-        res = sciopt.minimize(f, tpops, method='nelder-mead')
-        if float(res.fun) < MinMAE:
-            print("New min MAE: " + str(res.fun))
-            MinMAE = float(res.fun)
-            NewPops = list(res.x)
-            NewPops.append(1-sum(NewPops))
-            print(NewPops)
-
-    NewCvalues = []
-    NewHvalues = []
-
-    #calculate the new C values
-    for atom in range(0, len(Clabels)):
-        C = 0
-        for taut in range(0, len(Cvalues)):
-            C = C + Cvalues[taut][atom]*NewPops[taut]
-        NewCvalues.append(C)
-
-    for atom in range(0, len(Hlabels)):
-        H = 0
-        for taut in range(0, len(Hvalues)):
-            H = H + Hvalues[taut][atom]*NewPops[taut]
-        NewHvalues.append(H)
-
-    #Return the new Cvalues and Hvalues
-    return (NewCvalues, NewHvalues)
-"""
-
-def TautError(Cs, CExp, Hs, HExp, TPopsIn):
-
-    if len(Cs) != len(TPopsIn)+1 or len(Hs) != len(TPopsIn)+1:
-        print(len(Cs), len(Hs), len(TPopsIn))
-        print ("Input dimensions in TautError don't match, exiting...")
-        return 1000
-    TPops = list(TPopsIn)
-    TPops.append(1-sum(TPops))
-    SumC = []
-    SumH = []
-    #print len(Cs), len(Hs), len(TPops)
-    #print TPops
-    for i in range(0, len(TPops)):
-        if TPops[i] < 0:
-            return 100
-    if sum(TPops) > 1:
-        s = sum(TPops)
-        for i in range(0, len(TPops)):
-            TPops[i] = TPops[i]/s
-
-    for atom in range(0, len(CExp)):
-        C = 0
-        for taut in range(0, len(Cs)):
-            C = C + Cs[taut][atom]*TPops[taut]
-        SumC.append(C)
-
-    for atom in range(0, len(HExp)):
-        H = 0
-        for taut in range(0, len(Hs)):
-            H = H + Hs[taut][atom]*TPops[taut]
-        SumH.append(H)
-
-    ErrC = MAE(SumC, CExp)
-    #ErrC = RMSE(SumC, CExp)
-    ErrH = MAE(SumH, HExp)
-    #ErrH = RMSE(SumH, HExp)
-    #print 'MAE for C: ' + str(ErrC)
-    #print 'MAE for H: ' + str(ErrH)
-
-    return ErrC + 20*ErrH
 
 
 def getScriptPath():

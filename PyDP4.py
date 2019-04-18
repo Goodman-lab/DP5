@@ -240,8 +240,8 @@ def main(settings):
         if ('n' in settings.Workflow):
             Isomers = DFT.SetupNMRCalcs(Isomers, settings)
             Isomers = DFT.RunNMRCalcs(Isomers, settings)
-            SetTMSConstants(settings)
-            Isomers = DFT.ReadNMRShifts(Isomers, settings)
+            Isomers = DFT.ReadShieldings(Isomers, settings)
+            Isomers = DFT.ReadDFTEnergies(Isomers, settings)
 
     else:
         # Run DFT optimizations, if requested
@@ -254,8 +254,7 @@ def main(settings):
 
         # Run DFT NMR calculations, if requested
         if ('n' in settings.Workflow):
-            SetTMSConstants(settings)
-            Isomers = DFT.ReadNMRShifts(Isomers, settings)
+            Isomers = DFT.ReadShieldings(Isomers, settings)
 
 
     if not(NMRDataValid(Isomers)) or ('n' not in settings.Workflow):
@@ -291,41 +290,6 @@ def ImportDFT(dft):
 
 def getScriptPath():
     return os.path.dirname(os.path.realpath(sys.argv[0]))
-
-
-def SetTMSConstants(settings):
-    
-    TMSfile = open(settings.ScriptDir + '/TMSdata', 'r')
-    TMSdata = TMSfile.readlines()
-    TMSfile.close()
-    
-    for i, line in enumerate(TMSdata):
-        buf = line.split(' ')
-        if len(buf)>1:
-            if settings.Solvent != '':
-                if buf[0].lower() == settings.Functional.lower() and \
-                   buf[1].lower() == settings.BasisSet.lower() and \
-                   buf[2].lower() == settings.Solvent.lower():
-                    
-                    print("Setting TMS references to " + buf[3] + " and " + \
-                        buf[4] + "\n")
-                    settings.TMS_SC_C13 = float(buf[3])
-                    settings.TMS_SC_H1 = float(buf[4])
-                    return
-            else:
-                if buf[0].lower() == settings.Functional.lower() and \
-                   buf[1].lower() == settings.BasisSet.lower() and \
-                   buf[2].lower() == 'none':
-                    
-                    print("Setting TMS references to " + buf[3] + " and " + \
-                        buf[4] + "\n")
-                    settings.TMS_SC_C13 = float(buf[3])
-                    settings.TMS_SC_H1 = float(buf[4])
-                    return
-    
-    print("No TMS reference data found for these conditions, using defaults\n")
-    print("Unscaled shifts might be inaccurate, use of unscaled models is" + \
-        " not recommended.")
 
 
 if __name__ == '__main__':

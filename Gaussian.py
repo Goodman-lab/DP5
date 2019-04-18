@@ -280,6 +280,45 @@ def ResubGeOpt(GoutpFiles, settings):
         f.close()
 
 
+def ReadEnergy(GOutpFile):
+    gausfile = open(GOutpFile + '.out', 'r')
+    GOutp = gausfile.readlines()
+    gausfile.close()
+
+    for line in GOutp:
+        if 'SCF Done:' in line:
+            start = line.index(') =')
+            end = line.index('A.U.')
+            energy = float(line[start + 4:end])
+
+    return energy
+
+
+def ReadShieldings(GOutpFile):
+    print(GOutpFile)
+    gausfile = open(GOutpFile + '.out', 'r')
+    GOutp = gausfile.readlines()
+
+    index = 0
+    shieldings = []
+    labels = []
+
+    # Find the NMR shielding calculation section
+    while not 'Magnetic shielding' in GOutp[index]:
+        index = index + 1
+
+    # Read shielding constants and labels
+    for line in GOutp[index:]:
+        if 'Isotropic' in line:
+            data = [_f for _f in line.split(' ') if _f]
+            shieldings.append(float(data[4]))
+            labels.append(data[1] + data[0])
+
+    gausfile.close()
+
+    return labels, shieldings
+
+
 def ReadGeometry(GOutpFile):
 
     gausfile = open(GOutpFile, 'r')
