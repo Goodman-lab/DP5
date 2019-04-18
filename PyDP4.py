@@ -37,6 +37,7 @@ Interprets the arguments and takes care of the general workflow logic.
 import NMRAnalysis
 import Tinker
 import MacroModel
+import DP4
 
 import sys
 import os
@@ -45,7 +46,7 @@ import argparse
 import importlib
 
 DFTpackages = [['n', 'w', 'j', 'g', 'z', 'd'],
-    ['NWChem.py', 'NWChemZiggy.py', 'Jaguar.py', 'Gaussian', 'GaussianZiggy.py', 'GaussianDarwin.py']]
+    ['NWChem', 'NWChemZiggy', 'Jaguar', 'Gaussian', 'GaussianZiggy', 'GaussianDarwin']]
 
 if os.name == 'nt':
     import pyximport
@@ -60,7 +61,6 @@ class Paths:
     TinkerPath = '~/tinker7/bin/scan '
     OBPath = '/home/ke291/Tools/openbabel-install/lib/python2.7/site-packages/'
     SCHRODINGER = '/usr/local/shared/schrodinger/current'
-    MOPAC = '/home/ke291/MOPAC/MOPAC2016.exe'
 
 #Assigning the config default values
 #Settings are defined roughly in the order they are used in the script
@@ -68,13 +68,13 @@ class Settings:
     # --- Main options ---
     MM = 'm'        # m for MacroModel, t for Tinker
     DFT = 'z'       # n, j, g, z or for NWChem, Jaguar or Gaussian
-    Workflow = 'gmns' # defines which steps to include in the workflow
+    Workflow = 'gmna' # defines which steps to include in the workflow
                     # g for generate diastereomers
                     # m for molecular mechanics conformational search
                     # o for DFT optimization
                     # e for DFT single-point energies
                     # n for DFT NMR calculation
-                    # s for computational and experimental NMR data extraction and stats analysis
+                    # a for computational and experimental NMR data extraction and stats analysis
     Solvent = ''    # solvent for DFT optimization and NMR calculation
     ScriptDir = ''  # Script directory, automatically set on launch
     InputFiles = [] # Structure input files - can be MacroModel *-out.mae or *sdf files
@@ -142,7 +142,7 @@ class Isomer:
         self.Conformers = []        # from conformational search, list of atom coordinate lists
         self.MMCharge = 0           # charge from conformational search
         self.ExtCharge = Charge     # externally provided charge
-        self.RMSDCutoff = 0
+        self.RMSDCutoff = 0         # RMSD cutoff eventually used to get the conformer number below the limit
         self.DFTConformers = []     # from DFT optimizations, list of atom coordinate lists
         self.ConfIndices = []       # List of conformer indices from the original conformational search for reference
         self.MMEnergies = []        # Corresponding MM energies
@@ -153,8 +153,11 @@ class Isomer:
         self.EOutputFiles = []    # list of DFT NMR output file names
         self.NMRInputFiles = []     # list of DFT NMR input file names
         self.NMROutputFiles = []    # list of DFT NMR output file names
-        self.Cshifts = []
-        self.Hshifts = []
+        self.ShieldingLabels = []   # A list of atom labels corresponding to the shielding values
+        self.ConformerShieldings = [] # list of calculated NMR shielding constant lists for every conformer
+        self.IsomerShieldings = []  #Boltzmann weighted NMR shielding constant list for the isomer
+        self.Cshifts = []           #Calculated C NMR shifts
+        self.Hshifts = []           #Calculated H NMR shifts
 
 
 def main(settings):
@@ -238,10 +241,22 @@ def main(settings):
 
         # Run DFT NMR calculations, if requested
         if ('n' in settings.Workflow):
+            print('\nSetting up NMR calculations...')
             Isomers = DFT.SetupNMRCalcs(Isomers, settings)
+            print('\nRunning NMR calculations...')
             Isomers = DFT.RunNMRCalcs(Isomers, settings)
-            Isomers = DFT.ReadShieldings(Isomers, settings)
+            print('\nReading data from the output files...')
+            Isomers = DFT.ReadShieldings(Isomers)
+            print("Shieldings: ")
+            for iso in Isomers:
+                print(iso.InputFile + ": ")
+                for conf in iso.ConformerShieldings:
+                    print(str(conf))
+
             Isomers = DFT.ReadDFTEnergies(Isomers, settings)
+            print("Energies: ")
+            for iso in Isomers:
+                print(iso.InputFile + ": " + str(iso.DFTEnergies))
 
     else:
         # Run DFT optimizations, if requested
@@ -254,26 +269,29 @@ def main(settings):
 
         # Run DFT NMR calculations, if requested
         if ('n' in settings.Workflow):
-            Isomers = DFT.ReadShieldings(Isomers, settings)
+            Isomers = DFT.ReadShieldings(Isomers)
+            Isomers = DFT.ReadDFTEnergies(Isomers)
 
 
-    if not(NMRDataValid(Isomers)) or ('n' not in settings.Workflow):
+    if not(NMRAnalysis.NMRDataValid(Isomers)) or ('n' not in settings.Workflow):
 
         print('\nNo NMR data calculated, quitting...')
         quit()
 
-    NMRAnalysis.main(Isomers, settings)
+    if 'a' in settings.Workflow:
+        print('\nConverting DFT data to NMR shifts...')
+        Isomers = NMRAnalysis.CalcBoltzmannWeightedShieldings(Isomers, settings)
+        Isomers = NMRAnalysis.CalcNMRShifts(Isomers, settings)
+        print('\nProcessing experimental NMR data...')
+        NMRdata = NMRAnalysis.ProcessNMRData(Isomers, settings.NMRsource, settings)
+        print('\nCalculating DP4 probabilities...')
+        DP4data = DP4.CalcProbs(NMRdata)
 
-    print('DP4 process completed successfully.')
+        print(DP4.FormatData(DP4data))
+    else:
+        print('\nNo DP4 analysis requested.')
 
-
-def NMRDataValid(Isomers):
-
-    for isomer in Isomers:
-        if (len(isomer.Cshifts) == 0) and (len(isomer.Hshifts) == 0):
-            return False
-
-    return True
+    print('\nPyDP4 process completed successfully.')
 
 
 # Selects which DFT package to import, returns imported module
@@ -293,6 +311,10 @@ def getScriptPath():
 
 
 if __name__ == '__main__':
+
+    #Read config file and fill in settings in from that
+    #These are then overridden by any explicit parameters given through the command line
+
     parser = argparse.ArgumentParser(description='PyDP4 script to setup\
     and run Tinker, Gaussian (on ziggy) and DP4')
     parser.add_argument('-w', '--workflow', help="Defines which steps to include in the workflow, " +

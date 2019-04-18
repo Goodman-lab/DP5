@@ -5,8 +5,14 @@ Created on Mon Jan  12 14:42:47 2015
 @author: ke291
 
 Takes care of all the NMR description interpretation, equivalent atom
-averaging, Boltzmann averaging, tautomer population optimisation (if used)
-and DP4 input preparation and running DP4.py. Called by PyDP4.py
+averaging, Boltzmann averaging and DP4 input preparation and running DP4.py. Called by PyDP4.py
+
+FUNCTIONS AFTER REWRITE:
+Boltzmann Averaging of Shielding constants
+Calculation of NMR shifts based on TMS reference
+Equivalent atom averaging
+NMR description parsing
+NMR raw data interpretation top level organization
 """
 
 import Gaussian
@@ -14,18 +20,15 @@ import NWChem
 import Jaguar
 
 import sys
-from numpy import mean
 import os
 import math
-
-J_THRESHOLD = 0.1
 
 gasConstant = 8.3145
 temperature = 298.15
 hartreeEnergy = 2625.499629554010
 
 
-def CalcBolztmannWeightedShifts(Isomers, settings):
+def CalcBoltzmannWeightedShifts(Isomers, settings):
     labels = []
     allshieldings = []
     energies = []
@@ -116,6 +119,15 @@ def SetTMSConstants(settings):
           " not recommended.")
 
 
+def NMRDataValid(Isomers):
+
+    for isomer in Isomers:
+        if (len(isomer.ConformerShieldings) == 0):
+            return False
+
+    return True
+
+
 def main(numDS, settings, *args):
 
     #This function runs nmrPredict for each diastereomer and collects
@@ -161,14 +173,6 @@ def main(numDS, settings, *args):
     Cvalues, Hvalues, Clabels, Hlabels = GetCalcShiftsLabels(numDS,
         BoltzmannShieldings, labels, omits, settings)
     
-    if settings.OtherNuclei != "":
-        Xvalues, Xlabels = GetOtherNuclei(numDS, BoltzmannShieldings, labels,
-            omits, settings)
-        print(Xlabels, Xvalues)
-    else:
-        Xvalues = []
-        Xlabels = []
-    
     Noutp = len(BoltzmannShieldings)
     
     #Looks for equivalent atoms in the computational data, averages the shifts
@@ -176,73 +180,28 @@ def main(numDS, settings, *args):
     Cvalues, Hvalues, Clabels, Hlabels = \
         RemoveEquivalents(Noutp, equivs, Cvalues, Hvalues, Clabels, Hlabels)
 
-    tstart = 0
     OptCvalues = []
     OptHvalues = []
 
-    for tindex in range(0, len(Ntaut)):
-        print('looking at tautomers ' + str(tstart) + ' to ' + \
-            str(tstart+Ntaut[tindex]))
-        if Ntaut[tindex] == 1:
-            print("Only one tautomer found, skipping optimisation.")
-            OptCvalues.append(Cvalues[tstart])
-            OptHvalues.append(Hvalues[tstart])
-            tstart = tstart + Ntaut[tindex]
-        else:
-            (BuffC, BuffH) = OptTautPop(Clabels,
-                                        Cvalues[tstart:tstart+Ntaut[tindex]],
-                                        Hlabels,
-                                        Hvalues[tstart:tstart+Ntaut[tindex]],
-                                        Cexp, Hexp)
-            OptCvalues.append(BuffC)
-            OptHvalues.append(BuffH)
-            tstart = tstart + Ntaut[tindex]
-    
-    if any([settings.jKarplus, settings.jJ, settings.jFC]):
-        NewBJs, NewJlabels = ZeroEquivJ(BoltzmannJs, Jlabels, equivs, omits)
-        NewFCs, NewFClabels = ZeroEquivJ(BoltzmannFCs, Jlabels, equivs, omits)
-    
-    print("The calculated data for other nuclei:")
-    PrintOtherNuclei(numDS, Xlabels, Xvalues)
-    
+    OptCvalues.append(Cvalues[tstart])
+    OptHvalues.append(Hvalues[tstart])
+
+
     print("Conformation data:")
     PrintConformationData(SigConfs)
     
     import DP4
     #Run DP4 (or alternative, if set in settings) analysis and collect output
-    if any([settings.jKarplus, settings.jJ, settings.jFC]):
-        print("\n J value matrixes after pruning: \n")
-        if settings.jFC:
-            for i, Jvals in enumerate(NewFCs):
-                print("Isomer " + str(i) + ":")
-                PrintJMatrixLim(Jvals, NewFClabels)
-        else:
-            for i, Jvals in enumerate(NewBJs):
-                print("Isomer " + str(i) + ":")
-                PrintJMatrixLim(Jvals, NewJlabels)
-        if settings.jFC:
-            DP4outp = DP4.DP4j(Clabels, OptCvalues, Hlabels, OptHvalues, Cexp,
-                               Hexp, NewFCs, NewFClabels, settings)
-        else:
-            DP4outp = DP4.DP4j(Clabels, OptCvalues, Hlabels, OptHvalues, Cexp,
-                               Hexp, NewBJs, NewJlabels, settings)
-    
-        return '\n'.join(DP4outp) + '\n'
+    if settings.CP3:
+        CP3outp = DP4.CP3(Clabels, OptCvalues[0],OptCvalues[1],
+                          Hlabels, OptHvalues[0], OptHvalues[1],
+                          Cexp1, Cexp2, Hexp1, Hexp2,
+                          CalcFile1, CalcFile2, NMRfile1, NMRfile2, settings)
+        return '\n'.join(CP3outp) + '\n'
     else:
-        if settings.Bias:
-            DP4outp = DP4.DP4bias(Clabels, OptCvalues, Hlabels, OptHvalues, Cexp,
-                                   Hexp, settings)
-            return '\n'.join(DP4outp) + '\n'
-        elif settings.CP3:
-            CP3outp = DP4.CP3(Clabels, OptCvalues[0],OptCvalues[1],
-                              Hlabels, OptHvalues[0], OptHvalues[1],
-                              Cexp1, Cexp2, Hexp1, Hexp2, 
-                              CalcFile1, CalcFile2, NMRfile1, NMRfile2, settings)
-            return '\n'.join(CP3outp) + '\n'
-        else:
-            DP4outp = DP4.DP4(Clabels, OptCvalues, Hlabels, OptHvalues, Cexp,
-                              Hexp, settings)
-            return '\n'.join(DP4outp) + '\n'
+        DP4outp = DP4.DP4(Clabels, OptCvalues, Hlabels, OptHvalues, Cexp,
+                          Hexp, settings)
+        return '\n'.join(DP4outp) + '\n'
 
 
 def ReadExpNMR(ExpNMR):
@@ -407,95 +366,6 @@ def ReorderShieldings(shieldings, RenumberFile):
     return ReorderedShieldings
 
 
-def ZeroSmallJvalues(mat):
-    
-    newmat = list(mat)
-    for ds in range(len(newmat)):
-        for row in range(len(newmat[ds])):
-            for column in range(len(newmat[ds])):
-                if abs(newmat[ds][row][column])<J_THRESHOLD:
-                    newmat[ds][row][column] = 0.0
-    return newmat
-
-
-def ZeroEquivJ(mat, matlabels, equivs, omits):
-    
-    #Zeros mutual coupling constants of equivalent atoms
-    newmat = list(mat)
-    toRemove = []
-    print(equivs)
-    print(matlabels)
-    for eqAtoms in equivs:
-        AllAtomsPresent = False
-        AllAtomsPresent = all([x[1:] in matlabels for x in eqAtoms])
-        if eqAtoms[0][0] == 'H' and AllAtomsPresent:
-            indexes = [matlabels.index(x[1:]) for x in eqAtoms]
-            
-            #Zero out mutual
-            for row in indexes:
-                for column in indexes:
-                    for ds in range(len(newmat)):
-                        newmat[ds][row][column] = 0.0
-            
-            #Average between equivalent
-            first = indexes[0]
-            for ds in range(len(newmat)):
-                #Average the equivs in rows
-                for row in range(len(newmat[ds])):
-                    newmat[ds][row][first] = \
-                        mean([newmat[ds][row][x] for x in indexes])
-                #Average the equivs in columns
-                for column in range(len(newmat[ds])):
-                    newmat[ds][first][column] = \
-                        mean([newmat[ds][x][column] for x in indexes])
-            
-            #Save the indexes to be removed from the matrix
-            #for e in indexes[1:]: toRemove.append(e)
-            toRemove.extend(indexes[1:])
-    
-    toRemove.extend([matlabels.index(x[1:]) for x in omits if x[0]=='H' and
-                     x[1:] in matlabels])
-    
-    PrunedMats = []
-    for ds in range(len(newmat)):
-        PrunedMat, PrunedLabels = RemoveAtomsMatrix(newmat[ds], matlabels,
-                                                    toRemove)
-        PrunedMats.append(PrunedMat)
-    
-    return PrunedMats, PrunedLabels
-
-
-def RemoveAtomsMatrix(mat, matlabels, ToRemove):
-    
-    if len(mat) < 2:
-        return mat, matlabels
-
-    PrunedMatrix = []
-    PrunedLabels = []
-    for y in range(len(mat)):
-        row = []
-        if y not in ToRemove:
-            PrunedLabels.append(matlabels[y])
-            for x in range(len(mat)):
-                if x not in ToRemove:
-                    row.append(mat[y][x])
-            PrunedMatrix.append(row)
-    return PrunedMatrix, PrunedLabels
-
-def PrintJMatrix(mat, labels):
-    
-    for l, row in zip(labels, mat):
-        formattedJ = ["{:4.1f}".format(x) for x in row]
-        print(l + ': ' + ', '.join(formattedJ))
-
-
-def PrintJMatrixLim(mat, labels):
-    
-    for l, row in zip(labels, mat):
-        formattedJ = ["{:4.1f}".format(x) for x in row if abs(x)>J_THRESHOLD]
-        print(l + ': ' + ', '.join(formattedJ))
-
-
 def getScriptPath():
     return os.path.dirname(os.path.realpath(sys.argv[0]))
 
@@ -520,11 +390,3 @@ def RMSE(L1, L2):
         for i in range(0, len(L1)):
             L.append((L1[i]-L2[i])**2)
         return math.sqrt(sum(L)/len(L))
-
-if __name__ == '__main__':
-    #print sys.argv
-    cpargs = sys.argv[2:]
-    numDS = int(sys.argv[1])
-    for ds in range(0, numDS):
-        cpargs[ds*2+1] = int(cpargs[ds*2+1])
-    main(numDS, *cpargs)

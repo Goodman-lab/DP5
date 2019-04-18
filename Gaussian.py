@@ -11,8 +11,6 @@ Contains all of the Gaussian specific code for input generation and calculation
 execution. Called by PyDP4.py.
 """
 
-import nmrPredictGaus
-
 import subprocess
 import os
 import time
@@ -86,7 +84,6 @@ def SetupECalcs(Isomers, settings):
 def RunNMRCalcs(Isomers, settings):
 
     jobdir = os.getcwd()
-
     os.chdir('nmr')
 
     GausJobs = []
@@ -123,7 +120,6 @@ def RunNMRCalcs(Isomers, settings):
 def RunECalcs(Isomers, settings):
 
     jobdir = os.getcwd()
-
     os.chdir('e')
 
     GausJobs = []
@@ -272,7 +268,7 @@ def ResubGeOpt(GoutpFiles, settings):
         atoms, coords, charge = ReadGeometry(f[:-8]+'.out')
         for remf in glob.glob(f[:-8] + '*'):
             os.remove(remf)
-        WriteGausFileOpt(f[:-8], coords,atoms,charge,settings)
+        #WriteGausFileOpt(f[:-8], coords,atoms,charge,settings)
         print(f[:-8] + '* deleted and new .com files written')
     if not os.path.exists('Reoptimized.log'):
         f = file('Reoptimized.log', 'w')
@@ -280,43 +276,77 @@ def ResubGeOpt(GoutpFiles, settings):
         f.close()
 
 
-def ReadEnergy(GOutpFile):
-    gausfile = open(GOutpFile + '.out', 'r')
-    GOutp = gausfile.readlines()
-    gausfile.close()
+#Read energy from e, if not present, then o, if not present, then nmr
+def ReadDFTEnergies(Isomers, settings):
+    jobdir = os.getcwd()
 
-    for line in GOutp:
-        if 'SCF Done:' in line:
-            start = line.index(') =')
-            end = line.index('A.U.')
-            energy = float(line[start + 4:end])
+    if 'e' in settings.Workflow:
+        os.chdir('e')
+    elif 'o' in settings.Workflow:
+        os.chdir('opt')
+    else:
+        os.chdir('nmr')
 
-    return energy
+    for iso in Isomers:
+
+        if 'e' in settings.Workflow:
+            GOutpFiles = iso.EOutputFiles
+        elif 'o' in settings.Workflow:
+            GOutpFiles = iso.OptOutputFiles
+        else:
+            GOutpFiles = iso.NMROutputFiles
+
+        DFTenergies = []
+        for GOutpFile in GOutpFiles:
+            gausfile = open(GOutpFile, 'r')
+            GOutp = gausfile.readlines()
+            gausfile.close()
+
+            for line in GOutp:
+                if 'SCF Done:' in line:
+                    start = line.index(') =')
+                    end = line.index('A.U.')
+                    energy = float(line[start + 4:end])
+
+            iso.DFTEnergies.append(energy)
+
+    os.chdir(jobdir)
+    return Isomers
 
 
-def ReadShieldings(GOutpFile):
-    print(GOutpFile)
-    gausfile = open(GOutpFile + '.out', 'r')
-    GOutp = gausfile.readlines()
+def ReadShieldings(Isomers):
 
-    index = 0
-    shieldings = []
-    labels = []
+    jobdir = os.getcwd()
+    os.chdir('nmr')
 
-    # Find the NMR shielding calculation section
-    while not 'Magnetic shielding' in GOutp[index]:
-        index = index + 1
+    for iso in Isomers:
 
-    # Read shielding constants and labels
-    for line in GOutp[index:]:
-        if 'Isotropic' in line:
-            data = [_f for _f in line.split(' ') if _f]
-            shieldings.append(float(data[4]))
-            labels.append(data[1] + data[0])
+        for GOutpFile in iso.NMROutputFiles:
+            gausfile = open(GOutpFile, 'r')
+            GOutp = gausfile.readlines()
+            gausfile.close()
 
-    gausfile.close()
+            index = 0
+            shieldings = []
+            labels = []
 
-    return labels, shieldings
+            # Find the NMR shielding calculation section
+            while not 'Magnetic shielding' in GOutp[index]:
+                index = index + 1
+
+            # Read shielding constants and labels
+            for line in GOutp[index:]:
+                if 'Isotropic' in line:
+                    data = [_f for _f in line.split(' ') if _f]
+                    shieldings.append(float(data[4]))
+                    labels.append(data[1] + data[0])
+
+            iso.ConformerShieldings.append(shieldings)
+
+        iso.ShieldingLabels = labels
+
+    os.chdir(jobdir)
+    return Isomers
 
 
 def ReadGeometry(GOutpFile):
@@ -430,50 +460,3 @@ def GetAtomNum(AtomSymbol):
     else:
         print("No such element with symbol " + str(AtomSymbol))
         return 0
-
-
-def RunNMRPredict(numDS, settings, *args):
-
-    GausNames = []
-    NTaut = []
-
-    for val in range(0, numDS):
-        NTaut.append(args[val*2])
-        GausNames.append(args[val*2+1])
-
-    RelEs = []
-    populations = []
-    BoltzmannShieldings = []
-    BoltzmannJs = []
-    BoltzmannFCs = []
-    SigConfs = []
-
-    print(GausNames)
-    print(NTaut)
-    #This loop runs nmrPredict for each diastereomer and collects
-    #the outputs    
-    for i, isomer in enumerate(GausNames):
-
-        GausFiles = glob.glob(isomer + 'ginp*.out')
-        GausFiles = [x[:-4] for x in GausFiles]
-        GausFiles = [x for x in GausFiles if 'temp' not in x]
-        
-        #Runs nmrPredictGaus Name001, ... and collects output
-        Es, Pops, ls, BSs, Jls, BFCs, BJs, SCs = nmrPredictGaus.main(settings,
-                                                                *GausFiles)
-        if i == 0:
-            labels = ls
-            
-        RelEs.append(Es)
-        populations.append(Pops)
-        BoltzmannShieldings.append(BSs)
-        BoltzmannFCs.append(BFCs)
-        BoltzmannJs.append(BJs)
-        SigConfs.append(SCs)
-
-    return (RelEs, populations, labels, BoltzmannShieldings, Jls, BoltzmannFCs,
-            BoltzmannJs, SigConfs, NTaut)
-
-
-def getScriptPath():
-    return os.path.dirname(os.path.realpath(sys.argv[0]))

@@ -219,17 +219,17 @@ def CP3(Clabels, Cvalues1, Cvalues2, Hlabels, Hvalues1, Hvalues2,
     
     sortedClabels1, sortedCvalues1, sortedCexp1, _ =\
         AssignExpNMR(Clabels, Cvalues1, Cexp1)
-    print "Clabels: " + str(Clabels)
-    print "Cvalues: " + str(Cvalues1)
-    print "Cexp1: " + str(Cexp1)
+    print("Clabels: " + str(Clabels))
+    print("Cvalues: " + str(Cvalues1))
+    print("Cexp1: " + str(Cexp1))
     Cerrors1 = [a-b for a,b in zip(sortedCvalues1,sortedCexp1)]
     sortedClabels2, sortedCvalues2, sortedCexp2, _ =\
         AssignExpNMR(Clabels, Cvalues2, Cexp2)
     Cerrors2 = [a-b for a,b in zip(sortedCvalues2,sortedCexp2)]
     
-    print "Hlabels: " + str(Hlabels)
-    print "Hvalues: " + str(Hvalues1)
-    print "Hexp1: " + str(Hexp1)
+    print("Hlabels: " + str(Hlabels))
+    print("Hvalues: " + str(Hvalues1))
+    print("Hexp1: " + str(Hexp1))
     sortedHlabels1, sortedHvalues1, sortedHexp1, _ =\
         AssignExpNMR(Hlabels, Hvalues1, Hexp1)
     Herrors1 = [a-b for a,b in zip(sortedHvalues1,sortedHexp1)]
@@ -274,10 +274,10 @@ def CP3(Clabels, Cvalues1, Cvalues2, Hlabels, Hvalues1, Hvalues2,
     CP3Cprob2 = stats.norm(CP3meanC, CP3stdevC).pdf(CP3c2)
     CP3Hprob2 = stats.norm(CP3meanH, CP3stdevH).pdf(CP3h2)
     CP3allprob2 = stats.norm(CP3meanAll, CP3stdevAll).pdf(CP3all2)
-    print NMRFile1
-    print NMRFile2
-    print CalcFile1
-    print CalcFile2
+    print(NMRFile1)
+    print(NMRFile2)
+    print(CalcFile1)
+    print(CalcFile2)
     comb1 = NMRFile1 + '-' + CalcFile1 + ' & ' + NMRFile2 + '-' + CalcFile2
     comb2 = NMRFile1 + '-' + CalcFile2 + ' & ' + NMRFile2 + '-' + CalcFile1
     Print("Probabilities for " + comb1 + " assignment")
@@ -657,7 +657,7 @@ def ReadExp(exp):
         else:
             expJs.append([0.0])
     
-    print expJs
+    print(expJs)
     #Remove assignments and get shifts
     ShiftData = (re.sub(r"\(.*?\)", "", exp, flags=re.DOTALL)).split(',')
     expShifts = [float(x) for x in ShiftData]
@@ -777,7 +777,7 @@ def CalcProbabilities(SErrorsC, SErrorsH, ErrorsC, ErrorsH, Cexp, Hexp, settings
         H_cdp4 = CalculateRKDE(ErrorsH, Hexp, settings.StatsParamFile,
                                     settings.StatsModel, 'H')
     else:
-        print "Invalid stats model"
+        print("Invalid stats model")
         C_cdp4 = 0.0
         H_cdp4 = 0.0
         
@@ -827,7 +827,7 @@ def PrintNMRj(nucleus, labels, values, scaled, exp, expJ, calcJ):
     for i in range(len(labels)):
         if expJ[i] != [0.0]:
             for e, c in zip(expJ[i], calcJ[i]):
-                print "{:4.1f}".format(e) + "   " + "{:4.1f}".format(c)
+                print("{:4.1f}".format(e) + "   " + "{:4.1f}".format(c))
                 Jerrs.append(e-c)
     Print("Max J error:" + "{:4.1f}".format(max(Jerrs, key=abs)))
 
@@ -852,7 +852,7 @@ def PrintJrms(Jerrors):
 
 
 def Print(s):
-    print s
+    print(s)
     output.append(s)
 
 
@@ -880,7 +880,7 @@ def ReadParamFile(f, t):
     infile.close()
     
     if t not in inp[0]:
-        print "Wrong parameter file type, exiting..."
+        print("Wrong parameter file type, exiting...")
         quit()
     
     if t == 'g':
@@ -919,7 +919,7 @@ def ReadJParamFile(f, t):
     infile.close()
     
     if t not in inp[0]:
-        print "Wrong parameter file type, exiting..."
+        print("Wrong parameter file type, exiting...")
         quit()
     
     if t == 'g': #Gaussian model for J values, includes linear scaling factors
