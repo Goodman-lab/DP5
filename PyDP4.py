@@ -59,7 +59,6 @@ else:
 
 class Paths:
     TinkerPath = '~/tinker7/bin/scan '
-    OBPath = '/home/ke291/Tools/openbabel-install/lib/python2.7/site-packages/'
     SCHRODINGER = '/usr/local/shared/schrodinger/current'
 
 #Assigning the config default values

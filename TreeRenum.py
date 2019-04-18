@@ -6,9 +6,6 @@ Created on Tue Mar 31 14:54:17 2015
 @author: ke291
 """
 import sys
-sys.path.append('/home/ke291/Tools/openbabel-install/lib/python2.7/site-packages/')
-from openbabel import *
-
 
 def FindAllPaths(molgraph, start, end, path=[]):
     path = path + [start]

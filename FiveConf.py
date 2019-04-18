@@ -10,9 +10,7 @@ Gets called by PyDP4.py if automatic 5-membered cycle corner-flipping is used.
 import numpy as np
 from math import sqrt, pi, cos, sin, acos
 import scipy.optimize as sciopt
-import sys
-sys.path.append(
-    '/home/ke291/Tools/openbabel-install/lib/python2.7/site-packages/')
+
 from openbabel import *
 
 

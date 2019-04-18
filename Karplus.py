@@ -12,8 +12,7 @@ Tetrahedron 36 2783-2792 (1980)
 import numpy as np
 from math import sqrt, pi, cos, sin, acos, atan2
 import sys
-sys.path.append(
-    '/home/ke291/Tools/openbabel-install/lib/python2.7/site-packages/')
+
 from openbabel import *
 
 #Parameter sets B-E for generalised Karplus equation from

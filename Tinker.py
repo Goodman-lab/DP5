@@ -248,8 +248,6 @@ def GetInchiCharge(inchifile):
 
 
 def GetSDFCharge(sdf):
-    import sys
-    sys.path.append('/home/ke291/Tools/openbabel-install/lib/python2.7/site-packages/')
     import openbabel
 
     obconversion = openbabel.OBConversion()
