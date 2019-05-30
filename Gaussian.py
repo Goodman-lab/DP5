@@ -91,23 +91,7 @@ def RunNMRCalcs(Isomers, settings):
     for iso in Isomers:
         GausJobs.extend([x for x in iso.NMRInputFiles if (x[:-4] + '.out') not in iso.NMROutputFiles])
 
-    NCompleted = 0
-    Completed = []
-    gausdir = os.environ['GAUSS_EXEDIR']
-    GausPrefix = gausdir + "/g09 < "
-
-    for f in GausJobs:
-        time.sleep(3)
-        print(GausPrefix + f + ' > ' + f[:-3] + 'out')
-        outp = subprocess.check_output(GausPrefix + f + ' > ' + f[:-3] + 'out', shell=True)
-
-        NCompleted += 1
-        if IsGausCompleted(f[:-4] + '.out'):
-            Completed.append(f[:-4] + '.out')
-            print("Gaussian job " + str(NCompleted) + " of " + str(len(GausJobs)) + \
-                " completed.")
-        else:
-            print("Gaussian job terminated with an error. Continuing.")
+    Completed = RunCalcs(GausJobs)
 
     for iso in Isomers:
         iso.NMROutputFiles.extend([x[:-4] + '.out' for x in iso.NMRInputFiles if (x[:-4] + '.out') in Completed])
@@ -127,6 +111,18 @@ def RunECalcs(Isomers, settings):
     for iso in Isomers:
         GausJobs.extend([x for x in iso.EInputFiles if (x[:-4] + '.out') not in iso.EOutputFiles])
 
+    Completed = RunCalcs(GausJobs)
+
+    for iso in Isomers:
+        iso.EOutputFiles.extend([x[:-4] + '.out' for x in iso.EInputFiles if (x[:-4] + '.out') in Completed])
+
+    os.chdir(jobdir)
+
+    return Isomers
+
+
+def RunCalcs(GausJobs):
+
     NCompleted = 0
     Completed = []
     gausdir = os.environ['GAUSS_EXEDIR']
@@ -141,16 +137,11 @@ def RunECalcs(Isomers, settings):
         if IsGausCompleted(f[:-4] + '.out'):
             Completed.append(f[:-4] + '.out')
             print("Gaussian job " + str(NCompleted) + " of " + str(len(GausJobs)) + \
-                " completed.")
+                  " completed.")
         else:
             print("Gaussian job terminated with an error. Continuing.")
 
-    for iso in Isomers:
-        iso.EOutputFiles.extend([x[:-4] + '.out' for x in iso.EInputFiles if (x[:-4] + '.out') in Completed])
-
-    os.chdir(jobdir)
-
-    return Isomers
+    return Completed
 
 
 def WriteGausFile(Gausinp, conformer, atoms, charge, settings, type):
@@ -164,11 +155,11 @@ def WriteGausFile(Gausinp, conformer, atoms, charge, settings, type):
         f.write('%mem=6000MB\n%chk='+Gausinp + '.chk\n')
 
     if type == 'nmr':
-        f.write(NMRroute(settings))
+        f.write(NMRRoute(settings))
     elif type == 'e':
-        f.write(Eroute(settings))
+        f.write(ERoute(settings))
     elif type == 'opt':
-        f.write(Optroute(settings))
+        f.write(OptRoute(settings))
 
     f.write('\n'+Gausinp+'\n\n')
     f.write(str(charge) + ' 1\n')
@@ -184,7 +175,7 @@ def WriteGausFile(Gausinp, conformer, atoms, charge, settings, type):
     f.close()
 
 
-def NMRroute(settings):
+def NMRRoute(settings):
 
     route = '# ' + settings.nFunctional + '/' + settings.nBasisSet
     if (settings.nFunctional).lower() == 'm062x':
@@ -200,7 +191,7 @@ def NMRroute(settings):
     return route
 
 
-def Eroute(settings):
+def ERoute(settings):
 
     route = '# ' + settings.eFunctional + '/' + settings.eBasisSet
     if (settings.eFunctional).lower() == 'm062x':
@@ -214,7 +205,7 @@ def Eroute(settings):
     return route
 
 
-def Optroute(settings):
+def OptRoute(settings):
 
     route = '# ' + settings.oFunctional + '/' + settings.oBasisSet
 

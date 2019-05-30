@@ -6,8 +6,8 @@ Created on Wed Nov 19 15:56:54 2014
 
 @author: ke291
 
-Contains all of the Gaussian specific code for input generation and calculation
-execution. Called by PyDP4.py.
+Contains all of the specific code for running Gaussian jobs on Ziggy.
+A lot of code is reused from Gaussian.py. Called by PyDP4.py.
 """
 
 import subprocess
@@ -42,11 +42,44 @@ def RunNMRCalcs(Isomers, settings):
     for iso in Isomers:
         GausJobs.extend([x for x in iso.NMRInputFiles if (x[:-4] + '.out') not in iso.NMROutputFiles])
 
-    MaxCon = settings.MaxConcurrentJobs
+    Completed = RunCalcs(GausJobs, settings)
+
+    for iso in Isomers:
+        iso.NMROutputFiles.extend([x[:-4] + '.out' for x in iso.NMRInputFiles if (x[:-4] + '.out') in Completed])
+
+    os.chdir(jobdir)
+
+    return Isomers
+
+
+def RunECalcs(Isomers, settings):
+    print('\nRunning Gaussian DFT energy calculations on Ziggy...')
+
+    jobdir = os.getcwd()
+    os.chdir('e')
+
+    GausJobs = []
+
+    for iso in Isomers:
+        GausJobs.extend([x for x in iso.EInputFiles if (x[:-4] + '.out') not in iso.EOutputFiles])
+
+    Completed = RunCalcs(GausJobs, settings)
+
+    for iso in Isomers:
+        iso.EOutputFiles.extend([x[:-4] + '.out' for x in iso.EInputFiles if (x[:-4] + '.out') in Completed])
+
+    os.chdir(jobdir)
+
+    return Isomers
+
+
+def RunCalcs(GausJobs, settings):
+
+    MaxCon = settings.MaxConcurrentJobsZiggy
 
     if len(GausJobs) < MaxCon:
         if len(GausJobs) > 0:
-            RunOnZiggy(0, settings.queue, GausJobs, settings)
+            RunBatchOnZiggy(0, settings.queue, GausJobs, settings)
     else:
         if len(GausJobs) > 0:
             print("The DFT calculations will be done in " + \
@@ -54,10 +87,10 @@ def RunNMRCalcs(Isomers, settings):
             i = 0
             while (i + 1) * MaxCon < len(GausJobs):
                 print("Starting batch nr " + str(i + 1))
-                RunOnZiggy(str(i + 1), settings.queue, GausJobs[(i * MaxCon):((i + 1) * MaxCon)], settings)
+                RunBatchOnZiggy(str(i + 1), settings.queue, GausJobs[(i * MaxCon):((i + 1) * MaxCon)], settings)
                 i += 1
             print("Starting batch nr " + str(i + 1))
-            RunOnZiggy(str(i + 1), settings.queue, GausJobs[(i * MaxCon):], settings)
+            RunBatchOnZiggy(str(i + 1), settings.queue, GausJobs[(i * MaxCon):], settings)
 
     NCompleted = 0
     Completed = []
@@ -70,15 +103,13 @@ def RunNMRCalcs(Isomers, settings):
     print(str(NCompleted) + "Gaussian jobs of " + str(len(GausJobs)) + \
         " completed successfully.")
 
-    for iso in Isomers:
-        iso.NMROutputFiles.extend([x[:-4] + '.out' for x in iso.NMRInputFiles if (x[:-4] + '.out') in Completed])
-
-    os.chdir(jobdir)
-
-    return Isomers
+    return Completed
 
 
-def RunOnZiggy(findex, queue, GausFiles, settings):
+def RunBatchOnZiggy(findex, queue, GausFiles, settings):
+
+    # Run Gaussian jobs on Ziggy cluster in folder named after date and time
+    # Split in batches, if needed
 
     if findex == 0:
         folder = settings.StartTime + settings.Title
@@ -158,7 +189,7 @@ def WriteSubScript(GausJob, queue, ZiggyJobFolder, settings):
 
     #Choose the queue
     QSub.write('#!/bin/bash\n\n')
-    QSub.write('#SBATCH -p SWAN\n')
+    QSub.write('#SBATCH -p ' + settings.queue + '\n')
     if settings.nProc >1:
         QSub.write('#SBATCH --nodes=1\n#SBATCH --cpus-per-task=' + str(settings.nProc) + '\n')
     else:

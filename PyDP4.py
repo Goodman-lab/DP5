@@ -114,12 +114,13 @@ class Settings:
     """ These should probably be moved to relevant *.py files as Cambridge specific """
     user = 'ke291'              # Linux user on computational clusters, not used for local calcs
     TimeLimit = 24              # Queue time limit on comp clusters
-    queue = 's1'                # Which queue to use
+    queue = 'SWAN'              # Which queue to use on Ziggy
+    project = 'GOODMAN-SL3-CPU' # Which project to use on Darwin
     DarwinScrDir = '/home/ke291/rds/hpc-work/'  # Which scratch directory to use on Darwin
     StartTime = ''              # Automatically set on launch, used for folder names
     nProc = 1                   # Cores used per job, must be less than node size on cluster
     DarwinNodeSize = 32         # Node size on current CSD3
-    MaxConcurrentJobs = 75      # Max concurrent jobs to submit on ziggy
+    MaxConcurrentJobsZiggy = 75      # Max concurrent jobs to submit on ziggy
     MaxConcurrentJobsDarwin = 320 # Max concurrent jobs to submit on CSD3
 
     # --- NMR analysis ---
@@ -234,9 +235,16 @@ def main(settings):
 
         # Run DFT single-point energy calculations, if requested
         if ('e' in settings.Workflow):
+            print('\nSetting up energy calculations...')
             Isomers = DFT.SetupECalcs(Isomers, settings)
+            print('\nRunning energy calculations...')
             Isomers = DFT.RunECalcs(Isomers, settings)
+            print('\nReading data from the output files...')
             Isomers = DFT.ReadDFTEnergies(Isomers, settings)
+            print("Energies: ")
+            for iso in Isomers:
+                print(iso.InputFile + ": " + str(iso.DFTEnergies))
+
 
         # Run DFT NMR calculations, if requested
         if ('n' in settings.Workflow):
@@ -344,7 +352,7 @@ if __name__ == '__main__':
     parser.add_argument("--nProc", help="Specify number of processor cores\
     to use for Gaussian calculations", type=int, default=1)
     parser.add_argument("--batch", help="Specify max number of jobs per batch",
-    type=int, default=settings.MaxConcurrentJobs)
+    type=int, default=settings.MaxConcurrentJobsZiggy)
     parser.add_argument("--ConfLimit", help="Specify maximum number of \
     conformers per structure. If above this, adaptive RMSD pruning will be \
     performed", type=int, default=settings.PerStructConfLimit)
@@ -376,10 +384,14 @@ if __name__ == '__main__':
     optimization cycles", type=int, default=settings.MaxDFTOptCycles)
     parser.add_argument('-n', '--Charge', help="Specify\
     charge of the molecule. Do not use when input files have different charges")
-    parser.add_argument('-B', '--BasisSet', help="Selects the basis set for\
-    DFT calculations", default=settings.nBasisSet)
-    parser.add_argument('-F', '--Functional', help="Selects the functional for\
-    DFT calculations", default=settings.nFunctional)
+    parser.add_argument('-B', '--nBasisSet', help="Selects the basis set for\
+    DFT NMR calculations", default=settings.nBasisSet)
+    parser.add_argument('-F', '--nFunctional', help="Selects the functional for\
+    DFT NMR calculations", default=settings.nFunctional)
+    parser.add_argument('--eBasisSet', help="Selects the basis set for\
+    DFT energy calculations", default=settings.eBasisSet)
+    parser.add_argument('--eFunctional', help="Selects the functional for\
+    DFT energy calculations", default=settings.eFunctional)
     parser.add_argument('-f', '--ff', help="Selects force field for the \
     conformational search, implemented options 'mmff' and 'opls' (2005\
     version)", choices=['mmff', 'opls'], default=settings.ForceField)
@@ -396,8 +408,10 @@ if __name__ == '__main__':
     settings.ForceField = args.ff
     settings.PerStructConfLimit = args.ConfLimit
     settings.MaxCutoffEnergy = args.MaxConfE
-    settings.nBasisSet = args.BasisSet
-    settings.nFunctional = args.Functional
+    settings.nBasisSet = args.nBasisSet
+    settings.nFunctional = args.nFunctional
+    settings.eBasisSet = args.eBasisSet
+    settings.eFunctional = args.eFunctional
     settings.nProc = args.nProc
     settings.MaxConcurrentJobs = args.batch
     settings.MaxDFTOptCycles = args.OptCycles

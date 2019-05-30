@@ -18,8 +18,97 @@ import glob
 import shutil
 import math
 
+import Gaussian
 
-def RunOnDarwin(findex, GausJobs, settings):
+SetupNMRCalcs = Gaussian.SetupNMRCalcs
+
+SetupECalcs = Gaussian.SetupECalcs
+
+ReadShieldings = Gaussian.ReadShieldings
+
+ReadDFTEnergies = Gaussian.ReadDFTEnergies
+
+IsGausCompleted = Gaussian.IsGausCompleted
+
+def RunNMRCalcs(Isomers, settings):
+    print('\nRunning Gaussian NMR calculations on Ziggy...')
+
+    # Run Gaussian jobs on Ziggy cluster in folder named after date and time
+    # Split in batches, if needed
+
+    jobdir = os.getcwd()
+    os.chdir('nmr')
+
+    GausJobs = []
+
+    for iso in Isomers:
+        GausJobs.extend([x for x in iso.NMRInputFiles if (x[:-4] + '.out') not in iso.NMROutputFiles])
+
+    Completed = RunCalcs(GausJobs, settings)
+
+    for iso in Isomers:
+        iso.NMROutputFiles.extend([x[:-4] + '.out' for x in iso.NMRInputFiles if (x[:-4] + '.out') in Completed])
+
+    os.chdir(jobdir)
+
+    return Isomers
+
+
+def RunECalcs(Isomers, settings):
+    print('\nRunning Gaussian DFT energy calculations on Ziggy...')
+
+    jobdir = os.getcwd()
+    os.chdir('e')
+
+    GausJobs = []
+
+    for iso in Isomers:
+        GausJobs.extend([x for x in iso.EInputFiles if (x[:-4] + '.out') not in iso.EOutputFiles])
+
+    Completed = RunCalcs(GausJobs, settings)
+
+    for iso in Isomers:
+        iso.EOutputFiles.extend([x[:-4] + '.out' for x in iso.EInputFiles if (x[:-4] + '.out') in Completed])
+
+    os.chdir(jobdir)
+
+    return Isomers
+
+
+def RunCalcs(GausJobs, settings):
+
+    MaxCon = settings.MaxConcurrentJobs
+
+    if len(GausJobs) < MaxCon:
+        if len(GausJobs) > 0:
+            RunBatchOnZiggy(0, settings.queue, GausJobs, settings)
+    else:
+        if len(GausJobs) > 0:
+            print("The DFT calculations will be done in " + \
+                  str(math.ceil(len(GausJobs) / MaxCon)) + " batches")
+            i = 0
+            while (i + 1) * MaxCon < len(GausJobs):
+                print("Starting batch nr " + str(i + 1))
+                RunBatchOnZiggy(str(i + 1), settings.queue, GausJobs[(i * MaxCon):((i + 1) * MaxCon)], settings)
+                i += 1
+            print("Starting batch nr " + str(i + 1))
+            RunBatchOnZiggy(str(i + 1), settings.queue, GausJobs[(i * MaxCon):], settings)
+
+    NCompleted = 0
+    Completed = []
+
+    for f in GausJobs:
+        if IsGausCompleted(f[:-4] + '.out'):
+            Completed.append(f[:-4] + '.out')
+            NCompleted += 1
+
+    print(str(NCompleted) + "Gaussian jobs of " + str(len(GausJobs)) + \
+        " completed successfully.")
+
+    return Completed
+
+
+def RunBatchOnDarwin(findex, GausJobs, settings):
 
     if findex == 0:
         folder = settings.StartTime + settings.Title
