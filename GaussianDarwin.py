@@ -24,6 +24,8 @@ SetupNMRCalcs = Gaussian.SetupNMRCalcs
 
 SetupECalcs = Gaussian.SetupECalcs
 
+SetupOptCalcs = Gaussian.SetupOptCalcs
+
 ReadShieldings = Gaussian.ReadShieldings
 
 ReadDFTEnergies = Gaussian.ReadDFTEnergies

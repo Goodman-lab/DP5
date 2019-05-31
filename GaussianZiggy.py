@@ -22,6 +22,8 @@ SetupNMRCalcs = Gaussian.SetupNMRCalcs
 
 SetupECalcs = Gaussian.SetupECalcs
 
+SetupOptCalcs = Gaussian.SetupOptCalcs
+
 ReadShieldings = Gaussian.ReadShieldings
 
 ReadDFTEnergies = Gaussian.ReadDFTEnergies
@@ -67,6 +69,27 @@ def RunECalcs(Isomers, settings):
 
     for iso in Isomers:
         iso.EOutputFiles.extend([x[:-4] + '.out' for x in iso.EInputFiles if (x[:-4] + '.out') in Completed])
+
+    os.chdir(jobdir)
+
+    return Isomers
+
+
+def RunOptCalcs(Isomers, settings):
+    print('\nRunning Gaussian DFT geometry optimizations on Ziggy...')
+
+    jobdir = os.getcwd()
+    os.chdir('opt')
+
+    GausJobs = []
+
+    for iso in Isomers:
+        GausJobs.extend([x for x in iso.OptInputFiles if (x[:-4] + '.out') not in iso.OptOutputFiles])
+
+    Completed = RunCalcs(GausJobs, settings)
+
+    for iso in Isomers:
+        iso.OptOutputFiles.extend([x[:-4] + '.out' for x in iso.OptInputFiles if (x[:-4] + '.out') in Completed])
 
     os.chdir(jobdir)
 
@@ -246,7 +269,8 @@ def IsZiggyGComplete(f, folder, settings):
         except subprocess.CalledProcessError as e:
             print("ssh ziggy cat failed: " + str(e.output).decode())
             return False
-        if "Normal termination" in outp2[-90:].decode():
+        if ("Normal termination" in outp2[-90:].decode()) or \
+                (('termination' in outp2[-270:].decode()) and ('l9999.exe' in outp2[-270:].decode())):
             return True
     return False
 

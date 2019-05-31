@@ -102,6 +102,7 @@ class Settings:
 
     # --- DFT ---
     MaxDFTOptCycles = 50        # Max number of DFT geometry optimization cycles to request.
+    CalcFC = False              # Calculate QM force constants before optimization
     charge = None               # Manually specify charge for DFT calcs
     nBasisSet = "6-311g(d)"     # Basis set for NMR calcs
     nFunctional = "mPW1PW91"    # Functional for NMR calcs
@@ -229,8 +230,13 @@ def main(settings):
 
         # Run DFT optimizations, if requested
         if ('o' in settings.Workflow):
+            print('\nSetting up geometry optimization calculations...')
             Isomers = DFT.SetupOptCalcs(Isomers, settings)
+            print('\nRunning geometry optimization calculations...')
             Isomers = DFT.RunOptCalcs(Isomers, settings)
+            print('\nReading optimized geometries from the output files...')
+            print('...not implemented yet')
+            quit()
             Isomers = DFT.ReadDFTGeometries(Isomers, settings)
 
         # Run DFT single-point energy calculations, if requested
@@ -345,7 +351,7 @@ if __name__ == '__main__':
     parser.add_argument("-s", "--solvent", help="Specify solvent to use\
     for dft calculations")
     parser.add_argument("-q", "--queue", help="Specify queue for job submission\
-    on ziggy", default='s1')
+    on ziggy", default=settings.queue)
     parser.add_argument("--TimeLimit", help="Specify job time limit for jobs\
     on ziggy or darwin", type=int)
 
@@ -382,6 +388,8 @@ if __name__ == '__main__':
     level before NMR prediction", action="store_true")
     parser.add_argument("--OptCycles", help="Specify max number of DFT geometry\
     optimization cycles", type=int, default=settings.MaxDFTOptCycles)
+    parser.add_argument("--FC", help="Calculate force constants before optimization", action="store_true")
+
     parser.add_argument('-n', '--Charge', help="Specify\
     charge of the molecule. Do not use when input files have different charges")
     parser.add_argument('-B', '--nBasisSet', help="Selects the basis set for\
@@ -415,6 +423,8 @@ if __name__ == '__main__':
     settings.nProc = args.nProc
     settings.MaxConcurrentJobs = args.batch
     settings.MaxDFTOptCycles = args.OptCycles
+    if args.FC:
+        settings.CalcFC = True
     
     if args.TimeLimit:
         settings.TimeLimit = args.TimeLimit

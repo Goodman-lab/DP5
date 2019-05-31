@@ -81,6 +81,46 @@ def SetupECalcs(Isomers, settings):
     return Isomers
 
 
+def SetupOptCalcs(Isomers, settings):
+
+    jobdir = os.getcwd()
+
+    if not os.path.exists('opt'):
+        os.mkdir('opt')
+    os.chdir('opt')
+
+    for iso in Isomers:
+        if iso.ExtCharge > -10:
+            charge = iso.ExtCharge
+        else:
+            charge = iso.MMCharge
+
+        for num in range(0, len(iso.Conformers)):
+            filename = iso.BaseName + 'ginp' + str(num + 1).zfill(3)
+
+            if os.path.exists(filename + '.out'):
+                if IsGausCompleted(filename + '.out'):
+                    if IsGausConverged(filename + '.out'):
+                        iso.OptOutputFiles.append(filename + '.out')
+                        continue
+                    else:
+                        # If calculation completed, but didn't converge, reuse geometry and resubmit
+                        atoms, coords = ReadGeometry(filename + '.out')
+                        if coords != []:
+                            print('Partially optimised structure found for ' + filename + ', reusing')
+                            iso.Conformers[num] = coords
+                        os.remove(filename + '.out')
+                else:
+                    os.remove(filename + '.out')
+
+            WriteGausFile(filename, iso.Conformers[num], iso.Atoms, charge, settings, 'opt')
+            iso.OptInputFiles.append(filename + '.com')
+
+    os.chdir(jobdir)
+
+    return Isomers
+
+
 def RunNMRCalcs(Isomers, settings):
 
     jobdir = os.getcwd()
@@ -222,6 +262,8 @@ def OptRoute(settings):
 
     route += '\n'
 
+    return route
+
 
 def IsGausCompleted(f):
     Gfile = open(f, 'r')
@@ -229,11 +271,20 @@ def IsGausCompleted(f):
     Gfile.close()
     if len(outp) < 10:
         return False
-    if "Normal termination" in outp[-1]:
+    if ("Normal termination" in outp[-1]) or (('termination' in '\n'.join(outp[-3:])) and ('l9999.exe' in '\n'.join(outp[-3:]))):
         return True
     else:
         return False
 
+def IsGausConverged(f):
+    Gfile = open(f, 'r')
+    outp = Gfile.readlines()
+    Gfile.close()
+    ginp = '\n'.join(outp)
+    if 'Stationary point found' in ginp:
+        return True
+    else:
+        return False
 
 def CheckConvergence(inpfiles):
     #FilesRun - list of files of the form input.com
@@ -252,19 +303,6 @@ def CheckConvergence(inpfiles):
             Nunconverged += 1
             unconverged.append(outfile)
     return len(GoutpFiles), Nunconverged, unconverged
-
-
-def ResubGeOpt(GoutpFiles, settings):
-    for f in GoutpFiles:
-        atoms, coords, charge = ReadGeometry(f[:-8]+'.out')
-        for remf in glob.glob(f[:-8] + '*'):
-            os.remove(remf)
-        #WriteGausFileOpt(f[:-8], coords,atoms,charge,settings)
-        print(f[:-8] + '* deleted and new .com files written')
-    if not os.path.exists('Reoptimized.log'):
-        f = file('Reoptimized.log', 'w')
-        f.write('\n'.join([x[:-8] for x in GoutpFiles]))
-        f.close()
 
 
 #Read energy from e, if not present, then o, if not present, then nmr
@@ -344,39 +382,51 @@ def ReadGeometry(GOutpFile):
 
     gausfile = open(GOutpFile, 'r')
     GOutp = gausfile.readlines()
-
-    print(GOutpFile)
-    print(len(GOutp))
-
-    index = 0
-    atoms = []
-    coords = []
-
-    #Find the geometry section and charge section
-    for index in range(len(GOutp)):
-        if 'Charge =' in GOutp[index]:
-            chindex = index
-        if 'Redundant internal' in GOutp[index]:
-            gindex = index + 1
-
-    #Read shielding constants and labels
-    for line in GOutp[gindex:]:
-        if 'Recover connectivity' in line:
-            break
-        else:
-            data = [_f for _f in line[:-1].split(',') if _f]
-            if data[0][-2:].isalpha():
-                atoms.append(data[0][-2:])
-            else:
-                atoms.append(data[0][-1])
-            coords.append(data[1:])
-            
-    line = GOutp[chindex].split('Charge =  ')
-    line = line[1].split(' Multiplicity = ')
-    charge = int(line[0])
     gausfile.close()
 
-    return atoms, coords, charge
+    atoms = []
+    coords = []
+    gindex = -1
+
+    #Find the last geometry section
+    for index in range(len(GOutp)):
+        if ('Input orientation:' in GOutp[index]) or ("Standard orientation:" in GOutp[index]):
+            gindex = index + 5
+
+    if gindex < 0:
+        print('Error: No geometry found in file ' + GOutpFile)
+        quit()
+
+    #Read geometry
+    for line in GOutp[gindex:]:
+        if '--------------' in line:
+            break
+        else:
+            data = [_f for _f in line[:-1].split(' ') if _f]
+            atoms.append(GetAtomSymbol(int(data[1])))
+            coords.append(data[3:])
+
+    #return atoms, coords, charge
+
+    return atoms, coords
+
+
+def ReadGeometries(Isomers):
+
+    jobdir = os.getcwd()
+    os.chdir('opt')
+
+    for iso in Isomers:
+
+        for num, GOutpFile in enumerate(iso.OptOutputFiles):
+
+            atoms, coords = ReadGeometry(GOutpFile)
+
+            iso.Conformers[num] = coords
+
+    #return atoms, coords, charge
+    os.chdir(jobdir)
+    return Isomers
 
 
 def ReadTempGeometry(GOutpFile):
