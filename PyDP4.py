@@ -189,6 +189,9 @@ def main(settings):
     if ('m' in settings.Workflow) and not(settings.AssumeDone or settings.UseExistingInputs):
         if settings.MM == 't':
             print('\nSetting up Tinker files...')
+            print('Tinker support not implemented yet!')
+            quit()
+
             TinkerInputs = Tinker.SetupTinker(settings)
 
             print('\nRunning Tinker...')
@@ -234,10 +237,10 @@ def main(settings):
             Isomers = DFT.SetupOptCalcs(Isomers, settings)
             print('\nRunning geometry optimization calculations...')
             Isomers = DFT.RunOptCalcs(Isomers, settings)
-            print('\nReading optimized geometries from the output files...')
-            print('...not implemented yet')
-            quit()
-            Isomers = DFT.ReadDFTGeometries(Isomers, settings)
+
+            print('\nReading DFT optimized geometries...')
+
+            Isomers = DFT.ReadGeometries(Isomers)
 
         # Run DFT single-point energy calculations, if requested
         if ('e' in settings.Workflow):
@@ -246,11 +249,10 @@ def main(settings):
             print('\nRunning energy calculations...')
             Isomers = DFT.RunECalcs(Isomers, settings)
             print('\nReading data from the output files...')
-            Isomers = DFT.ReadDFTEnergies(Isomers, settings)
+            Isomers = DFT.ReadEnergies(Isomers, settings)
             print("Energies: ")
             for iso in Isomers:
                 print(iso.InputFile + ": " + str(iso.DFTEnergies))
-
 
         # Run DFT NMR calculations, if requested
         if ('n' in settings.Workflow):
@@ -266,7 +268,7 @@ def main(settings):
                 for conf in iso.ConformerShieldings:
                     print(str(conf))
 
-            Isomers = DFT.ReadDFTEnergies(Isomers, settings)
+            Isomers = DFT.ReadEnergies(Isomers, settings)
             print("Energies: ")
             for iso in Isomers:
                 print(iso.InputFile + ": " + str(iso.DFTEnergies))

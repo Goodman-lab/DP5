@@ -31,7 +31,12 @@ def SetupNMRCalcs(Isomers, settings):
         else:
             charge = iso.MMCharge
 
-        for num in range(0, len(iso.Conformers)):
+        if iso.DFTConformers == []:
+            conformers = iso.Conformers
+        else:
+            conformers = iso.DFTConformers
+
+        for num in range(0, len(conformers)):
             filename = iso.BaseName + 'ginp' + str(num + 1).zfill(3)
 
             if os.path.exists(filename + '.out'):
@@ -41,7 +46,7 @@ def SetupNMRCalcs(Isomers, settings):
                 else:
                     os.remove(filename + '.out')
 
-            WriteGausFile(filename, iso.Conformers[num], iso.Atoms, charge, settings, 'nmr')
+            WriteGausFile(filename, conformers[num], iso.Atoms, charge, settings, 'nmr')
             iso.NMRInputFiles.append(filename + '.com')
 
     os.chdir(jobdir)
@@ -63,7 +68,12 @@ def SetupECalcs(Isomers, settings):
         else:
             charge = iso.MMCharge
 
-        for num in range(0, len(iso.Conformers)):
+        if iso.DFTConformers == []:
+            conformers = iso.Conformers
+        else:
+            conformers = iso.DFTConformers
+
+        for num in range(0, len(conformers)):
             filename = iso.BaseName + 'ginp' + str(num + 1).zfill(3)
 
             if os.path.exists(filename + '.out'):
@@ -73,7 +83,7 @@ def SetupECalcs(Isomers, settings):
                 else:
                     os.remove(filename + '.out')
 
-            WriteGausFile(filename, iso.Conformers[num], iso.Atoms, charge, settings, 'e')
+            WriteGausFile(filename, conformers[num], iso.Atoms, charge, settings, 'e')
             iso.EInputFiles.append(filename + '.com')
 
     os.chdir(jobdir)
@@ -181,6 +191,11 @@ def RunCalcs(GausJobs):
         else:
             print("Gaussian job terminated with an error. Continuing.")
 
+    if NCompleted > 0:
+        print(str(NCompleted) + " Gaussian jobs completed successfully.")
+    elif len(GausJobs) == 0:
+        print("There were no jobs to run.")
+
     return Completed
 
 
@@ -276,6 +291,7 @@ def IsGausCompleted(f):
     else:
         return False
 
+
 def IsGausConverged(f):
     Gfile = open(f, 'r')
     outp = Gfile.readlines()
@@ -286,27 +302,9 @@ def IsGausConverged(f):
     else:
         return False
 
-def CheckConvergence(inpfiles):
-    #FilesRun - list of files of the form input.com
-    #we are looking for the corresponding optimization output files
-    #in the form inputtemp.out
-    GoutpFiles = []
-    for filename in inpfiles:
-        GoutpFiles = GoutpFiles + glob.glob(filename + 'ginp???temp.out')
-    Nunconverged = 0
-    unconverged = []
-    for outfile in GoutpFiles:
-        f = open(outfile, 'r')
-        ginp = '\n'.join(f.readlines())
-        f.close()
-        if not 'Stationary point found' in ginp:
-            Nunconverged += 1
-            unconverged.append(outfile)
-    return len(GoutpFiles), Nunconverged, unconverged
-
 
 #Read energy from e, if not present, then o, if not present, then nmr
-def ReadDFTEnergies(Isomers, settings):
+def ReadEnergies(Isomers, settings):
     jobdir = os.getcwd()
 
     if 'e' in settings.Workflow:
@@ -418,55 +416,17 @@ def ReadGeometries(Isomers):
 
     for iso in Isomers:
 
+        iso.DFTConformers = [[] for x in iso.OptOutputFiles]
+
         for num, GOutpFile in enumerate(iso.OptOutputFiles):
 
             atoms, coords = ReadGeometry(GOutpFile)
 
-            iso.Conformers[num] = coords
+            iso.DFTConformers[num] = coords
 
     #return atoms, coords, charge
     os.chdir(jobdir)
     return Isomers
-
-
-def ReadTempGeometry(GOutpFile):
-    gausfile = open(GOutpFile, 'r')
-    GOutp = gausfile.readlines()
-    gausfile.close()
-
-    if len(GOutp) < 80:
-        return [], [], 0
-
-    index = 0
-    atoms = []
-    coords = []
-    gindex = -1
-    chindex = -1
-
-    # Find the geometry section and charge section
-    for index in range(len(GOutp)):
-        if 'Charge =' in GOutp[index]:
-            chindex = index
-        if ('Input orientation:' in GOutp[index]) or ("Standard orientation:" in GOutp[index]):
-            gindex = index + 5
-
-    if (gindex < 0) or (gindex < 0):
-        return [], [], 0
-
-    # Read shielding constants and labels
-    for line in GOutp[gindex:]:
-        if '--------------' in line:
-            break
-        else:
-            data = [_f for _f in line[:-1].split(' ') if _f]
-            atoms.append(GetAtomSymbol(int(data[1])))
-            coords.append(data[2:])
-
-    line = GOutp[chindex].split('Charge =  ')
-    line = line[1].split(' Multiplicity = ')
-    charge = int(line[0])
-
-    return atoms, coords, charge
 
 
 def GetAtomSymbol(AtomNum):

@@ -28,7 +28,7 @@ SetupOptCalcs = Gaussian.SetupOptCalcs
 
 ReadShieldings = Gaussian.ReadShieldings
 
-ReadDFTEnergies = Gaussian.ReadDFTEnergies
+ReadDFTEnergies = Gaussian.ReadEnergies
 
 IsGausCompleted = Gaussian.IsGausCompleted
 

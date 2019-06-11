@@ -26,7 +26,9 @@ SetupOptCalcs = Gaussian.SetupOptCalcs
 
 ReadShieldings = Gaussian.ReadShieldings
 
-ReadDFTEnergies = Gaussian.ReadDFTEnergies
+ReadEnergies = Gaussian.ReadEnergies
+
+ReadGeometries = Gaussian.ReadGeometries
 
 IsGausCompleted = Gaussian.IsGausCompleted
 
@@ -123,8 +125,11 @@ def RunCalcs(GausJobs, settings):
             Completed.append(f[:-4] + '.out')
             NCompleted += 1
 
-    print(str(NCompleted) + "Gaussian jobs of " + str(len(GausJobs)) + \
-        " completed successfully.")
+    if NCompleted > 0:
+        print(str(NCompleted) + " Gaussian jobs of " + str(len(GausJobs)) + \
+            " completed successfully.")
+    elif len(GausJobs) == 0:
+        print("There were no jobs to run.")
 
     return Completed
 
