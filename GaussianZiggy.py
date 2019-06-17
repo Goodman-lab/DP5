@@ -2,7 +2,7 @@
 
 # -*- coding: utf-8 -*-
 """
-Created on Wed Nov 19 15:56:54 2014
+Created on Wed Apr 19 15:56:54 2019
 
 @author: ke291
 
@@ -143,8 +143,6 @@ def RunBatchOnZiggy(findex, queue, GausFiles, settings):
         folder = settings.StartTime + settings.Title
     else:
         folder = settings.StartTime + findex + settings.Title
-
-    scrfolder = settings.StartTime + settings.Title
 
     #Check that folder does not exist, create job folder on ziggy
     outp = subprocess.check_output('ssh ziggy ls', shell=True)

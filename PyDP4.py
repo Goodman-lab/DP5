@@ -361,6 +361,8 @@ if __name__ == '__main__':
     to use for Gaussian calculations", type=int, default=1)
     parser.add_argument("--batch", help="Specify max number of jobs per batch",
     type=int, default=settings.MaxConcurrentJobsZiggy)
+    parser.add_argument("--project", help="Specify project for job submission\
+    on darwin", default=settings.project)
     parser.add_argument("--ConfLimit", help="Specify maximum number of \
     conformers per structure. If above this, adaptive RMSD pruning will be \
     performed", type=int, default=settings.PerStructConfLimit)
@@ -424,6 +426,7 @@ if __name__ == '__main__':
     settings.eFunctional = args.eFunctional
     settings.nProc = args.nProc
     settings.MaxConcurrentJobs = args.batch
+    settings.project = args.project
     settings.MaxDFTOptCycles = args.OptCycles
     if args.FC:
         settings.CalcFC = True

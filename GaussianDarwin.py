@@ -2,19 +2,17 @@
 
 # -*- coding: utf-8 -*-
 """
-Created on Wed Nov 19 15:56:54 2014
-Rewritten during April 2019
+Created on Wed Apr 19 15:56:54 2019
 
 @author: ke291
 
-Contains all of the Gaussian specific code for input generation and calculation
-execution. Called by PyDP4.py.
+Contains all of the specific code for running Gaussian jobs on Darwin.
+A lot of code is reused from Gaussian.py. Called by PyDP4.py.
 """
 
 import subprocess
 import os
 import time
-import glob
 import shutil
 import math
 
@@ -28,12 +26,14 @@ SetupOptCalcs = Gaussian.SetupOptCalcs
 
 ReadShieldings = Gaussian.ReadShieldings
 
-ReadDFTEnergies = Gaussian.ReadEnergies
+ReadEnergies = Gaussian.ReadEnergies
+
+ReadGeometries = Gaussian.ReadGeometries
 
 IsGausCompleted = Gaussian.IsGausCompleted
 
 def RunNMRCalcs(Isomers, settings):
-    print('\nRunning Gaussian NMR calculations on Ziggy...')
+    print('\nRunning Gaussian NMR calculations on Darwin...')
 
     # Run Gaussian jobs on Ziggy cluster in folder named after date and time
     # Split in batches, if needed
@@ -83,7 +83,7 @@ def RunCalcs(GausJobs, settings):
 
     if len(GausJobs) < MaxCon:
         if len(GausJobs) > 0:
-            RunBatchOnZiggy(0, settings.queue, GausJobs, settings)
+            RunBatchOnDarwin(0, GausJobs, settings)
     else:
         if len(GausJobs) > 0:
             print("The DFT calculations will be done in " + \
@@ -91,10 +91,10 @@ def RunCalcs(GausJobs, settings):
             i = 0
             while (i + 1) * MaxCon < len(GausJobs):
                 print("Starting batch nr " + str(i + 1))
-                RunBatchOnZiggy(str(i + 1), settings.queue, GausJobs[(i * MaxCon):((i + 1) * MaxCon)], settings)
+                RunBatchOnDarwin(str(i + 1), GausJobs[(i * MaxCon):((i + 1) * MaxCon)], settings)
                 i += 1
             print("Starting batch nr " + str(i + 1))
-            RunBatchOnZiggy(str(i + 1), settings.queue, GausJobs[(i * MaxCon):], settings)
+            RunBatchOnDarwin(str(i + 1), GausJobs[(i * MaxCon):], settings)
 
     NCompleted = 0
     Completed = []
@@ -126,7 +126,7 @@ def RunBatchOnDarwin(findex, GausJobs, settings):
       stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
     print("Results folder: " + folder)
     
-    if folder in outp:
+    if folder in outp.decode():
         print("Results folder exists on Darwin, choose another folder name.")
         quit()
 
@@ -138,7 +138,7 @@ def RunBatchOnDarwin(findex, GausJobs, settings):
                             stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
     print("Scratch directory: " + settings.DarwinScrDir + scrfolder)
 
-    if folder in outp:
+    if folder in outp.decode():
         print("Scratch folder exists on Darwin, choose another folder name.")
         quit()
 
@@ -153,20 +153,10 @@ def RunBatchOnDarwin(findex, GausJobs, settings):
     #Upload .com files and slurm files to directory
     print("Uploading files to darwin...")
     for f in GausJobs:
-        if (not settings.DFTOpt) and (not settings.PM6Opt) and (not settings.HFOpt)\
-            and (not settings.M06Opt):
-            outp = subprocess.Popen(['scp', f,
-            'darwin:/home/' + settings.user + '/' + folder],
-            stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
+        outp = subprocess.Popen(['scp', f,
+        'darwin:/home/' + settings.user + '/' + folder],
+        stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
         
-        else:
-            outp = subprocess.Popen(['scp', f[:-4] + 'a.com',
-                'darwin:/home/' + settings.user + '/' + folder],
-                stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
-            outp = subprocess.Popen(['scp', f[:-4] + 'b.com',
-                'darwin:/home/' + settings.user + '/' + folder],
-                stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
-    
     for f in SubFiles:
         
         outp = subprocess.Popen(['scp', f,
@@ -181,7 +171,7 @@ def RunBatchOnDarwin(findex, GausJobs, settings):
     for f in SubFiles:
         outp = subprocess.Popen(['ssh', 'darwin', 'cd ' + fullfolder + ';sbatch', f], \
             stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
-        print(outp.split('\n')[-2])
+        print(outp.decode().split('\n')[-2])
 
     print(str(len(SubFiles)) + ' jobs submitted to the queue on darwin ' + \
         'containing ' + str(len(GausJobs)) + ' Gaussian jobs')
@@ -208,7 +198,7 @@ def RunBatchOnDarwin(findex, GausJobs, settings):
     #                               '/' + folder + '/*.out ' + socket.getfqdn()
     #                               + ':' + os.getcwd(), shell=True)
         
-    outp = subprocess.Popen(['scp', 'darwin:' + fullfolder + '/*.out ',
+    outp = subprocess.Popen(['scp', 'darwin:' + fullfolder + '/*.out',
             os.getcwd() + '/'], \
             stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
 
@@ -261,28 +251,19 @@ def WriteSlurm(GausJobs, settings, scrfolder, index=''):
     slurmf = open(filename, 'r+')
     slurm = slurmf.readlines()
     slurm[12] = '#SBATCH -J ' + settings.Title + '\n'
+    slurm[14] = '#SBATCH -A ' + settings.project + '\n'
     slurm[19] = '#SBATCH --ntasks=' + str(len(GausJobs)*settings.nProc) + '\n'
     slurm[21] = '#SBATCH --time=' + format(settings.TimeLimit,"02") +\
         ':00:00\n'
 
     slurm[61] = 'export GAUSS_SCRDIR=' + settings.DarwinScrDir + scrfolder + '\n'
     
-    if (not settings.DFTOpt) and (not settings.PM6Opt) and (not settings.HFOpt)\
-        and (not settings.M06Opt):
-            
-        for f in GausJobs:
-            slurm.append('srun --exclusive -n1 $application < ' + f[:-3] + \
-                'com > ' + f[:-3] + 'out 2> error &\n')
-            #slurm.append('$application < ' + f[:-3] + \
-            #             'com > ' + f[:-3] + 'out 2> error &\n')
-        slurm.append('wait\n')
-    else:
-        for f in GausJobs:
-            slurm.append('(srun --exclusive -n1 -c' + str(settings.nProc) + ' $application < ' + f[:-4] + \
-                'a.com > ' + f[:-4] + 'temp.out 2> error;')
-            slurm.append('srun --exclusive -n1 -c' + str(settings.nProc) + ' $application < ' + f[:-4] + \
-                         'b.com > ' + f[:-4] + '.out 2> error) &\n')
-        slurm.append('wait\n')
+    for f in GausJobs:
+        slurm.append('srun --exclusive -n1 $application < ' + f[:-3] + \
+            'com > ' + f[:-3] + 'out 2> error &\n')
+        #slurm.append('$application < ' + f[:-3] + \
+        #             'com > ' + f[:-3] + 'out 2> error &\n')
+    slurm.append('wait\n')
 
     slurmf.truncate(0)
     slurmf.seek(0)
@@ -301,22 +282,10 @@ def IsDarwinGComplete(GausJobs, folder, settings):
             stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
         #outp = subprocess.check_output('ssh darwin cat ' + path + f,
         #                                    shell=True)
-        if "Normal termination" in outp[-90:]:
+        if "Normal termination" in outp[-90:].decode():
             results[f[:-3] + 'out'] = True
         else:
             results[f[:-3] + 'out'] = False
     
     return results
 
-
-def ResubGeOpt(GoutpFiles, settings):
-    for f in GoutpFiles:
-        atoms, coords, charge = ReadGeometry(f[:-8]+'.out')
-        for remf in glob.glob(f[:-8] + '*'):
-            os.remove(remf)
-        WriteGausFileOpt(f[:-8], coords,atoms,charge,settings)
-        print(f[:-8] + '* deleted and new .com files written')
-    if not os.path.exists('Reoptimized.log'):
-        f = file('Reoptimized.log', 'w')
-        f.write('\n'.join([x[:-8] for x in GoutpFiles]))
-        f.close()
