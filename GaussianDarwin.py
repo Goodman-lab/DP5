@@ -35,7 +35,7 @@ IsGausCompleted = Gaussian.IsGausCompleted
 def RunNMRCalcs(Isomers, settings):
     print('\nRunning Gaussian NMR calculations on Darwin...')
 
-    # Run Gaussian jobs on Ziggy cluster in folder named after date and time
+    # Run Gaussian jobs on CSD3 cluster in folder named after date and time
     # Split in batches, if needed
 
     jobdir = os.getcwd()
@@ -57,7 +57,7 @@ def RunNMRCalcs(Isomers, settings):
 
 
 def RunECalcs(Isomers, settings):
-    print('\nRunning Gaussian DFT energy calculations on Ziggy...')
+    print('\nRunning Gaussian DFT energy calculations on Darwin...')
 
     jobdir = os.getcwd()
     os.chdir('e')
@@ -194,10 +194,7 @@ def RunBatchOnDarwin(findex, GausJobs, settings):
     #When done, copy the results back
     print("\nCopying the output files back to localhost...")
     print('scp darwin:' + fullfolder + '/*.out ' + os.getcwd() + '/')
-    #outp = subprocess.check_output('ssh darwin scp /home/' + settings.user +
-    #                               '/' + folder + '/*.out ' + socket.getfqdn()
-    #                               + ':' + os.getcwd(), shell=True)
-        
+
     outp = subprocess.Popen(['scp', 'darwin:' + fullfolder + '/*.out',
             os.getcwd() + '/'], \
             stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
@@ -205,8 +202,7 @@ def RunBatchOnDarwin(findex, GausJobs, settings):
     fullscrfolder = settings.DarwinScrDir + scrfolder
     print("\nDeleting scratch folder...")
     print('ssh darwin rm -r ' + fullscrfolder)
-    #outp = subprocess.check_output('ssh darwin rm /home/' + settings.user +
-    #                               '/' + folder + '/*.chk', shell=True)
+
     outp = subprocess.Popen(['ssh', 'darwin', 'rm -r', fullscrfolder], \
             stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
     
@@ -214,13 +210,22 @@ def RunBatchOnDarwin(findex, GausJobs, settings):
 def WriteDarwinScripts(GausJobs, settings, scrfolder):
 
     SubFiles = []
-    NodeSize = settings.DarwinNodeSize
     AdjNodeSize = int(math.floor(settings.DarwinNodeSize/settings.nProc))
 
-    if len(GausJobs) <= AdjNodeSize:
-
+    # If the jobs exactly fill the node, just write the submission script
+    if len(GausJobs) == AdjNodeSize:
         SubFiles.append(WriteSlurm(GausJobs, settings, scrfolder))
-    
+
+    # If the jobs do not fill the node, increase the processor count to fill it
+    elif len(GausJobs) < AdjNodeSize:
+        NewNProc = int(math.floor(settings.DarwinNodeSize / len(GausJobs)))
+        SubFiles.append(WriteSlurm(GausJobs, settings, scrfolder, nProc=NewNProc))
+        print("Jobs don't fill the Darwin node, nproc increased to " + str(NewNProc))
+        for j, GausJob in enumerate(GausJobs):
+            line = '%nprocshared=' + str(NewNProc) + '\n'
+            ReplaceLine(GausJob, 0, line)
+
+    # If the jobs more than fill the node, submit as several jobs
     else:
         print("The Gaussian calculations will be submitted as " +\
                     str(math.ceil(len(GausJobs)/AdjNodeSize)) + \
@@ -229,20 +234,33 @@ def WriteDarwinScripts(GausJobs, settings, scrfolder):
         while (i+1)*AdjNodeSize < len(GausJobs):
             PartGausJobs = list(GausJobs[(i*AdjNodeSize):((i+1)*AdjNodeSize)])
             print("Writing script nr " + str(i+1))
-            
             SubFiles.append(WriteSlurm(PartGausJobs, settings, scrfolder, str(i+1)))
             
             i += 1
         
         PartGausJobs = list(GausJobs[(i*AdjNodeSize):])
-        print("Writing script nr " + str(i+1))
-        SubFiles.append(WriteSlurm(PartGausJobs, settings, scrfolder, str(i+1)))
-        
+
+        # if the last few jobs do not fill the node, increase the processor count to fill it
+        if len(PartGausJobs) < AdjNodeSize:
+            NewNProc = int(math.floor(settings.DarwinNodeSize / len(PartGausJobs)))
+            print("Jobs don't fill the last Darwin node, nproc increased to " + str(NewNProc))
+            print("Writing script nr " + str(i + 1))
+            SubFiles.append(WriteSlurm(PartGausJobs, settings, scrfolder, str(i+1), nProc=NewNProc))
+            for j, GausJob in enumerate(PartGausJobs):
+                line = '%nprocshared=' + str(NewNProc) + '\n'
+                ReplaceLine(GausJob, 0, line)
+        else:
+            print("Writing script nr " + str(i + 1))
+            SubFiles.append(WriteSlurm(PartGausJobs, settings, scrfolder, str(i+1)))
+
     return SubFiles
 
 
-def WriteSlurm(GausJobs, settings, scrfolder, index=''):
-    
+def WriteSlurm(GausJobs, settings, scrfolder, index='', nProc = -1):
+
+    if nProc == -1:
+        nProc = settings.nProc
+
     cwd = os.getcwd()
     filename = settings.Title + 'slurm' + index
     
@@ -252,17 +270,16 @@ def WriteSlurm(GausJobs, settings, scrfolder, index=''):
     slurm = slurmf.readlines()
     slurm[12] = '#SBATCH -J ' + settings.Title + '\n'
     slurm[14] = '#SBATCH -A ' + settings.project + '\n'
-    slurm[19] = '#SBATCH --ntasks=' + str(len(GausJobs)*settings.nProc) + '\n'
+    slurm[19] = '#SBATCH --ntasks=' + str(len(GausJobs)*nProc) + '\n'
     slurm[21] = '#SBATCH --time=' + format(settings.TimeLimit,"02") +\
         ':00:00\n'
 
     slurm[61] = 'export GAUSS_SCRDIR=' + settings.DarwinScrDir + scrfolder + '\n'
     
     for f in GausJobs:
-        slurm.append('srun --exclusive -n1 $application < ' + f[:-3] + \
+        slurm.append('srun --exclusive -n1 -c' + str(nProc) + ' $application < ' + f[:-3] + \
             'com > ' + f[:-3] + 'out 2> error &\n')
-        #slurm.append('$application < ' + f[:-3] + \
-        #             'com > ' + f[:-3] + 'out 2> error &\n')
+
     slurm.append('wait\n')
 
     slurmf.truncate(0)
@@ -280,8 +297,7 @@ def IsDarwinGComplete(GausJobs, folder, settings):
     for f in GausJobs:
         outp = subprocess.Popen(['ssh', 'darwin', 'cat', path + f[:-3] + 'out'], \
             stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
-        #outp = subprocess.check_output('ssh darwin cat ' + path + f,
-        #                                    shell=True)
+
         if "Normal termination" in outp[-90:].decode():
             results[f[:-3] + 'out'] = True
         else:
@@ -289,3 +305,43 @@ def IsDarwinGComplete(GausJobs, folder, settings):
     
     return results
 
+
+def CheckDarwinQueue(JobIDs, settings):
+
+    outp = subprocess.Popen(['ssh', 'darwin', 'squeue', '-u ' + settings.user], \
+                            stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
+    outp = outp.split('\n')
+    QStart = -1000
+    for i, line in enumerate(outp):
+        if 'JOBID' in line:
+            QStart = i+1
+            break
+
+    if QStart < 0:
+        return -100, -100, -100
+
+    QueueReport = outp[QStart:-1]
+    JobStats = []
+
+    for job in JobIDs:
+        status = ''
+        for i, line in enumerate(QueueReport):
+            if job in line:
+                status = filter(None, line.split(' '))[4]
+        JobStats.append(status)
+
+    Pending = JobStats.count('PD')
+    Running = JobStats.count('R')
+    NotInQueue = JobStats.count('')
+
+    return Pending, Running, NotInQueue
+
+
+def ReplaceLine(File, LineN, Line):
+    gausf = open(File, 'r+')
+    gauslines = gausf.readlines()
+    gauslines[LineN] = Line
+    gausf.truncate(0)
+    gausf.seek(0)
+    gausf.writelines(gauslines)
+    gausf.close()

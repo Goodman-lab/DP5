@@ -277,3 +277,31 @@ def IsZiggyGComplete(f, folder, settings):
             return True
     return False
 
+
+def CheckZiggyQueue(JobIDs, settings):
+
+    outp = subprocess.Popen(['ssh', 'ziggy', 'qstat', '-u ' + settings.user], \
+                            stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
+    outp = outp.split('\n')
+
+    QStart = 0
+    for i, line in enumerate(outp):
+        if '------' in line:
+            QStart = i+1
+            break
+    QueueReport = outp[QStart:-1]
+
+    JobStats = []
+
+    for job in JobIDs:
+        status = ''
+        for i, line in enumerate(QueueReport):
+            if job in line:
+                status = filter(None, line.split(' '))[9]
+        JobStats.append(status)
+
+    Pending = JobStats.count('Q')
+    Running = JobStats.count('R')
+    NotInQueue = JobStats.count('')
+
+    return Pending, Running, NotInQueue
