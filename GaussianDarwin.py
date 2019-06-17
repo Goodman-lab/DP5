@@ -220,7 +220,7 @@ def RunBatchOnDarwin(findex, GausJobs, settings):
              not JobFinished[job[:-3] + 'out']]
         if n2complete != len(Jobs2Complete):
             n2complete = len(Jobs2Complete)
-            print(str(n2complete) + " remaining.")
+            print(str(n2complete) + " Gaussian jobs remaining.")
 
         QRes = CheckDarwinQueue(JobIDs, settings)
         if QRes != OldQRes:
@@ -228,6 +228,7 @@ def RunBatchOnDarwin(findex, GausJobs, settings):
                 QRes = OldQRes
             else:
                 OldQRes = QRes
+                print('Darwin queue:')
                 print('Pending: ' + str(OldQRes[0]) + ', Running: ' + str(OldQRes[1]) + ', Not in queue: ' + str(OldQRes[2]))
 
 

@@ -131,6 +131,32 @@ def SetupOptCalcs(Isomers, settings):
     return Isomers
 
 
+def Converged(Isomers):
+
+    jobdir = os.getcwd()
+
+    if not os.path.exists('opt'):
+        os.chdir(jobdir)
+        return False
+
+    os.chdir('opt')
+
+    for iso in Isomers:
+        for num in range(0, len(iso.Conformers)):
+            filename = iso.BaseName + 'ginp' + str(num + 1).zfill(3)
+
+            if os.path.exists(filename + '.out'):
+                if IsGausConverged(filename + '.out') == False:
+                    os.chdir(jobdir)
+                    return False
+            else:
+                os.chdir(jobdir)
+                return False
+
+    os.chdir(jobdir)
+    return True
+
+
 def RunNMRCalcs(Isomers, settings):
 
     jobdir = os.getcwd()

@@ -242,6 +242,10 @@ def main(settings):
 
             Isomers = DFT.ReadGeometries(Isomers)
 
+            #Add convergence check here before continuing with calcs!
+            if DFT.Converged(Isomers) == False:
+                print('Some of the conformers did not converge, quitting...')
+
         # Run DFT single-point energy calculations, if requested
         if ('e' in settings.Workflow):
             print('\nSetting up energy calculations...')
