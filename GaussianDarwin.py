@@ -77,6 +77,27 @@ def RunECalcs(Isomers, settings):
     return Isomers
 
 
+def RunOptCalcs(Isomers, settings):
+    print('\nRunning Gaussian DFT geometry optimizations on Darwin...')
+
+    jobdir = os.getcwd()
+    os.chdir('opt')
+
+    GausJobs = []
+
+    for iso in Isomers:
+        GausJobs.extend([x for x in iso.OptInputFiles if (x[:-4] + '.out') not in iso.OptOutputFiles])
+
+    Completed = RunCalcs(GausJobs, settings)
+
+    for iso in Isomers:
+        iso.OptOutputFiles.extend([x[:-4] + '.out' for x in iso.OptInputFiles if (x[:-4] + '.out') in Completed])
+
+    os.chdir(jobdir)
+
+    return Isomers
+
+
 def RunCalcs(GausJobs, settings):
 
     MaxCon = settings.MaxConcurrentJobs
@@ -119,8 +140,6 @@ def RunBatchOnDarwin(findex, GausJobs, settings):
 
     scrfolder = settings.StartTime + settings.Title
 
-    print("Darwin GAUSSIAN job submission script\n")
-    
     #Check that results folder does not exist, create job folder on darwin
     outp = subprocess.Popen(['ssh', 'darwin', 'ls'], \
       stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
@@ -167,15 +186,29 @@ def RunBatchOnDarwin(findex, GausJobs, settings):
         ' slurm files uploaded to darwin')
     
     fullfolder = '/home/' + settings.user + '/' + folder
+    JobIDs = []
+
     #Launch the calculations
     for f in SubFiles:
         outp = subprocess.Popen(['ssh', 'darwin', 'cd ' + fullfolder + ';sbatch', f], \
             stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
-        print(outp.decode().split('\n')[-2])
+        status = outp.decode().split('\n')[-2]
+        print(status)
+        JobIDs.append(status.split('job ')[1])
 
     print(str(len(SubFiles)) + ' jobs submitted to the queue on darwin ' + \
         'containing ' + str(len(GausJobs)) + ' Gaussian jobs')
-    
+
+    time.sleep(60)
+
+    OldQRes = CheckDarwinQueue(JobIDs, settings)
+
+    while OldQRes[0] < 0:
+        OldQRes = CheckDarwinQueue(JobIDs, settings)
+        time.sleep(60)
+
+    print('Pending: ' + str(OldQRes[0]) + ', Running: ' + str(OldQRes[1]) + ', Not in queue: ' + str(OldQRes[2]))
+
     Jobs2Complete = list(GausJobs)
     n2complete = len(Jobs2Complete)
     
@@ -188,6 +221,20 @@ def RunBatchOnDarwin(findex, GausJobs, settings):
         if n2complete != len(Jobs2Complete):
             n2complete = len(Jobs2Complete)
             print(str(n2complete) + " remaining.")
+
+        QRes = CheckDarwinQueue(JobIDs, settings)
+        if QRes != OldQRes:
+            if QRes[0] < 0:
+                QRes = OldQRes
+            else:
+                OldQRes = QRes
+                print('Pending: ' + str(OldQRes[0]) + ', Running: ' + str(OldQRes[1]) + ', Not in queue: ' + str(OldQRes[2]))
+
+
+        if (QRes[2] == len(JobIDs)) and (QRes[0] >= 0):
+            #check each gaussian file to ascertain the status of individual gaus jobs
+            print('No jobs left in Darwin queue')
+            break
 
         time.sleep(180)
 
@@ -310,7 +357,7 @@ def CheckDarwinQueue(JobIDs, settings):
 
     outp = subprocess.Popen(['ssh', 'darwin', 'squeue', '-u ' + settings.user], \
                             stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
-    outp = outp.split('\n')
+    outp = outp.decode().split('\n')
     QStart = -1000
     for i, line in enumerate(outp):
         if 'JOBID' in line:
@@ -327,7 +374,7 @@ def CheckDarwinQueue(JobIDs, settings):
         status = ''
         for i, line in enumerate(QueueReport):
             if job in line:
-                status = filter(None, line.split(' '))[4]
+                status = list(filter(None, line.split(' ')))[4]
         JobStats.append(status)
 
     Pending = JobStats.count('PD')

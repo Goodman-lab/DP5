@@ -144,6 +144,8 @@ def RunBatchOnZiggy(findex, queue, GausFiles, settings):
     else:
         folder = settings.StartTime + findex + settings.Title
 
+    print("Setting up jobs for running on ziggy...\n")
+
     #Check that folder does not exist, create job folder on ziggy
     outp = subprocess.check_output('ssh ziggy ls', shell=True)
     if folder in outp.decode():
@@ -282,7 +284,7 @@ def CheckZiggyQueue(JobIDs, settings):
 
     outp = subprocess.Popen(['ssh', 'ziggy', 'qstat', '-u ' + settings.user], \
                             stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
-    outp = outp.split('\n')
+    outp = outp.decode().split('\n')
 
     QStart = 0
     for i, line in enumerate(outp):
@@ -297,7 +299,7 @@ def CheckZiggyQueue(JobIDs, settings):
         status = ''
         for i, line in enumerate(QueueReport):
             if job in line:
-                status = filter(None, line.split(' '))[9]
+                status = list(filter(None, line.split(' ')))[9]
         JobStats.append(status)
 
     Pending = JobStats.count('Q')
