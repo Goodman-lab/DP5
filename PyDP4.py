@@ -233,6 +233,10 @@ def main(settings):
 
         # Run DFT optimizations, if requested
         if ('o' in settings.Workflow):
+
+            now = datetime.datetime.now()
+            settings.StartTime = now.strftime('%d%b%H%M')
+
             print('\nSetting up geometry optimization calculations...')
             Isomers = DFT.SetupOptCalcs(Isomers, settings)
             print('\nRunning geometry optimization calculations...')
@@ -245,9 +249,14 @@ def main(settings):
             #Add convergence check here before continuing with calcs!
             if DFT.Converged(Isomers) == False:
                 print('Some of the conformers did not converge, quitting...')
+                quit()
 
         # Run DFT single-point energy calculations, if requested
         if ('e' in settings.Workflow):
+
+            now = datetime.datetime.now()
+            settings.StartTime = now.strftime('%d%b%H%M')
+
             print('\nSetting up energy calculations...')
             Isomers = DFT.SetupECalcs(Isomers, settings)
             print('\nRunning energy calculations...')
@@ -260,6 +269,10 @@ def main(settings):
 
         # Run DFT NMR calculations, if requested
         if ('n' in settings.Workflow):
+
+            now = datetime.datetime.now()
+            settings.StartTime = now.strftime('%d%b%H%M')
+
             print('\nSetting up NMR calculations...')
             Isomers = DFT.SetupNMRCalcs(Isomers, settings)
             print('\nRunning NMR calculations...')
@@ -278,15 +291,15 @@ def main(settings):
                 print(iso.InputFile + ": " + str(iso.DFTEnergies))
 
     else:
-        # Run DFT optimizations, if requested
+        # Read DFT optimized geometries, if requested
         if ('o' in settings.Workflow):
             Isomers = DFT.ReadDFTGeometries(Isomers, settings)
 
-        # Run DFT single-point energy calculations, if requested
+        # Read DFT single-point energies, if requested
         if ('e' in settings.Workflow):
             Isomers = DFT.ReadDFTEnergies(Isomers, settings)
 
-        # Run DFT NMR calculations, if requested
+        # Read DFT NMR data, if requested
         if ('n' in settings.Workflow):
             Isomers = DFT.ReadShieldings(Isomers)
             Isomers = DFT.ReadDFTEnergies(Isomers)

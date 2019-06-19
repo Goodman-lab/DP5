@@ -32,6 +32,8 @@ ReadGeometries = Gaussian.ReadGeometries
 
 IsGausCompleted = Gaussian.IsGausCompleted
 
+Converged = Gaussian.Converged
+
 def RunNMRCalcs(Isomers, settings):
     print('\nRunning Gaussian NMR calculations on Darwin...')
 

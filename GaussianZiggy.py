@@ -32,6 +32,8 @@ ReadGeometries = Gaussian.ReadGeometries
 
 IsGausCompleted = Gaussian.IsGausCompleted
 
+Converged = Gaussian.Converged
+
 def RunNMRCalcs(Isomers, settings):
     print('\nRunning Gaussian NMR calculations on Ziggy...')
 
@@ -171,16 +173,24 @@ def RunBatchOnZiggy(findex, queue, GausFiles, settings):
 
     print(str(len(GausFiles)) + ' .com and slurm files uploaded to ziggy')
 
+    JobIDs = []
     #Launch the calculations
     for f in GausFiles:
         job = '~/' + folder + '/' + f[:-4]
         outp = subprocess.check_output('ssh ziggy sbatch ' + job + 'slurm', shell=True)
+        status = outp.decode()[:-1]
+        print(status)
+        JobIDs.append(status.split('job ')[1])
 
     print(str(len(GausFiles)) + ' jobs submitted to the queue on ziggy')
 
     outp = subprocess.check_output('ssh ziggy qstat', shell=True)
     if settings.user in outp.decode():
         print("Jobs are running on ziggy")
+
+    time.sleep(60)
+    OldQRes = CheckZiggyQueue(JobIDs, settings)
+    print('Pending: ' + str(OldQRes[0]) + ', Running: ' + str(OldQRes[1]) + ', Not in queue: ' + str(OldQRes[2]))
 
     Jobs2Complete = list(GausFiles)
     n2complete = len(Jobs2Complete)
@@ -195,7 +205,17 @@ def RunBatchOnZiggy(findex, queue, GausFiles, settings):
             n2complete = len(Jobs2Complete)
             print(str(n2complete) + " remaining.")
 
-        time.sleep(60)
+        QRes = CheckZiggyQueue(JobIDs, settings)
+        if QRes != OldQRes:
+            OldQRes = QRes
+            print('Pending: ' + str(OldQRes[0]) + ', Running: ' + str(OldQRes[1]) + ', Not in queue: ' + str(OldQRes[2]))
+
+        if QRes[2] == len(JobIDs):
+            #check each gaussian file to ascertain the status of individual gaus jobs
+            print('No jobs left in Ziggy queue')
+            break
+
+        time.sleep(120)
 
     #When done, copy the results back
     print("\nCopying the output files back to localhost...")
