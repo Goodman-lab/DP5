@@ -34,7 +34,7 @@ The main file, that should be called to start the PyDP4 workflow.
 Interprets the arguments and takes care of the general workflow logic.
 """
 
-import NMRAnalysis
+import NMR
 import Tinker
 import MacroModel
 import DP4
@@ -73,7 +73,7 @@ class Settings:
                     # o for DFT optimization
                     # e for DFT single-point energies
                     # n for DFT NMR calculation
-                    # a for computational and experimental NMR data extraction and stats analysis
+                    # s for computational and experimental NMR data extraction and stats analysis
     Solvent = ''    # solvent for DFT optimization and NMR calculation
     ScriptDir = ''  # Script directory, automatically set on launch
     InputFiles = [] # Structure input files - can be MacroModel *-out.mae or *sdf files
@@ -125,12 +125,12 @@ class Settings:
     MaxConcurrentJobsDarwin = 320 # Max concurrent jobs to submit on CSD3
 
     # --- NMR analysis ---
-    TMS_SC_C13 = 191.69255      #Default TMS reference C shielding constant (from B3LYP/6-31g**)
-    TMS_SC_H1 = 31.7518583      #Default TMS reference H shielding constant (from B3LYP/6-31g**)
+    TMS_SC_C13 = 191.69255      # Default TMS reference C shielding constant (from B3LYP/6-31g**)
+    TMS_SC_H1 = 31.7518583      # Default TMS reference H shielding constant (from B3LYP/6-31g**)
 
     # --- Stats ---
-    StatsModel = 'g'            #What statistical model type to use
-    StatsParamFile = ''         #Where to find statistical model parameters
+    StatsModel = 'g'            # What statistical model type to use
+    StatsParamFile = ''         # Where to find statistical model parameters
 
 settings = Settings()
 
@@ -146,8 +146,10 @@ class Isomer:
         self.RMSDCutoff = 0         # RMSD cutoff eventually used to get the conformer number below the limit
         self.DFTConformers = []     # from DFT optimizations, list of atom coordinate lists
         self.ConfIndices = []       # List of conformer indices from the original conformational search for reference
-        self.MMEnergies = []        # Corresponding MM energies
-        self.DFTEnergies = []       # Corresponding DFT energies
+        self.MMEnergies = []        # Corresponding MM energies in kj/mol
+        self.DFTEnergies = []       # Corresponding DFT energies in hartrees
+        self.Energies = []          # Final energies used in conformer population prediction in kj/mol
+        self.Populations = []       # Conformer populations
         self.OptInputFiles = []     # list of DFT NMR input file names
         self.OptOutputFiles = []    # list of DFT NMR output file names
         self.EInputFiles = []     # list of DFT NMR input file names
@@ -156,9 +158,9 @@ class Isomer:
         self.NMROutputFiles = []    # list of DFT NMR output file names
         self.ShieldingLabels = []   # A list of atom labels corresponding to the shielding values
         self.ConformerShieldings = [] # list of calculated NMR shielding constant lists for every conformer
-        self.IsomerShieldings = []  #Boltzmann weighted NMR shielding constant list for the isomer
-        self.Cshifts = []           #Calculated C NMR shifts
-        self.Hshifts = []           #Calculated H NMR shifts
+        self.IsomerShieldings = []  # Boltzmann weighted NMR shielding constant list for the isomer
+        self.Cshifts = []           # Calculated C NMR shifts
+        self.Hshifts = []           # Calculated H NMR shifts
 
 
 def main(settings):
@@ -305,17 +307,37 @@ def main(settings):
             Isomers = DFT.ReadDFTEnergies(Isomers)
 
 
-    if not(NMRAnalysis.NMRDataValid(Isomers)) or ('n' not in settings.Workflow):
+    if not(NMR.NMRDataValid(Isomers)) or ('n' not in settings.Workflow):
 
         print('\nNo NMR data calculated, quitting...')
         quit()
 
-    if 'a' in settings.Workflow:
+    if 's' in settings.Workflow:
+
+        print('\nSetting TMS computational NMR shielding constant references')
+        settings.TMS_SC_C13, settings.TMS_SC_H1 = NMR.GetTMSConstants(settings)
+
         print('\nConverting DFT data to NMR shifts...')
-        Isomers = NMRAnalysis.CalcBoltzmannWeightedShieldings(Isomers, settings)
-        Isomers = NMRAnalysis.CalcNMRShifts(Isomers, settings)
+        Isomers = NMR.CalcBoltzmannWeightedShieldings(Isomers)
+        Isomers = NMR.CalcNMRShifts(Isomers, settings)
+
+        print('\nReading experimental NMR data...')
+        NMRData = NMR.NMRData(settings.NMRsource)
+
+        print("Conformation data:")
+        NMR.PrintConformationData(Isomers)
+
+        if NMRData.Type == 'desc':
+            print('Experimental NMR description found and read.')
+            print('\nFurther analysis not implemented yet, quitting...')
+            quit()
+        elif NMRData.Type == 'fid':
+            print('Raw FID NMR datafound and read.')
+            print('\nFurther analysis not implemented yet, quitting...')
+            quit()
+
         print('\nProcessing experimental NMR data...')
-        NMRdata = NMRAnalysis.ProcessNMRData(Isomers, settings.NMRsource, settings)
+        NMRdata = NMR.ProcessNMRData(Isomers, settings.NMRsource, settings)
         print('\nCalculating DP4 probabilities...')
         DP4data = DP4.CalcProbs(NMRdata)
 

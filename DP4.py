@@ -10,7 +10,6 @@ floating point precision used in the Python (53 bits) and Java (32 bits)
 implementation.
 """
 from scipy import stats
-import pickle
 import re
 import bisect
 
@@ -20,46 +19,7 @@ meanH = 0.0
 stdevC = 2.269372270818724
 stdevH = 0.18731058105269952
 
-#Standard CP3 CORRECT parameters
-CP3meanC = 0.547
-CP3stdevC = 0.253
-CP3meanH = 0.478
-CP3stdevH = 0.305
-CP3meanAll = 0.512
-CP3stdevAll = 0.209
-
-"""
-#Standard CP3 INCORRECT parameters
-CP3meanC = -0.487
-CP3stdevC = 0.533
-CP3meanH = -0.786
-CP3stdevH = 0.835
-CP3meanAll = -0.637
-CP3stdevAll = 0.499
-"""
-#DFT J value parameters
-FULLJ_MEAN = -0.13133138905769429
-FULLJ_STDEV = 0.79315485469419067
-
-#DFT FC value parameters
-FC_MEAN = -0.15436128540661589
-FC_STDEV = 0.92117647579294348
-
-#Karplus J value parameters
-KARPLUS_MEAN = 0.015779860851173257
-KARPLUS_STDEV = 1.5949855401519151
-
 output = []
-J_THRESH = 0.2
-
-#Linear correction parameters for DFT and Karplus J values
-J_INTERCEPT = -0.365587317
-J_SLOPE = 1.1598043367
-FC_INTERCEPT = -0.438405757
-FC_SLOPE = 1.1701625846
-KARPLUS_INTERCEPT = -0.316665406
-KARPLUS_SLOPE = 0.97767834
-
 
 
 def DP4(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, settings):
@@ -116,368 +76,11 @@ def DP4(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, settings):
     return output
 
 
-def DP4j(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, cJvals, cJlabels,
-         settings):
-
-    Print(str(Cexp))
-    Print(str(Hexp))
-    
-    C_cdp4 = []
-    H_cdp4 = []
-    J_dp4 = []
-    Comb_cdp4 = []
-    Super_dp4 = []
-
-    for isomer in range(0, len(Cvalues)):
-
-        sortedClabels, sortedCvalues, sortedCexp, _ =\
-            AssignExpNMR(Clabels, Cvalues[isomer], Cexp)
-        scaledC = ScaleNMR(sortedCvalues, sortedCexp)
-
-        sHlabels, sortedHvalues, sortedHexp, sExpJvalues, sCalcJvalues = \
-            AssignExpNMRj(Hlabels, Hvalues[isomer], Hexp, cJvals[isomer], cJlabels)
-        scaledH = ScaleNMR(sortedHvalues, sortedHexp)
-        
-        assignedExpJs, assignedCJs = AssignJvals(sExpJvalues, sCalcJvalues)
-                
-        if settings.JStatsParamFile == '':
-            if settings.jKarplus:
-                slope, intercept = KARPLUS_SLOPE, KARPLUS_INTERCEPT
-            elif settings.jJ:
-                slope, intercept = J_SLOPE, J_INTERCEPT
-            elif settings.jFC:
-                slope, intercept = FC_SLOPE, FC_INTERCEPT
-        else:
-            slope, intercept = ReadJParamFile(settings.JStatsParamFile,
-                                             settings.JStatsModel)[:2]
-        
-        ScaledCJs = ScaleJvals(assignedCJs, slope, intercept)
-
-        ScaledErrorsC = [scaledC[i] - sortedCexp[i]
-                         for i in range(0, len(scaledC))]
-        ErrorsC = [sortedCvalues[i] - sortedCexp[i]
-                         for i in range(0, len(sortedCvalues))]
-        ScaledErrorsH = [scaledH[i] - sortedHexp[i]
-                         for i in range(0, len(scaledH))]
-        ErrorsH = [sortedHvalues[i] - sortedHexp[i]
-                         for i in range(0, len(sortedHvalues))]
-        
-        ScaledErrorsJ = CalculateJerrors(assignedExpJs, ScaledCJs)
-        
-        Print("\nAssigned shifts for isomer " + str(isomer+1) + ": ")
-        PrintNMR('C', sortedClabels, sortedCvalues, scaledC, sortedCexp)
-        Print("Max C error: " + format(max(ScaledErrorsC, key=abs), "6.2f"))
-        PrintNMRj('H', sHlabels, sortedHvalues, scaledH, sortedHexp,
-                  assignedExpJs, assignedCJs)
-        Print("Max H error: " + format(max(ScaledErrorsH, key=abs), "6.2f"))
-
-        Cprob, Hprob = CalcProbabilities(ScaledErrorsC, ScaledErrorsH, ErrorsC,
-                                         ErrorsH, sortedCexp, sortedHexp, settings)
-        C_cdp4.append(Cprob)
-        H_cdp4.append(Hprob)
-        
-        if settings.JStatsModel == 'k':
-            J_dp4.append(CalculateJKDE(ScaledErrorsJ, settings.JStatsParamFile, 'k'))
-        else:
-            if settings.JStatsParamFile != '':
-                Jmean, Jstdev = ReadJParamFile(settings.JStatsParamFile,
-                                                 settings.JStatsModel)[2:]
-            elif settings.jKarplus:
-                Jmean, Jstdev = KARPLUS_MEAN, KARPLUS_STDEV
-            elif settings.jFC:
-                Jmean, Jstdev = FC_MEAN, FC_STDEV
-            elif settings.jJ:
-                Jmean, Jstdev = FULLJ_MEAN, FULLJ_STDEV
-            
-            J_dp4.append(CalculatePDP4(ScaledErrorsJ, Jmean, Jstdev))
-        
-        Comb_cdp4.append(C_cdp4[-1]*H_cdp4[-1])
-        Super_dp4.append(C_cdp4[-1]*H_cdp4[-1]*J_dp4[-1])
-        Print("\nDP4 based on C: " + format(C_cdp4[-1], "6.2e"))
-        Print("DP4 based on H: " + format(H_cdp4[-1], "6.2e"))
-        Print("DP4 based on J: " + format(J_dp4[-1], "6.2e"))
-
-    relCDP4 = [(100*x)/sum(C_cdp4) for x in C_cdp4]
-    relHDP4 = [(100*x)/sum(H_cdp4) for x in H_cdp4]
-    relJDP4 = [(100*x)/sum(J_dp4) for x in J_dp4]
-    relCombDP4 = [(100*x)/sum(Comb_cdp4) for x in Comb_cdp4]
-    relSuperDP4 = [(100*x)/sum(Super_dp4) for x in Super_dp4]
-
-    PrintRelDP4('all available data', relSuperDP4)
-    PrintRelDP4('both carbon and proton data', relCombDP4)
-    PrintRelDP4('carbon data only', relCDP4)
-    PrintRelDP4('proton data only', relHDP4)
-    PrintRelDP4('J value data only', relJDP4)
-    PrintJrms(J_dp4)
-    
-    return output
-
-
-def CP3(Clabels, Cvalues1, Cvalues2, Hlabels, Hvalues1, Hvalues2,
-        Cexp1, Cexp2, Hexp1, Hexp2,
-        CalcFile1, CalcFile2, NMRFile1, NMRFile2, settings):
-    
-    sortedClabels1, sortedCvalues1, sortedCexp1, _ =\
-        AssignExpNMR(Clabels, Cvalues1, Cexp1)
-    print("Clabels: " + str(Clabels))
-    print("Cvalues: " + str(Cvalues1))
-    print("Cexp1: " + str(Cexp1))
-    Cerrors1 = [a-b for a,b in zip(sortedCvalues1,sortedCexp1)]
-    sortedClabels2, sortedCvalues2, sortedCexp2, _ =\
-        AssignExpNMR(Clabels, Cvalues2, Cexp2)
-    Cerrors2 = [a-b for a,b in zip(sortedCvalues2,sortedCexp2)]
-    
-    print("Hlabels: " + str(Hlabels))
-    print("Hvalues: " + str(Hvalues1))
-    print("Hexp1: " + str(Hexp1))
-    sortedHlabels1, sortedHvalues1, sortedHexp1, _ =\
-        AssignExpNMR(Hlabels, Hvalues1, Hexp1)
-    Herrors1 = [a-b for a,b in zip(sortedHvalues1,sortedHexp1)]
-    sortedHlabels2, sortedHvalues2, sortedHexp2, _ =\
-        AssignExpNMR(Hlabels, Hvalues2, Hexp2)
-    Herrors2 = [a-b for a,b in zip(sortedHvalues2,sortedHexp2)]
-
-    Print("\nAssigned shifts for isomer 1: ")
-    PrintNMRCP3('C', sortedClabels1, sortedCvalues1, sortedCexp1)
-    Print("Max C error: " + format(max(Cerrors1, key=abs), "6.2f"))
-    PrintNMRCP3('H', sortedHlabels1, sortedHvalues1, sortedHexp1)
-    Print("Max H error: " + format(max(Herrors1, key=abs), "6.2f"))
-
-    Print("\nAssigned shifts for isomer 2: ")
-    PrintNMRCP3('C', sortedClabels2, sortedCvalues2, sortedCexp2)
-    Print("Max C error: " + format(max(Cerrors2, key=abs), "6.2f"))
-    PrintNMRCP3('H', sortedHlabels2, sortedHvalues2, sortedHexp2)
-    Print("Max H error: " + format(max(Herrors2, key=abs), "6.2f"))
-    #Reorder data to ensure it matches up
-    fCvalues1 = sortedCvalues1
-    fCexp1 = sortedCexp1
-    fCvalues2 = ReorderData(sortedClabels1,sortedClabels2, sortedCvalues2)
-    fCexp2 = ReorderData(sortedClabels1,sortedClabels2, sortedCexp2)
-    
-    fHvalues1 = sortedHvalues1
-    fHexp1 = sortedHexp1
-    fHvalues2 = ReorderData(sortedHlabels1,sortedHlabels2, sortedHvalues2)
-    fHexp2 = ReorderData(sortedHlabels1,sortedHlabels2, sortedHexp2)
-    #Calc parameters
-    CP3c1 = CalcCP3(fCvalues1, fCvalues2, fCexp1, fCexp2)
-    CP3h1 = CalcCP3(fHvalues1, fHvalues2, fHexp1, fHexp2)
-    CP3all1 = (CP3c1 + CP3h1)/2
-    
-    CP3c2 = CalcCP3(fCvalues2, fCvalues1, fCexp1, fCexp2)
-    CP3h2 = CalcCP3(fHvalues2, fHvalues1, fHexp1, fHexp2)
-    CP3all2 = (CP3c2 + CP3h2)/2
-    #Calc probs
-    CP3Cprob1 = stats.norm(CP3meanC, CP3stdevC).pdf(CP3c1)
-    CP3Hprob1 = stats.norm(CP3meanH, CP3stdevH).pdf(CP3h1)
-    CP3allprob1 = stats.norm(CP3meanAll, CP3stdevAll).pdf(CP3all1)
-    
-    CP3Cprob2 = stats.norm(CP3meanC, CP3stdevC).pdf(CP3c2)
-    CP3Hprob2 = stats.norm(CP3meanH, CP3stdevH).pdf(CP3h2)
-    CP3allprob2 = stats.norm(CP3meanAll, CP3stdevAll).pdf(CP3all2)
-    print(NMRFile1)
-    print(NMRFile2)
-    print(CalcFile1)
-    print(CalcFile2)
-    comb1 = NMRFile1 + '-' + CalcFile1 + ' & ' + NMRFile2 + '-' + CalcFile2
-    comb2 = NMRFile1 + '-' + CalcFile2 + ' & ' + NMRFile2 + '-' + CalcFile1
-    Print("Probabilities for " + comb1 + " assignment")
-    Print("Based on C data:   " + format(CP3Cprob1*100, "4.1f") + "%")
-    Print("Based on H data:   " + format(CP3Hprob1*100, "4.1f") + "%")
-    Print("Based on all data: " + format(CP3allprob1*100, "4.1f") + "%")
-    Print("Probabilities for " + comb2 + " assignment")
-    Print("Based on C data:   " + format(CP3Cprob2*100, "4.1f") + "%")
-    Print("Based on H data:   " + format(CP3Hprob2*100, "4.1f") + "%")
-    Print("Based on all data: " + format(CP3allprob2*100, "4.1f") + "%")
-    if CP3allprob1>CP3allprob2:
-        Print("Based on all data, " + comb1 + " assignment is\n"+
-              "likely the correct one")
-    else:
-        Print("Based on all data, " + comb2 + " assignment is\n"+
-              "likely the correct one")
-    
-    return output
-
-
 def f3(deltaExp, deltaCalc):
     if (deltaCalc/deltaExp) > 1.0:
         return deltaExp**3/deltaCalc
     else:
         return deltaExp*deltaCalc
-
-
-def CalcCP3(values1, values2, exp1, exp2):
-    deltaCalcs = [a - b for a,b in zip(values1, values2)]
-    deltaExps = [a - b for a,b in zip(exp1, exp2)]
-    
-    top = sum([f3(calc,exp) for calc,exp in zip(deltaCalcs, deltaExps)])
-    bottom = sum([x**2 for x in deltaExps])
-    
-    return top/bottom
-
-
-def DP4bias(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, settings):
-
-    Print(str(Cexp))
-    Print(str(Hexp))
-
-    C_cdp4 = []
-    H_cdp4 = []
-    Comb_cdp4 = []
-    
-    LabelsC = []
-    LabelsH = []
-    AllC = []
-    AllH = []
-    AllErrorsC = []
-    AllErrorsH = []
-    AllScaledC = []
-    AllScaledH = []
-    AllScaledErrorsC = []
-    AllScaledErrorsH = []
-    Cexps = []
-    Hexps = []
-    
-    for isomer in range(0, len(Cvalues)):
-
-        sortedClabels, sortedCvalues, sortedCexp, _ =\
-            AssignExpNMR(Clabels, Cvalues[isomer], Cexp)
-        scaledC = ScaleNMR(sortedCvalues, sortedCexp)
-        
-        sortedHlabels, sortedHvalues, sortedHexp, Jvalues = \
-            AssignExpNMR(Hlabels, Hvalues[isomer], Hexp)
-        scaledH = ScaleNMR(sortedHvalues, sortedHexp)
-
-        ScaledErrorsC = [scaledC[i] - sortedCexp[i]
-                         for i in range(0, len(scaledC))]
-        ErrorsC = [sortedCvalues[i] - sortedCexp[i]
-                         for i in range(0, len(sortedCvalues))]
-        ScaledErrorsH = [scaledH[i] - sortedHexp[i]
-                         for i in range(0, len(scaledH))]
-        ErrorsH = [sortedHvalues[i] - sortedHexp[i]
-                         for i in range(0, len(sortedHvalues))]
-        
-        LabelsC.append(sortedClabels)
-        Cexps.append(sortedCexp)
-        LabelsH.append(sortedHlabels)
-        Hexps.append(sortedHexp)
-        AllErrorsC.append(ErrorsC)
-        AllErrorsH.append(ErrorsH)
-        AllC.append(sortedCvalues)
-        AllH.append(sortedHvalues)
-        AllScaledC.append(scaledC)
-        AllScaledH.append(scaledH)
-        AllScaledErrorsC.append(ScaledErrorsC)
-        AllScaledErrorsH.append(ScaledErrorsH)
-   
-    Cexp1 = Cexps[0]
-    Hexp1 = Hexps[0]
-    
-    LabelsC1, AllErrorsCr = ReorderAllErrors(AllErrorsC, LabelsC)
-    LabelsH1, AllErrorsHr = ReorderAllErrors(AllErrorsH, LabelsH)
-    
-    _, AllScaledErrorsCr = ReorderAllErrors(AllScaledErrorsC, LabelsC)
-    _, AllScaledErrorsHr = ReorderAllErrors(AllScaledErrorsH, LabelsH)
-    
-    Print('\n'.join([','.join(x) for x in LabelsC]))
-    Print("Scaled C errors before reordering:")
-    PrintErrors(LabelsC1, AllScaledErrorsCr)
-        
-    Print("Scaled errors after reordering:")
-    PrintErrors(LabelsC1, AllScaledErrorsCr)
-    PrintErrors(LabelsH1, AllScaledErrorsHr)
-    
-    BiasesC = CalcBiases(AllScaledErrorsCr)
-    BiasesH = CalcBiases(AllScaledErrorsHr)
-
-    uBiasesC = CalcBiases(AllErrorsCr)
-    uBiasesH = CalcBiases(AllErrorsHr)
-    uSpreadsC = CalcSpreads(AllErrorsCr)
-    uSpreadsH = CalcSpreads(AllErrorsHr)
-    
-    Print("Biases for unscaled C:")
-    Print(','.join([format(x, "6.2f") for x in uBiasesC]))
-    Print("Biases for unscaled H:")
-    Print(','.join([format(x, "6.2f") for x in uBiasesH]))
-    
-    Print("Spreads for unscaled C:")
-    Print(','.join([format(x, "6.2f") for x in uSpreadsC]))
-    Print("Spreads for unscaled H:")
-    Print(','.join([format(x, "6.2f") for x in uSpreadsH]))
-    
-    Print("Corresponding C exp shifts:")
-    Print(','.join([format(x, "6.2f") for x in Cexp1]))
-    Print("Corresponding H exp shifts:")
-    Print(','.join([format(x, "6.2f") for x in Hexp1]))
-    
-    AllScaledErrorsCb = ApplyBias(AllScaledErrorsCr, BiasesC)
-    AllScaledErrorsHb = ApplyBias(AllScaledErrorsHr, BiasesH)
-    AllErrorsCb = ApplyBias(AllErrorsCr, uBiasesC)
-    AllErrorsHb = ApplyBias(AllErrorsHr, uBiasesH)
-    
-    Print("Scaled errors after biasing:")
-    PrintErrors(LabelsC1, AllScaledErrorsCb)
-    PrintErrors(LabelsH1, AllScaledErrorsHb)
-    
-    for i in range(len(AllC)):
-        #print biased shift data for every diastereomer
-        bCvalues = ApplyBiasShifts(LabelsC[i], AllC[i], LabelsC1, uBiasesC)
-        sbCvalues = ApplyBiasShifts(LabelsC[i], AllScaledC[i], LabelsC1, BiasesC)
-        bHvalues = ApplyBiasShifts(LabelsH[i], AllH[i], LabelsH1, uBiasesH)
-        sbHvalues = ApplyBiasShifts(LabelsH[i], AllScaledH[i], LabelsH1, BiasesH)
-        Print("\nAssigned shifts for isomer " + str(i+1) + ": ")
-        PrintNMR('C', LabelsC[i], bCvalues, sbCvalues, Cexps[i])
-        Print("Max C error: " + format(max(AllScaledErrorsCb[i], key=abs), "6.2f"))
-        PrintNMR('H', LabelsH[i], bHvalues, sbHvalues, Hexps[i])
-        Print("Max H error: " + format(max(AllScaledErrorsHb[i], key=abs), "6.2f"))
-
-    for i in range(len(AllScaledErrorsCb)):
-        Cprob, Hprob = CalcProbabilities(AllScaledErrorsCb[i], AllScaledErrorsHb[i],
-            AllErrorsCb[i], AllErrorsHb[i], Cexps[i], Hexps[i], settings)
-        C_cdp4.append(Cprob)
-        H_cdp4.append(Hprob)
-        Comb_cdp4.append(C_cdp4[-1]*H_cdp4[-1])
-    
-    relCDP4 = [(100*x)/sum(C_cdp4) for x in C_cdp4]
-    relHDP4 = [(100*x)/sum(H_cdp4) for x in H_cdp4]
-    relCombDP4 = [(100*x)/sum(Comb_cdp4) for x in Comb_cdp4]
-
-    PrintRelDP4('all available data', relCombDP4)
-    PrintRelDP4('carbon data only', relCDP4)
-    PrintRelDP4('proton data only', relHDP4)
-
-    return output
-
-
-def ApplyBiasShifts(Labels, Shifts, BiasLabels, biases):
-    BiasedShifts = []
-    for i in range(len(Shifts)):
-        j = BiasLabels.index(Labels[i])
-        BiasedShifts.append(Shifts[i]-biases[j])
-    
-    return BiasedShifts
-
-
-def ApplyBias(AllErrors, biases):
-    
-    AllErrorsB = []
-    for errors in AllErrors:
-        AllErrorsB.append([x-y for x,y in zip(errors,biases)])
-    
-    return AllErrorsB
-
-
-def CalcBiases(AllErrors):
-    
-    biases = []
-    for i in range(len(AllErrors[0])):
-        serrors = sorted([AllErrors[x][i] for x in range(len(AllErrors))], key=abs)
-        if (serrors[0]<0) == (serrors[1]<0):
-            biases.append(serrors[0])
-        else:
-            biases.append(0.0)
-        #biases.append(min([AllErrors[x][i] for x in range(len(AllErrors))], key=abs))
-    
-    return biases
 
 
 def CalcSpreads(AllErrors):
@@ -577,66 +180,6 @@ def AssignExpNMR(labels, calcShifts, exp):
     return assignedExpLabels, sortedCalc, sortedExp, sortedJvalues
 
 
-def AssignExpNMRj(labels, calcShifts, exp, cJvalues, cJlabels):
-    
-    expLabels, expShifts, expJs = ReadExp(exp)
-    #Prepare sorted calculated data with labels and sorted exp data
-    sortedCalc = sorted(calcShifts)
-    sortedExp = sorted(expShifts)
-    sortedExpLabels = SortExpAssignments(expShifts, expLabels)
-    sortedCalcLabels = []
-    sortedExpJs = []
-    
-    for v in sortedExp:
-        index = expShifts.index(v)
-        sortedExpJs.append(expJs[index])
- 
-    tempCalcShifts = list(calcShifts)   
-    for v in sortedCalc:
-        index = tempCalcShifts.index(v)
-        sortedCalcLabels.append(labels[index])
-        #Remove the value to avoid duplicate labels
-        tempCalcShifts[index] = -100
-
-    assignedExpLabels = ['' for i in range(0, len(sortedExp))]
-    
-    #First pass - assign the unambiguous shifts
-    for v in range(0, len(sortedExp)):
-        if len(sortedExpLabels[v]) == 1 and sortedExpLabels[v][0] != '':
-            #Check that assignment exists in computational data
-            if sortedExpLabels[v][0] in labels:
-                assignedExpLabels[v] = sortedExpLabels[v][0]
-            else:
-                Print("Label " + sortedExpLabels[v][0] +
-                " not found in among computed shifts, please check NMR assignment.")
-                quit()
-    #Second pass - assign shifts from a limited set
-    for v in range(0, len(sortedExp)):
-        if len(sortedExpLabels[v]) != 1 and sortedExpLabels[v][0] != '':
-            for l in sortedCalcLabels:
-                if l in sortedExpLabels[v] and l not in assignedExpLabels:
-                    assignedExpLabels[v] = l
-                    break
-    #Final pass - assign unassigned shifts in order
-    for v in range(0, len(sortedExp)):
-        if sortedExpLabels[v][0] == '':
-            for l in sortedCalcLabels:  # Take the first free label
-                if l not in assignedExpLabels:
-                    assignedExpLabels[v] = l
-                    break
-    sortedCalc = []
-    sortedCJs = [[0.0] for x in assignedExpLabels]
-    
-    #Rearrange calc values to match the assigned labels
-    for i, l in enumerate(assignedExpLabels):
-        index = labels.index(l)
-        sortedCalc.append(calcShifts[index])
-        if l[1:] in cJlabels:
-            sortedCJs[i] = cJvalues[cJlabels.index(l[1:])]
-
-    return assignedExpLabels, sortedCalc, sortedExp, sortedExpJs, sortedCJs
-
-
 def ReadExp(exp):
     
     #Replace all 'or' and 'OR' with ',', remove all spaces and 'any'
@@ -663,53 +206,6 @@ def ReadExp(exp):
     expShifts = [float(x) for x in ShiftData]
     
     return expLabels, expShifts, expJs
-
-
-def AssignJvals(expJ, calcJ):
-    
-    import itertools
-    prunedCJs = []
-    for i in calcJ:
-        prunedCJs.append([abs(j) for j in i if abs(j)>J_THRESH])
-    
-    #Check that number of calculated J values are not less than experimental
-    #relevant if using Karplus equation
-    prunedExpJ = list(expJ)
-    
-    for i in range(len(expJ)):
-        if len(prunedCJs[i]) == 0:
-            prunedExpJ[i] = [0.0]
-        #if len(prunedCJs[i]) < len(prunedExpJ[i]):
-        #    prunedCJs[i].extend([0.0 for i in range(len(prunedExpJ[i])-len(prunedCJs[i]))])
-    
-    assignedCalcJ = []
-    
-    #IMPORTANT:
-    #Deal with cases the number of calc J values are less than exp
-    for eJ, cJ in zip(prunedExpJ, prunedCJs):
-        if eJ != [0.0]:
-            
-            minerror = 10000
-            minassign = [0.0 for i in range(len(eJ))]
-            for assign in itertools.permutations(cJ, len(eJ)):
-                error = sum([abs(assign[i]-eJ[i]) for i in range(len(eJ))])
-                if error<minerror:
-                    minerror = error
-                    minassign = assign
-            assignedCalcJ.append(list(minassign))
-        else:
-            assignedCalcJ.append([0.0])
-        
-    return prunedExpJ, assignedCalcJ
-
-
-def ScaleJvals(calcJ, slope, intercept):
-    scaledJs = []
-    
-    for cJ in calcJ:
-        scaledJs.append([(j-intercept)/slope for j in cJ])
-    
-    return scaledJs
 
 
 def SortExpAssignments(shifts, assignments):
@@ -744,12 +240,6 @@ def CalcProbabilities(SErrorsC, SErrorsH, ErrorsC, ErrorsH, Cexp, Hexp, settings
             C_cdp4 = CalculatePDP4(SErrorsC, Cmean, Cstdev)
             H_cdp4 = CalculatePDP4(SErrorsH, Hmean, Hstdev)
             
-    elif settings.StatsModel == 'k':
-        C_cdp4 = CalculateKDE(SErrorsC, settings.StatsParamFile,
-                                   settings.StatsModel, 'C')
-        H_cdp4 = CalculateKDE(SErrorsH, settings.StatsParamFile,
-                                   settings.StatsModel, 'H')
-
     elif settings.StatsModel == 'm':
         C_cdp4 = CalculateMultiGaus(SErrorsC, settings.StatsParamFile,
                                          settings.StatsModel, 'C')
@@ -765,17 +255,6 @@ def CalcProbabilities(SErrorsC, SErrorsH, ErrorsC, ErrorsH, Cexp, Hexp, settings
                                          settings.StatsModel, 'C')
         H_cdp4 = CalculateRMultiGaus(ErrorsH, Hexp, settings.StatsParamFile,
                                          settings.StatsModel, 'H')    
-    elif settings.StatsModel == 'r':
-        C_cdp4 = CalculateRKDE(SErrorsC, Cexp, settings.StatsParamFile,
-                                    settings.StatsModel, 'C')
-        H_cdp4 = CalculateRKDE(SErrorsH, Hexp, settings.StatsParamFile,
-                                    settings.StatsModel, 'H')
-        
-    elif settings.StatsModel == 'u':
-        C_cdp4 = CalculateRKDE(ErrorsC, Cexp, settings.StatsParamFile,
-                                    settings.StatsModel, 'C')
-        H_cdp4 = CalculateRKDE(ErrorsH, Hexp, settings.StatsParamFile,
-                                    settings.StatsModel, 'H')
     else:
         print("Invalid stats model")
         C_cdp4 = 0.0
@@ -793,14 +272,6 @@ def PrintNMR(nucleus, labels, values, scaled, exp):
             format(exp[i]-scaled[i], "6.2f"))
 
 
-def PrintNMRCP3(nucleus, labels, values, exp):
-    Print("\nAssigned " + nucleus +
-          " shifts: (label, calc, exp, error)")
-    for i in range(len(labels)):
-        Print(format(labels[i], "6s") + ' ' + format(values[i], "6.2f") + ' ' +
-            format(exp[i], "6.2f") + ' ' + format(exp[i]-values[i], "6.2f"))
-
-
 def PrintErrors(labels, AllErrors):
     
     Print("\nLabel " + ' '.join(['DS' + str(x+1) for x in range(len(AllErrors))]))
@@ -809,46 +280,10 @@ def PrintErrors(labels, AllErrors):
         ' '.join([format(AllErrors[x][i], "6.2f") for x in range(len(AllErrors))]))
 
 
-def PrintNMRj(nucleus, labels, values, scaled, exp, expJ, calcJ):
-    Print("\nAssigned " + nucleus +
-          " shifts: (label, calc, corrected, exp, error, Jvalues)")
-    for i in range(len(labels)):
-        if expJ[i] != [0.0]:
-            expJstring = ", ".join(["{:4.1f}".format(x) for x in expJ[i]])
-            calcJstring = ", ".join(["{:4.1f}".format(x) for x in calcJ[i] if abs(x)>J_THRESH])
-            Jinfo = expJstring + ' || ' + calcJstring
-        else:
-            Jinfo = ''
-        Print(format(labels[i], "6s") + ' ' + format(values[i], "6.2f") + ' '
-            + format(scaled[i], "6.2f") + ' ' + format(exp[i], "6.2f") + ' ' +
-            format(exp[i]-scaled[i], "6.2f") + '   ' + Jinfo)
-    Print("Direct J comparison table (exp, calc):")
-    Jerrs = []
-    for i in range(len(labels)):
-        if expJ[i] != [0.0]:
-            for e, c in zip(expJ[i], calcJ[i]):
-                print("{:4.1f}".format(e) + "   " + "{:4.1f}".format(c))
-                Jerrs.append(e-c)
-    Print("Max J error:" + "{:4.1f}".format(max(Jerrs, key=abs)))
-
-
 def PrintRelDP4(title, RelDP4):
     Print("\nResults of DP4 using " + title + ":")
     for i in range(len(RelDP4)):
         Print("Isomer " + str(i+1) + ": " + format(RelDP4[i], "4.1f") + "%")
-
-
-def PrintJ(Jerrors):
-    Print("\nMean absolute errors of J values:")
-    for i, Jerr in enumerate(Jerrors):
-        Print("Isomer " + str(i+1) + ": " + format(sum(Jerr)/len(Jerr), "5.3f"))
-
-
-def PrintJrms(Jerrors):
-    from numpy import sqrt, mean, square
-    Print("\nMean absolute errors of J values:")
-    for i, Jerr in enumerate(Jerrors):
-        Print("Isomer " + str(i+1) + ": " + format(sqrt(mean(square(Jerr))), "5.3f"))
 
 
 def Print(s):
@@ -912,27 +347,6 @@ def ReadParamFile(f, t):
         return Cregions, Cerrors, Hregions, Herrors
 
 
-def ReadJParamFile(f, t):
-    
-    infile = open(f, 'r')
-    inp = infile.readlines()
-    infile.close()
-    
-    if t not in inp[0]:
-        print("Wrong parameter file type, exiting...")
-        quit()
-    
-    if t == 'g': #Gaussian model for J values, includes linear scaling factors
-        [slope, intercept] = [float(x) for x in inp[1].split(',')]
-        [Jmean, Jstdev] = [float(x) for x in inp[2].split(',')]
-        return slope, intercept, Jmean, Jstdev
-    
-    elif t == 'k': #KDE model for J values, includes linear scaling factors
-        [slope, intercept] = [float(x) for x in inp[1].split(',')]
-        Jerrors = [float(x) for x in inp[2].split(',')]
-        return slope, intercept, Jerrors
-    
-        
 def CalculateCDP4(errors, expect, stdev):
     cdp4 = 1.0
     for e in errors:
@@ -988,68 +402,3 @@ def MultiGaus(means, stdevs, x):
         res += stats.norm(mean, stdev).pdf(x)
 
     return res/len(means)
-
-
-#load empirical error data from file and use KDE to construct pdf
-def CalculateKDE(errors, ParamFile, t, nucleus):
-
-    Cerrors, Herrors = ReadParamFile(ParamFile, 'k')
-        
-    if nucleus == 'C':
-        kde = stats.gaussian_kde(Cerrors)
-    elif nucleus == 'H':
-        kde = stats.gaussian_kde(Herrors)
-
-    prob = 1.0
-    for e in errors:
-        prob = prob*float(kde(e)[0])
-    return prob
-
-
-#load empirical error data from file and use KDE to construct pdf
-def CalculateJKDE(errors, ParamFile, t):
-
-    slope, intercept, Jerrors = ReadJParamFile(ParamFile, t)
-    kde = stats.gaussian_kde(Jerrors)
-    
-    ep5 = 1.0
-    for e in errors:
-        ep5 = ep5*float(kde(e)[0])
-    return ep5
-
-#load empirical error data from file and use KDE to construct several pdfs,
-#one for each chemical shift region, can be used both for scaled and unscaled
-#errors with the appropriate data
-def CalculateRKDE(errors, shifts, ParamFile, t, nucleus):
-    
-    #Load the data
-    Cregions, Cerrors, Hregions, Herrors = ReadParamFile(ParamFile, t)
-    if nucleus == 'C':
-        regions = Cregions
-        RErrors = Cerrors
-    elif nucleus == 'H':
-        regions = Hregions
-        RErrors = Herrors
-        
-    #Reconstruct the distributions for each region
-    kdes = []
-    for es in RErrors:
-        kdes.append(stats.gaussian_kde(es))
-
-    ep5 = 1.0
-    for i, e in enumerate(errors):
-        region = bisect.bisect_left(regions, shifts[i])
-        ep5 = ep5*float((kdes[region])(e)[0])
-        if ep5<1e-315:  #Crude underflow protection
-            ep5=1e-315
-    return ep5
-
-
-def CalculateJerrors(expJ, calcJ):
-    
-    errors = []
-    for eJ, cJ in zip(expJ, calcJ):
-        if eJ != [0.0]:
-            errors.extend([abs(eJ[i] - cJ[i]) for i in range(len(eJ))])
-    
-    return errors
