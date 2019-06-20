@@ -73,8 +73,8 @@ class NMRData:
 
         ExpNMR_file.close()
 
-        self.Clabels, self.Cshifts = self.ParseExp(self, Cexp)
-        self.Hlabels, self.Hshifts = self.ParseExp(self, Hexp)
+        self.Clabels, self.Cshifts = self.ParseExp(Cexp)
+        self.Hlabels, self.Hshifts = self.ParseExp(Hexp)
         self.Equivalents = equivalents
         self.Omits = omits
 
@@ -95,7 +95,7 @@ class NMRData:
         return expLabels, expShifts
 
 
-def CalcBoltzmannWeightedShifts(Isomers):
+def CalcBoltzmannWeightedShieldings(Isomers):
 
     energies = []
 
@@ -103,10 +103,11 @@ def CalcBoltzmannWeightedShifts(Isomers):
 
         # Calculate rel. energies in kJ/mol
         minE = min(iso.DFTEnergies)
+
         relEs = []
 
-        for e in energies:
-            relEs.append(((e - minE) * hartreeEnergy))
+        for e in iso.DFTEnergies:
+            relEs.append((e - minE) * hartreeEnergy)
 
         Isomers[i].Energies = relEs
 
@@ -118,16 +119,18 @@ def CalcBoltzmannWeightedShifts(Isomers):
 
         q = sum(populations)
 
-        for i in range(0, len(populations)):
-            populations[i] = populations[i] / q
+        for p in range(0, len(populations)):
+            populations[p] = populations[p] / q
 
         Isomers[i].Populations = populations
+
+        print(Isomers[i].Populations)
 
         # Calculate Boltzmann weighed shielding constants
         # by summing the shifts multiplied by the isomers population
         BoltzmannShieldings = []
 
-        for atom in range(iso.Atoms):
+        for atom in range(len(iso.Atoms)):
             shielding = 0
             for population, shieldings in zip(iso.Populations, iso.ConformerShieldings):
                 shielding = shielding + shieldings[atom] * population
@@ -181,12 +184,12 @@ def NMRDataValid(Isomers):
     return True
 
 
-def GetCalcShifts(Isomers, settings):
+def CalcNMRShifts(Isomers, settings):
 
     print('WARNING: NMR shift calculation currently ignores the instruction to exclude atoms from analysis')
     for i, iso in enumerate(Isomers):
 
-        BShieldings = iso.IsomerShieldings
+        BShieldings = iso.BoltzmannShieldings
         Cvalues = []
         Hvalues = []
 
@@ -202,6 +205,12 @@ def GetCalcShifts(Isomers, settings):
 
         Isomers[i].Cshifts = Cvalues
         Isomers[i].Hshifts = Hvalues
+
+        print('C shifts for isomer ' + str(i) + ": ")
+        print(', '.join(['{0:.3f}'.format(x) for x in Isomers[i].Cshifts]))
+
+        print('H shifts for isomer ' + str(i) + ": ")
+        print(', '.join(['{0:.3f}'.format(x) for x in Isomers[i].Hshifts]))
 
     return Isomers
 

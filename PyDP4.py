@@ -158,7 +158,7 @@ class Isomer:
         self.NMROutputFiles = []    # list of DFT NMR output file names
         self.ShieldingLabels = []   # A list of atom labels corresponding to the shielding values
         self.ConformerShieldings = [] # list of calculated NMR shielding constant lists for every conformer
-        self.IsomerShieldings = []  # Boltzmann weighted NMR shielding constant list for the isomer
+        self.BolztmannShieldings = []  # Boltzmann weighted NMR shielding constant list for the isomer
         self.Cshifts = []           # Calculated C NMR shifts
         self.Hshifts = []           # Calculated H NMR shifts
 
@@ -323,6 +323,17 @@ def main(settings):
 
         print('\nReading experimental NMR data...')
         NMRData = NMR.NMRData(settings.NMRsource)
+
+        print('Clabels: ' + str(NMRData.Clabels))
+        print('Cshifts: ' + str(NMRData.Cshifts))
+
+        print('Hlabels: ' + str(NMRData.Hlabels))
+        print('Hshifts: ' + str(NMRData.Hshifts))
+
+        print('Equivalents: ' + str(NMRData.Equivalents))
+        print('Omits: ' + str(NMRData.Omits))
+
+        quit()
 
         print("Conformation data:")
         NMR.PrintConformationData(Isomers)
