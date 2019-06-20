@@ -14,7 +14,7 @@ NMR description parsing
 NMR raw data interpretation top level organization
 """
 
-import sys
+import re
 import os
 import math
 
@@ -22,15 +22,17 @@ gasConstant = 8.3145
 temperature = 298.15
 hartreeEnergy = 2625.499629554010
 
-# Data struture keeping all of experimental NMR data in one place.
+# Data struture for loading and keeping all of experimental NMR data in one place.
 class NMRData:
     def __init__(self, InputPath):
         self.InputPath = InputPath  # Initial structure input file
         self.Type = 'desc'          # desc or fid, depending on whether the description or raw data used
         self.Atoms = []             # Element labels
-        self.Cshifts = []           #Experimental C NMR shifts
-        self.Hshifts = []           #Experimental H NMR shifts
-        self.Equivalents = []       #Atoms assumed to be NMR equivalent in computational data
+        self.Cshifts = []           # Experimental C NMR shifts
+        self.Clabels = []           # Experimental C NMR labels, if any
+        self.Hshifts = []           # Experimental H NMR shifts
+        self.Hlabels = []           # Experimental H NMR labels, if any
+        self.Equivalents = []       # Atoms assumed to be NMR equivalent in computational data
         self.Omits = []
 
         if not os.path.exists(self.InputPath):
@@ -71,10 +73,26 @@ class NMRData:
 
         ExpNMR_file.close()
 
-        self.Cshifts = Cexp
-        self.Hshifts = Hexp
+        self.Clabels, self.Cshifts = self.ParseExp(self, Cexp)
+        self.Hlabels, self.Hshifts = self.ParseExp(self, Hexp)
         self.Equivalents = equivalents
         self.Omits = omits
+
+
+    def ParseExp(self, exp):
+        # Replace all 'or' and 'OR' with ',', remove all spaces and 'any'
+        texp = re.sub(r"or|OR", ',', exp, flags=re.DOTALL)
+        texp = re.sub(r" |any", '', texp, flags=re.DOTALL)
+
+        # Get all assignments, split mulitassignments
+        expLabels = re.findall(r"(?<=\().*?(?=\)|;)", texp, flags=re.DOTALL)
+        expLabels = [x.split(',') for x in expLabels]
+
+        # Remove assignments and get shifts
+        ShiftData = (re.sub(r"\(.*?\)", "", exp, flags=re.DOTALL)).split(',')
+        expShifts = [float(x) for x in ShiftData]
+
+        return expLabels, expShifts
 
 
 def CalcBoltzmannWeightedShifts(Isomers):
@@ -163,56 +181,29 @@ def NMRDataValid(Isomers):
     return True
 
 
-def main(numDS, settings, *args):
+def GetCalcShifts(Isomers, settings):
 
-    #Reads the experimental NMR data from the file
-    Cexp, Hexp, equivs, omits = ReadExpNMR(args[-1])
+    print('WARNING: NMR shift calculation currently ignores the instruction to exclude atoms from analysis')
+    for i, iso in enumerate(Isomers):
 
-    #Convert shielding constants in chemical shifts and sort labels by nuclei
-    Cvalues, Hvalues, Clabels, Hlabels = GetCalcShiftsLabels(numDS,
-        BoltzmannShieldings, labels, omits, settings)
-    
-    Noutp = len(BoltzmannShieldings)
-    
-    #Looks for equivalent atoms in the computational data, averages the shifts
-    #and removes the redundant signals
-    Cvalues, Hvalues, Clabels, Hlabels = \
-    RemoveEquivalents(Noutp, equivs, Cvalues, Hvalues, Clabels, Hlabels)
+        BShieldings = iso.IsomerShieldings
+        Cvalues = []
+        Hvalues = []
 
+        for a, atom in enumerate(iso.Atoms):
 
-def GetCalcShiftsLabels(numDS, BShieldings, labels, omits, settings):
-    
-    Clabels = []
-    Hlabels = []
-    Cvalues = []
-    Hvalues = []
-    
-    for DS in range(numDS):
+            if atom == 'C':
+                shift = (settings.TMS_SC_C13-BShieldings[a]) / (1-(settings.TMS_SC_C13/10**6))
+                Cvalues.append(shift)
 
-        Cvalues.append([])
-        Hvalues.append([])
+            if atom == 'H':
+                shift = (settings.TMS_SC_H1-BShieldings[a]) / (1-(settings.TMS_SC_H1/10**6))
+                Hvalues.append(shift)
 
-        #loops through particular output and collects shielding constants
-        #and calculates shifts relative to TMS
-        for atom in range(len(BShieldings[DS])):
-            shift = 0
-            if labels[atom][0] == 'C' and not labels[atom] in omits:
-                # only read labels once, i.e. the first diastereomer
-                if DS == 0:
-                    Clabels.append(labels[atom])
-                shift = (settings.TMS_SC_C13-BShieldings[DS][atom]) / \
-                    (1-(settings.TMS_SC_C13/10**6))
-                Cvalues[DS].append(shift)
+        Isomers[i].Cshifts = Cvalues
+        Isomers[i].Hshifts = Hvalues
 
-            if labels[atom][0] == 'H' and not labels[atom] in omits:
-                # only read labels once, i.e. the first diastereomer
-                if DS == 0:
-                    Hlabels.append(labels[atom])
-                shift = (settings.TMS_SC_H1-BShieldings[DS][atom]) / \
-                    (1-(settings.TMS_SC_H1/10**6))
-                Hvalues[DS].append(shift)
-
-    return Cvalues, Hvalues, Clabels, Hlabels
+    return Isomers
 
 
 def PrintConformationData(AllSigConfs):

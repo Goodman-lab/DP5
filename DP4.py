@@ -10,7 +10,6 @@ floating point precision used in the Python (53 bits) and Java (32 bits)
 implementation.
 """
 from scipy import stats
-import re
 import bisect
 
 #Standard DP4 parameters
@@ -121,19 +120,14 @@ def ReorderData(labels1, labels2, data2):
     return newData
 
 
-def AssignExpNMR(labels, calcShifts, exp):
+def AssignExpNMR(labels, calcShifts, expLabels, expShifts):
 
-    expLabels, expShifts, expJs = ReadExp(exp)
     #Prepare sorted calculated data with labels and sorted exp data
     sortedCalc = sorted(calcShifts)
     sortedExp = sorted(expShifts)
     sortedExpLabels = SortExpAssignments(expShifts, expLabels)
     sortedCalcLabels = []
-    sortedJvalues = []
-    for v in sortedExp:
-        index = expShifts.index(v)
-        sortedJvalues.append(expJs[index])
-    
+
     tempCalcShifts = list(calcShifts)
     for v in sortedCalc:
         index = tempCalcShifts.index(v)
@@ -177,35 +171,7 @@ def AssignExpNMR(labels, calcShifts, exp):
         index = labels.index(l)
         sortedCalc.append(calcShifts[index])
 
-    return assignedExpLabels, sortedCalc, sortedExp, sortedJvalues
-
-
-def ReadExp(exp):
-    
-    #Replace all 'or' and 'OR' with ',', remove all spaces and 'any'
-    texp = re.sub(r"or|OR", ',', exp, flags=re.DOTALL)
-    texp = re.sub(r" |any", '', texp, flags=re.DOTALL)
-
-    #Get all assignments, split mulitassignments
-    expLabels = re.findall(r"(?<=\().*?(?=\)|;)", texp, flags=re.DOTALL)
-    expLabels = [x.split(',') for x in expLabels]
-    
-    #Get J value data (if any)
-    Jdata = re.findall(r"(?<=\().*?(?=\))", texp, flags=re.DOTALL)
-    expJs = []
-    
-    for d in Jdata:
-        if ';' in d:
-            expJs.append([float(x) for x in (d.split(';')[1]).split(',')])
-        else:
-            expJs.append([0.0])
-    
-    print(expJs)
-    #Remove assignments and get shifts
-    ShiftData = (re.sub(r"\(.*?\)", "", exp, flags=re.DOTALL)).split(',')
-    expShifts = [float(x) for x in ShiftData]
-    
-    return expLabels, expShifts, expJs
+    return assignedExpLabels, sortedCalc, sortedExp
 
 
 def SortExpAssignments(shifts, assignments):
