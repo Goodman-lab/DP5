@@ -18,6 +18,8 @@ import math
 
 import Gaussian
 
+MaxConcurrentJobs = 160
+
 SetupNMRCalcs = Gaussian.SetupNMRCalcs
 
 SetupECalcs = Gaussian.SetupECalcs
@@ -102,7 +104,7 @@ def RunOptCalcs(Isomers, settings):
 
 def RunCalcs(GausJobs, settings):
 
-    MaxCon = settings.MaxConcurrentJobs
+    MaxCon = MaxConcurrentJobs
 
     if len(GausJobs) < MaxCon:
         if len(GausJobs) > 0:

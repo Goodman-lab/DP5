@@ -118,7 +118,7 @@ def AlignMolecules(mol1, mol2, atoms):
         atomnum = GetAtomNum(a)
         #w.append(GetAtomWeight(atomnum))
         w.append(1)
-    
+
     #move both molecules to origin
     mol1 = Move2Origin(mol1, w)
     mol2 = Move2Origin(mol2, w)
@@ -139,10 +139,10 @@ def AlignedRMS(mol1, mol2, atoms):
     mol1b = []
     mol2b = []
     for a in mol1:
-        mol1b.append([float(x) for x in a[1:]])
+        mol1b.append([float(x) for x in a])
         
     for a in mol2:
-        mol2b.append([float(x) for x in a[1:]])
+        mol2b.append([float(x) for x in a])
     
     (amol1, amol2, w) = AlignMolecules(mol1b, mol2b, atoms)
     

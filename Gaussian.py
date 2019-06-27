@@ -14,7 +14,6 @@ execution. Called by PyDP4.py.
 import subprocess
 import os
 import time
-import glob
 
 
 def SetupNMRCalcs(Isomers, settings):
@@ -159,6 +158,8 @@ def Converged(Isomers):
 
 def RunNMRCalcs(Isomers, settings):
 
+    print('\nRunning Gaussian DFT NMR calculations locally...')
+
     jobdir = os.getcwd()
     os.chdir('nmr')
 
@@ -179,6 +180,8 @@ def RunNMRCalcs(Isomers, settings):
 
 def RunECalcs(Isomers, settings):
 
+    print('\nRunning Gaussian DFT energy calculations locally...')
+
     jobdir = os.getcwd()
     os.chdir('e')
 
@@ -191,6 +194,28 @@ def RunECalcs(Isomers, settings):
 
     for iso in Isomers:
         iso.EOutputFiles.extend([x[:-4] + '.out' for x in iso.EInputFiles if (x[:-4] + '.out') in Completed])
+
+    os.chdir(jobdir)
+
+    return Isomers
+
+
+def RunOptCalcs(Isomers, settings):
+
+    print('\nRunning Gaussian DFT geometry optimizations locally...')
+
+    jobdir = os.getcwd()
+    os.chdir('opt')
+
+    GausJobs = []
+
+    for iso in Isomers:
+        GausJobs.extend([x for x in iso.OptInputFiles if (x[:-4] + '.out') not in iso.OptOutputFiles])
+
+    Completed = RunCalcs(GausJobs)
+
+    for iso in Isomers:
+        iso.OptOutputFiles.extend([x[:-4] + '.out' for x in iso.OptInputFiles if (x[:-4] + '.out') in Completed])
 
     os.chdir(jobdir)
 
@@ -340,7 +365,7 @@ def ReadEnergies(Isomers, settings):
     else:
         os.chdir('nmr')
 
-    for iso in Isomers:
+    for i, iso in enumerate(Isomers):
 
         if 'e' in settings.Workflow:
             GOutpFiles = iso.EOutputFiles
@@ -349,7 +374,7 @@ def ReadEnergies(Isomers, settings):
         else:
             GOutpFiles = iso.NMROutputFiles
 
-        DFTenergies = []
+        DFTEnergies = []
         for GOutpFile in GOutpFiles:
             gausfile = open(GOutpFile, 'r')
             GOutp = gausfile.readlines()
@@ -361,7 +386,10 @@ def ReadEnergies(Isomers, settings):
                     end = line.index('A.U.')
                     energy = float(line[start + 4:end])
 
-            iso.DFTEnergies.append(energy)
+            #iso.DFTEnergies.append(energy)
+            DFTEnergies.append(energy)
+
+        Isomers[i].DFTEnergies = DFTEnergies
 
     os.chdir(jobdir)
     return Isomers
