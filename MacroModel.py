@@ -47,8 +47,10 @@ def SetupMacroModel(settings):
             convinp = '"' + settings.SCHRODINGER + '/utilities/sdconvert" -isd '
         else:
             convinp = settings.SCHRODINGER + '/utilities/sdconvert -isd '
-        outp = subprocess.check_output(convinp + f + '.sdf -omae ' + f +
-                                       '.mae', shell=True)
+
+        if not os.path.exists(f + '.mae'):
+            outp = subprocess.check_output(convinp + f + '.sdf -omae ' + f +
+                                           '.mae', shell=True)
         MacroModelInputs.append(f + '.mae')
 
         #Copy default com file to directory

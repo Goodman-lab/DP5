@@ -251,6 +251,11 @@ def RunBatchOnDarwin(findex, GausJobs, settings):
             os.getcwd() + '/'], \
             stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
 
+    print("\nDeleting checkpoint files...")
+    print('ssh darwin rm ' + fullfolder + '/*.chk')
+    outp = subprocess.Popen(['ssh', 'darwin', 'rm', fullfolder + '/*.chk'], \
+                            stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
+
     fullscrfolder = settings.DarwinScrDir + scrfolder
     print("\nDeleting scratch folder...")
     print('ssh darwin rm -r ' + fullscrfolder)

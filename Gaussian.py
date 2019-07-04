@@ -109,7 +109,7 @@ def SetupOptCalcs(Isomers, settings):
 
             if os.path.exists(filename + '.out'):
                 if IsGausCompleted(filename + '.out'):
-                    if IsGausConverged(filename + '.out'):
+                    if IsGausConverged(filename + '.out') or (settings.AssumeConverged == True):
                         iso.OptOutputFiles.append(filename + '.out')
                         continue
                     else:

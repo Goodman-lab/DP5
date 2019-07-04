@@ -80,6 +80,7 @@ class Settings:
     NMRsource = ''  # File or folder containing NMR description or data
     Title = 'DP4molecule'       # Title of the calculation, set to NMR file name by default on launch
     AssumeDone = False          # Assume all computations done, only read DFT output data and analyze (use for reruns)
+    AssumeConverged = False     # Assume all optimizations have converged, do NMR and/or energy calcs on existing DFT geometries
     UseExistingInputs = False   # Don't regenerate DFT inputs, use existing ones. Good for restarting a failed calc
 
     # --- Diastereomer generation ---
@@ -158,7 +159,7 @@ class Isomer:
         self.NMROutputFiles = []    # list of DFT NMR output file names
         self.ShieldingLabels = []   # A list of atom labels corresponding to the shielding values
         self.ConformerShieldings = [] # list of calculated NMR shielding constant lists for every conformer
-        self.BolztmannShieldings = []  # Boltzmann weighted NMR shielding constant list for the isomer
+        self.BoltzmannShieldings = []  # Boltzmann weighted NMR shielding constant list for the isomer
         self.Cshifts = []           # Calculated C NMR shifts
         self.Hshifts = []           # Calculated H NMR shifts
 
@@ -249,7 +250,7 @@ def main(settings):
             Isomers = DFT.ReadGeometries(Isomers)
 
             #Add convergence check here before continuing with calcs!
-            if DFT.Converged(Isomers) == False:
+            if (DFT.Converged(Isomers) == False) and (settings.AssumeConverged == False):
                 print('Some of the conformers did not converge, quitting...')
                 quit()
 
@@ -431,6 +432,8 @@ if __name__ == '__main__':
 
     parser.add_argument("--AssumeDFTDone", help="Assume RMSD pruning, DFT setup\
     and DFT calculations have been run already", action="store_true")
+    parser.add_argument("--AssumeConverged", help="Assume DFT optimizations have" + \
+    " converged and can be used for NMR and or energy calcs", action="store_true")
     parser.add_argument("--UseExistingInputs", help="Use previously generated\
     DFT inputs, avoids long conf pruning and regeneration", action="store_true")
     parser.add_argument("--NoConfPrune", help="Skip RMSD pruning, use all\
@@ -503,6 +506,8 @@ if __name__ == '__main__':
         settings.ConfPrune = False
     if args.AssumeDFTDone:
         settings.AssumeDone = True
+    if args.AssumeConverged:
+        settings.AssumeConverged = True
     if args.UseExistingInputs:
         settings.UseExistingInputs = True
     if args.solvent:
