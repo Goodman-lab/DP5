@@ -104,6 +104,7 @@ class Settings:
     # --- DFT ---
     MaxDFTOptCycles = 50        # Max number of DFT geometry optimization cycles to request.
     CalcFC = False              # Calculate QM force constants before optimization
+    OptStepSize = 30            # Max step Gaussian should take in geometry optimization
     charge = None               # Manually specify charge for DFT calcs
     nBasisSet = "6-311g(d)"     # Basis set for NMR calcs
     nFunctional = "mPW1PW91"    # Functional for NMR calcs
@@ -441,10 +442,10 @@ if __name__ == '__main__':
 
     parser.add_argument('-c', '--StereoCentres', help="Specify\
     stereocentres for diastereomer generation")
-    parser.add_argument('-o', '--DFTOpt', help="Optimize geometries at DFT\
-    level before NMR prediction", action="store_true")
     parser.add_argument("--OptCycles", help="Specify max number of DFT geometry\
     optimization cycles", type=int, default=settings.MaxDFTOptCycles)
+    parser.add_argument("--OptStep", help="Specify the max step size\
+    Gaussian should take in optimization, default is 30", type=int, default=settings.OptStepSize)
     parser.add_argument("--FC", help="Calculate force constants before optimization", action="store_true")
 
     parser.add_argument('-n', '--Charge', help="Specify\
@@ -481,6 +482,7 @@ if __name__ == '__main__':
     settings.MaxConcurrentJobs = args.batch
     settings.project = args.project
     settings.MaxDFTOptCycles = args.OptCycles
+    settings.OptStepSize = args.OptStep
     if args.FC:
         settings.CalcFC = True
     
@@ -493,8 +495,6 @@ if __name__ == '__main__':
 
     settings.MM = args.mm
 
-    if args.DFTOpt:
-        settings.Workflow = settings.Workflow + 'o'
     if args.StepCount is not None:
         settings.MMstepcount = int(args.StepCount)
     if args.Charge is not None:

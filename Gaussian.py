@@ -321,6 +321,8 @@ def OptRoute(settings):
     route += ' Opt=(maxcycles=' + str(settings.MaxDFTOptCycles)
     if settings.CalcFC == True:
         route += ',CalcFC'
+    if (settings.OptStepSize != 30):
+        route += ',MaxStep=' + str(settings.OptStepSize)
     route += ')'
 
     if settings.Solvent != '':
