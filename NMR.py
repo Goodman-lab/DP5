@@ -17,15 +17,19 @@ NMR raw data interpretation top level organization
 import re
 import os
 import math
+import copy
+import pickle
+from Proton_processing import process_proton
+from Carbon_processing import process_carbon
 
 gasConstant = 8.3145
 temperature = 298.15
 hartreeEnergy = 2625.499629554010
 
-# Data struture for loading and keeping all of experimental NMR data in one place.
+# Data structure for loading and keeping all of experimental NMR data in one place.
 class NMRData:
-    def __init__(self, InputPath):
-        self.InputPath = InputPath  # Initial structure input file
+    def __init__(self,settings):
+        self.InputPath = settings.NMRsource  # Initial structure input file
         self.Type = 'desc'          # desc or fid, depending on whether the description or raw data used
         self.Atoms = []             # Element labels
         self.Cshifts = []           # Experimental C NMR shifts
@@ -34,17 +38,30 @@ class NMRData:
         self.Hlabels = []           # Experimental H NMR labels, if any
         self.Equivalents = []       # Atoms assumed to be NMR equivalent in computational data
         self.Omits = []
+        self.protondata = {}
+        self.carbondata = {}
 
         if not os.path.exists(self.InputPath):
+
             print('NMR data path does not exist, quitting...')
             quit()
+
         if os.path.isfile(self.InputPath):
+
             self.Type = 'desc'
             self.ExpNMRFromDesc()
+
         else:
+
             self.Type = 'fid'
-            print('FID data reading and analysis not implemented yet, quitting...')
-            quit()
+
+            if os.path.exists(str(settings.NMRsource) + "/Proton"):
+
+                self.ProcessProton(settings)
+
+            if os.path.exists(str(settings.NMRsource) + "/Carbon"):
+
+                self.ProcessCarbon(settings)
 
 
     def ExpNMRFromDesc(self):
@@ -93,6 +110,88 @@ class NMRData:
         expShifts = [float(x) for x in ShiftData]
 
         return expLabels, expShifts
+
+
+    def ProcessProton(self, settings):
+
+        pdir = "/home/ah809/pydp4/o_AT1_test/Pickles/"
+
+        gdir = "/home/ah809/pydp4/o_AT1_test/Graphs/"
+
+        NMR_file = str(settings.NMRsource) + "/Proton"
+
+        if not os.path.exists(gdir):
+
+            os.mkdir(gdir)
+
+            os.mkdir(gdir + settings.InputFiles[0] + "/")
+
+        if os.path.isfile(pdir + settings.InputFiles[0] +  "/protondata"):
+
+            self.protondata = pickle.load(open(pdir + settings.InputFiles[0] + "/"+ "protondata", "rb"))
+
+            self.Hshifts = self.protondata["exppeaks"]
+
+        else:
+
+            os.mkdir(pdir)
+
+            os.mkdir(pdir  + settings.InputFiles[0] + "/")
+
+            protondata = {}
+
+            protondata["exppeaks"], protondata["xdata"], protondata["ydata"], protondata["integrals"], protondata[
+                "peakregions"], protondata["centres"], \
+            protondata["cummulativevectors"], protondata["integralsum"], protondata["picked_peaks"], protondata[
+                "params"], protondata["sim_regions"] \
+                = process_proton(NMR_file, settings)
+
+            pickle.dump(protondata, open(pdir + settings.InputFiles[0] + "/" + "protondata", "wb"))
+
+            self.Hshifts = protondata["exppeaks"]
+
+            self.protondata = protondata
+
+
+    def ProcessCarbon(self, settings):
+
+        pdir = "/home/ah809/pydp4/o_AT1_test/Pickles/"
+
+        gdir = "/home/ah809/pydp4/o_AT1_test/Graphs/"
+
+        NMR_file = str(settings.NMRsource) + "/Carbon"
+
+        if not os.path.exists(gdir):
+
+            os.mkdir(gdir)
+
+            os.mkdir(gdir + settings.InputFiles[0] + "/")
+
+        if os.path.isfile(pdir + settings.InputFiles[0] + "/carbondata"):
+
+            self.carbondata = pickle.load(open(pdir + settings.InputFiles[0] + "/carbondata", "rb"))
+
+            self.Cshifts = self.carbondata['xdata'][self.carbondata["exppeaks"]]
+
+        else:
+
+            if not os.path.exists(pdir):
+
+                os.mkdir(pdir)
+
+                os.mkdir(pdir + settings.InputFiles[0] + "/")
+
+            carbondata = {}
+
+            carbondata["ydata"], carbondata["xdata"], carbondata["corrdistance"], carbondata["uc"], \
+            carbondata["exppeaks"], carbondata["simulated_ydata"], carbondata["removed"] = process_carbon(
+                NMR_file, settings)
+
+            pickle.dump(carbondata, open(pdir + settings.InputFiles[0] + "/" + "carbondata", "wb"))
+
+            self.carbondata = carbondata
+            self.Cshifts = carbondata["exppeaks"]
+
 
 
 def CalcBoltzmannWeightedShieldings(Isomers):
@@ -193,18 +292,26 @@ def CalcNMRShifts(Isomers, settings):
         Cvalues = []
         Hvalues = []
 
+        Clabels = []
+        Hlabels = []
+
         for a, atom in enumerate(iso.Atoms):
 
             if atom == 'C':
                 shift = (settings.TMS_SC_C13-BShieldings[a]) / (1-(settings.TMS_SC_C13/10**6))
                 Cvalues.append(shift)
+                Clabels.append('C' + str(a))
 
             if atom == 'H':
                 shift = (settings.TMS_SC_H1-BShieldings[a]) / (1-(settings.TMS_SC_H1/10**6))
                 Hvalues.append(shift)
+                Hlabels.append('H' + str(a))
 
         Isomers[i].Cshifts = Cvalues
         Isomers[i].Hshifts = Hvalues
+
+        Isomers[i].Clabels = Clabels
+        Isomers[i].Hlabels = Hlabels
 
         print('C shifts for isomer ' + str(i) + ": ")
         print(', '.join(['{0:.3f}'.format(x) for x in Isomers[i].Cshifts]))
@@ -321,3 +428,55 @@ def RMSE(L1, L2):
         for i in range(0, len(L1)):
             L.append((L1[i]-L2[i])**2)
         return math.sqrt(sum(L)/len(L))
+
+
+def PairwiseAssignment(Isomers,NMRData):
+
+    # for each isomer sort the experimental and calculated shifts
+
+    for iso in Isomers:
+
+        sortedCCalc = sorted(iso.Cshifts, reverse=True)
+        sortedHCalc = sorted(iso.Hshifts, reverse=True)
+
+        sortedCExp = sorted(NMRData.Cshifts, reverse=True)
+        sortedHExp = sorted(NMRData.Hshifts, reverse=True)
+
+        assignedCExp = [''] * len(sortedCCalc)
+        assignedHExp = [''] * len(sortedHCalc)
+
+        tempCCalcs = list(iso.Cshifts)
+        tempHCalcs = list(iso.Hshifts)
+
+        # do the assignment in order of chemical shift starting with the largest
+
+        # Carbon
+
+        for exp, shift in zip(sortedCExp, sortedCCalc):
+            ind = tempCCalcs.index(shift)
+
+            assignedCExp[ind] = exp
+
+            tempCCalcs[ind] = ''
+
+        # Proton
+
+        for exp, shift in zip(sortedHExp, sortedHCalc):
+            ind = tempHCalcs.index(shift)
+
+            assignedHExp[ind] = exp
+
+            tempHCalcs[ind] = ''
+
+        # update isomers class
+
+        iso.Cexp = assignedCExp
+        iso.Hexp = assignedHExp
+
+    return Isomers
+
+
+
+
+
+

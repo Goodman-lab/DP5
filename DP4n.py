@@ -20,22 +20,26 @@ stdevH = 0.18731058105269952
 
 
 class DP4data:
-    def __init__(self, InputPath):
-        self.Cshifts = []  # Carbon shifts used in DP4 calculation
-        self.Cexp = []  # Carbon experimental shifts used in DP4 calculation
-        self.Hshifts = []  # Proton shifts used in DP4 calculation
-        self.Hexp = []  # Proton experimental shifts used in DP4 calculation
-        self.Cscaled = []  # Internally scaled carbon shifts
-        self.Hscaled = []  # Internally scaled proton shifts
-        self.Cerrors = []  # Scaled C prediction errors
-        self.Herrors = []  # Scaled H prediction errors
-        self.Cprobs = []   # Scaled prediction error probabilities
-        self.Hprobs = []
-        self.CDP4probs = []
-        self.HDP4probs = []  # Isomer DP4 probabilities
-
+    def __init__(self):
+        self.Cshifts = []     # Carbon shifts used in DP4 calculation
+        self.Cexp = []        # Carbon experimental shifts used in DP4 calculation
+        self.Clabels = []     # Carbon atom labels
+        self.Hshifts = []     # Proton shifts used in DP4 calculation
+        self.Hexp = []        # Proton experimental shifts used in DP4 calculation
+        self.Hlabels = []     # Proton atom labels
+        self.Cscaled = []     # Internally scaled carbon shifts
+        self.Hscaled = []     # Internally scaled proton shifts
+        self.Cerrors = []     # Scaled Carbon prediction errors
+        self.Herrors = []     # Scaled Proton prediction errors
+        self.Cprobs = []      # Scaled carbon prediction error probabilities
+        self.Hprobs = []      # Scaled proton prediction error probabilities
+        self.CDP4probs = []   # Carbon DP4 probabilities
+        self.HDP4probs = []   # Proton DP4 probabilities
+        self.DP4probs = []    # combined Carbon and Proton DP4 probabilities
+        self.output = str()   # final DP4 output
 
 def ProcessIsomers(DP4data, Isomers):
+
     # extract calculated and experimental shifts and add to DP4data instance
 
     # Carbon
@@ -43,46 +47,59 @@ def ProcessIsomers(DP4data, Isomers):
 
         DP4data.Cshifts.append([])
         DP4data.Cexp.append([])
+        DP4data.Clabels.append([])
 
-        for shift, exp in zip(iso.Cshifts, iso.Cexp):
+        for shift, exp, label in zip(iso.Cshifts, iso.Cexp,iso.Clabels):
+
             if exp != '':
                 DP4data.Cshifts[-1].append(shift)
                 DP4data.Cexp[-1].append(exp)
+                DP4data.Clabels[-1].append(label)
+
     # proton
     for iso in Isomers:
 
         DP4data.Hshifts.append([])
         DP4data.Hexp.append([])
+        DP4data.Hlabels.append([])
 
-        for shift, exp in zip(iso.Hshifts, iso.Hexp):
+        for shift, exp, label in zip(iso.Hshifts, iso.Hexp,iso.Hlabels):
+
             if exp != '':
                 DP4data.Hshifts[-1].append(shift)
                 DP4data.Hexp[-1].append(exp)
+                DP4data.Hlabels[-1].append(label)
 
     return DP4data
 
 
 def InternalScaling(DP4data):
+
     # perform internal scaling process
-
-    for Cshifts, Cexp in zip(DP4data.Cshifts, DP4data.Cexp):
-        DP4data.Cscaled.append(ScaleNMR(Cshifts, Cexp))
-
-    for Hshifts, Hexp in zip(DP4data.Hshifts, DP4data.Hexp):
-        DP4data.Hscaled.append(ScaleNMR(Hshifts, Hexp))
 
     # calculate prediction errors
 
-    for Cscaled, Cexp in zip(DP4data.Cscaled, DP4data.Cexp):
-        DP4data.Cerrors.append([Cscaled[i] - Cexp[i] for i in range(0, len(Cscaled))])
+    if len(DP4data.Cexp[0]) > 0:
 
-    for Hscaled, Hexp in zip(DP4data.Hscaled, DP4data.Hexp):
-        DP4data.Herrors.append([Hscaled[i] - Hexp[i] for i in range(0, len(Hscaled))])
+        for Cshifts, Cexp in zip(DP4data.Cshifts, DP4data.Cexp):
+            DP4data.Cscaled.append(ScaleNMR(Cshifts, Cexp))
+
+        for Cscaled, Cexp in zip(DP4data.Cscaled, DP4data.Cexp):
+            DP4data.Cerrors.append([Cscaled[i] - Cexp[i] for i in range(0, len(Cscaled))])
+
+    if len(DP4data.Hexp[0]) > 0:
+
+        for Hshifts, Hexp in zip(DP4data.Hshifts, DP4data.Hexp):
+            DP4data.Hscaled.append(ScaleNMR(Hshifts, Hexp))
+
+        for Hscaled, Hexp in zip(DP4data.Hscaled, DP4data.Hexp):
+            DP4data.Herrors.append([Hscaled[i] - Hexp[i] for i in range(0, len(Hscaled))])
 
     return DP4data
 
 
 def ScaleNMR(calcShifts, expShifts):
+
     slope, intercept, r_value, p_value, std_err = stats.linregress(expShifts,
                                                                    calcShifts)
     scaled = [(x - intercept) / slope for x in calcShifts]
@@ -94,7 +111,7 @@ def CalcProbs(DP4data, Settings):
 
     #calculates probability values for each scaled prediction error value using the chosen statistical model
 
-    if Settings.StatsModel == 'g':
+    if Settings.StatsModel == 'g' or 'm':
 
         if Settings.StatsParamFile == '':
 
@@ -115,8 +132,8 @@ def CalcProbs(DP4data, Settings):
             for errors in DP4data.Cerrors:
                 DP4data.Cprobs.append([MultiGausProbability(e, Cmeans, Cstdevs) for e in errors])
 
-            for errors in DP4data.Cerrors:
-                DP4data.Cprobs.append([MultiGausProbability(e, Hmeans, Hstdevs) for e in errors])
+            for errors in DP4data.Herrors:
+                DP4data.Hprobs.append([MultiGausProbability(e, Hmeans, Hstdevs) for e in errors])
 
     return DP4data
 
@@ -131,22 +148,17 @@ def SingleGausProbability(error, mean, stdev):
 
 def MultiGausProbability(error, means, stdevs):
 
-    prob = MultiGaus(means, stdevs, error)
-
-    return prob
-
-
-def MultiGaus(means, stdevs, x):
     res = 0
 
     for mean, stdev in zip(means, stdevs):
 
-        res += stats.norm(mean, stdev).pdf(x)
+        res += stats.norm(mean, stdev).pdf(error)
 
-    return res / len(means)
+    return res/len(means)
 
 
 def ReadParamFile(f, t):
+    
     infile = open(f, 'r')
     inp = infile.readlines()
     infile.close()
@@ -155,7 +167,7 @@ def ReadParamFile(f, t):
         print("Wrong parameter file type, exiting...")
         quit()
 
-    if t == 'g':
+    if t == 'm':
         Cmeans = [float(x) for x in inp[1].split(',')]
         Cstdevs = [float(x) for x in inp[2].split(',')]
         Hmeans = [float(x) for x in inp[3].split(',')]
@@ -166,6 +178,8 @@ def ReadParamFile(f, t):
 
 def CalcDP4(DP4data):
 
+    #Calculate Carbon DP4 probabilities
+
     for probs in DP4data.Cprobs:
 
         DP4data.CDP4probs.append(1)
@@ -173,6 +187,8 @@ def CalcDP4(DP4data):
         for p in probs:
 
             DP4data.CDP4probs[-1] *= p
+
+    #Calculate Proton DP4 probabilities
 
     for probs in DP4data.Hprobs:
 
@@ -182,12 +198,118 @@ def CalcDP4(DP4data):
 
             DP4data.HDP4probs[-1] *= p
 
+    #Calculate Combined DP4 probabilities
+
+    for Hp, Cp in zip(DP4data.HDP4probs,DP4data.CDP4probs):
+
+        DP4data.DP4probs.append(Hp*Cp)
+
+
     Cs = sum(DP4data.CDP4probs)
 
     Hs = sum(DP4data.HDP4probs)
+
+    Ts = sum(DP4data.DP4probs)
 
     DP4data.CDP4probs = [i / Cs for i in DP4data.CDP4probs]
 
     DP4data.HDP4probs = [i / Hs for i in DP4data.HDP4probs]
 
+    DP4data.DP4probs = [i / Ts for i in DP4data.DP4probs]
+
     return DP4data
+
+
+def PrintAssignment(DP4Data):
+
+    isomer = 0
+
+    for Clabels, Cshifts, Cexp, Cscaled in zip(DP4Data.Clabels, DP4Data.Cshifts, DP4Data.Cexp, DP4Data.Cscaled):
+
+        DP4Data.output += ("\n\nAssigned C shifts for isomer " + str(isomer + 1) + ": ")
+
+        PrintNMR( Clabels, Cshifts, Cscaled, Cexp,DP4Data)
+
+        isomer +=1
+
+    isomer = 0
+
+    for Hlabels, Hshifts, Hexp, Hscaled in zip(DP4Data.Hlabels, DP4Data.Hshifts, DP4Data.Hexp, DP4Data.Hscaled):
+
+        DP4Data.output += ("\n\nAssigned H shifts for isomer " + str(isomer + 1) + ": ")
+
+        PrintNMR( Hlabels, Hshifts, Hscaled, Hexp,DP4Data)
+
+        isomer +=1
+
+
+def PrintNMR(labels, values, scaled, exp,DP4Data):
+
+    DP4Data.output += ("\nlabel, calc, corrected, exp, error")
+
+    for i in range(len(labels)):
+
+        DP4Data.output += ("\n" + format(labels[i], "6s") + ' ' + format(values[i], "6.2f") + ' '
+            + format(scaled[i], "6.2f") + ' ' + format(exp[i], "6.2f") + ' ' +
+            format(exp[i]-scaled[i], "6.2f"))
+
+
+def MakeOutput(DP4Data,Isomers,Settings):
+
+    #add some info about the calculation
+
+    DP4Data.output += Settings.InputFiles[0] + "\n"
+
+    DP4Data.output += "\n" + "Solvent = " + Settings.Solvent
+
+    DP4Data.output += "\n" + "Force Field = " + Settings.ForceField + "\n"
+
+    if 'o' in Settings.Workflow:
+        DP4Data.output += "\n" + "DFT optimisation Functional = " + Settings.oFunctional
+        DP4Data.output += "\n" + "DFT optimisation Basis = " + Settings.oBasisSet
+
+    if 'e' in Settings.Workflow:
+        DP4Data.output += "\n" + "DFT energy Functional = " + Settings.eFunctional
+        DP4Data.output += "\n" + "DFT energy Basis = " + Settings.eBasisSet
+
+    if 'n' in Settings.Workflow:
+        DP4Data.output += "\n" + "DFT NMR Functional = " + Settings.nFunctional
+        DP4Data.output += "\n" + "DFT NMR Basis = " + Settings.nBasisSet
+
+    if Settings.StatsParamFile != "":
+        DP4Data.output += "\n\nStats model = " + Settings.StatsParamFile
+
+    DP4Data.output += "\n\nNumber of isomers = " + str(len(Isomers))
+
+    c = 1
+
+    for i in Isomers:
+        DP4Data.output += "\nNumber of conformers for isomer " + str(c) + " = " + str(len(i.Conformers))
+        c+=1
+
+    PrintAssignment(DP4Data)
+
+    DP4Data.output += ("\n\nResults of DP4 using Proton: ")
+
+    for i,p in enumerate(DP4Data.HDP4probs):
+        DP4Data.output += ("\nIsomer " + str(i+1) + ": " + format(p, "4.1f") + "%")
+
+    DP4Data.output += ("\n\nResults of DP4 using Carbon: ")
+
+    for i,p in enumerate(DP4Data.CDP4probs):
+        DP4Data.output += ("\nIsomer " + str(i+1) + ": " + format(p, "4.1f") + "%")
+
+    DP4Data.output += ("\n\nResults of DP4: ")
+
+    for i,p in enumerate(DP4Data.DP4probs):
+        DP4Data.output += ("\nIsomer " + str(i+1) + ": " + format(p, "4.1f") + "%")
+
+    print(DP4Data.output)
+
+    out = open("DP4output.dp4","w+")
+
+    out.write(DP4Data.output)
+
+    out.close()
+
+    return DP4Data

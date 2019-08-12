@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 PyDP4 integrated workflow for the running of MM, DFT GIAO calculations and
@@ -37,17 +36,15 @@ Interprets the arguments and takes care of the general workflow logic.
 import NMR
 import Tinker
 import MacroModel
-import DP4
-
+import DP4n as DP4
 import sys
 import os
 import datetime
 import argparse
 import importlib
 
-DFTpackages = [['n', 'w', 'j', 'g', 'z', 'd'],
-    ['NWChem', 'NWChemZiggy', 'Jaguar', 'Gaussian', 'GaussianZiggy', 'GaussianDarwin']]
-
+DFTpackages = [['n', 'w', 'j', 'g', 'z', 'd'],['NWChem', 'NWChemZiggy', 'Jaguar', 'Gaussian', 'GaussianZiggy', 'GaussianDarwin']]
+'''
 if os.name == 'nt':
     import pyximport
     pyximport.install()
@@ -56,7 +53,7 @@ else:
     import pyximport
     pyximport.install()
     import ConfPrune
-
+'''
 class Paths:
     TinkerPath = '~/tinker7/bin/scan '
     SCHRODINGER = '/usr/local/shared/schrodinger/current'
@@ -67,7 +64,7 @@ class Settings:
     # --- Main options ---
     MM = 'm'        # m for MacroModel, t for Tinker
     DFT = 'z'       # n, j, g, z or for NWChem, Jaguar or Gaussian
-    Workflow = 'gmna' # defines which steps to include in the workflow
+    Workflow = 'gmns' # defines which steps to include in the workflow
                     # g for generate diastereomers
                     # m for molecular mechanics conformational search
                     # o for DFT optimization
@@ -96,7 +93,7 @@ class Settings:
 
     # --- Conformer pruning ---
     HardConfLimit = 10000       # Immediately stop if conformers to run exceed this number
-    ConfPrune = True            # Should we prune conformations?
+    ConfPrune = False           # Should we prune conformations?
     PerStructConfLimit = 100    # Max numbers of conformers allowed per structure for DFT stages
     InitialRMSDcutoff = 0.75    # Initial RMSD threshold for pruning
     MaxCutoffEnergy = 10.0      # Max conformer MM energy in kJ/mol to allow
@@ -115,11 +112,11 @@ class Settings:
 
     # --- Computational clusters ---
     """ These should probably be moved to relevant *.py files as Cambridge specific """
-    user = 'ke291'              # Linux user on computational clusters, not used for local calcs
+    user = 'ah809'              # Linux user on computational clusters, not used for local calcs
     TimeLimit = 24              # Queue time limit on comp clusters
     queue = 'SWAN'              # Which queue to use on Ziggy
     project = 'GOODMAN-SL3-CPU' # Which project to use on Darwin
-    DarwinScrDir = '/home/ke291/rds/hpc-work/'  # Which scratch directory to use on Darwin
+    DarwinScrDir = '/home/ah809/rds/hpc-work/'  # Which scratch directory to use on Darwin
     StartTime = ''              # Automatically set on launch, used for folder names
     nProc = 1                   # Cores used per job, must be less than node size on cluster
     DarwinNodeSize = 32         # Node size on current CSD3
@@ -136,7 +133,7 @@ class Settings:
 
 settings = Settings()
 
-# Data struture keeping all of isomer data in one place.
+# Data structure keeping all of isomer data in one place.
 class Isomer:
     def __init__(self, InputFile, Charge=-100):
         self.InputFile = InputFile  # Initial structure input file
@@ -162,8 +159,11 @@ class Isomer:
         self.ConformerShieldings = [] # list of calculated NMR shielding constant lists for every conformer
         self.BoltzmannShieldings = []  # Boltzmann weighted NMR shielding constant list for the isomer
         self.Cshifts = []           # Calculated C NMR shifts
-        self.Hshifts = []           # Calculated H NMR shifts
-
+        self.Hshifts = []           # Calculated H NMR
+        self.Clabels = []
+        self.Hlabels = []
+        self.Cexp = []              # Experimental C NMR shifts
+        self.Hexp = []              # Experimental H NMR shifts
 
 def main(settings):
 
@@ -324,37 +324,78 @@ def main(settings):
         Isomers = NMR.CalcNMRShifts(Isomers, settings)
 
         print('\nReading experimental NMR data...')
-        NMRData = NMR.NMRData(settings.NMRsource)
+        NMRData = NMR.NMRData(settings)
 
-        print('Clabels: ' + str(NMRData.Clabels))
-        print('Cshifts: ' + str(NMRData.Cshifts))
+        '''
+        print("Conformation data:")
+        NMR.PrintConformationData(Isomers)
+        '''
 
-        print('Hlabels: ' + str(NMRData.Hlabels))
-        print('Hshifts: ' + str(NMRData.Hshifts))
+        if NMRData.Type == 'desc':
 
-        print('Equivalents: ' + str(NMRData.Equivalents))
-        print('Omits: ' + str(NMRData.Omits))
+            print('Experimental NMR description found and read.')
+
+            # performs a pairwise assignment
+
+            Isomers = NMR.PairwiseAssignment(Isomers,NMRData)
+
+            # print('Clabels: ' + str(NMRData.Clabels))
+            print('Cshifts: ' + str(NMRData.Cshifts))
+
+            # print('Hlabels: ' + str(NMRData.Hlabels))
+            print('Hshifts: ' + str(NMRData.Hshifts))
+
+            print('Equivalents: ' + str(NMRData.Equivalents))
+            print('Omits: ' + str(NMRData.Omits))
+
+        elif NMRData.Type == 'fid':
+
+            if os.path.exists(str(settings.NMRsource) + "/Proton"):
+
+                from Proton_assignment import AssignProton
+
+                from Proton_plotting import PlotProton
+
+                Isomers = AssignProton(NMRData,Isomers,settings)
+
+                PlotProton(NMRData, Isomers, settings)
+
+            if os.path.exists(str(settings.NMRsource) + "/Carbon"):
+
+                from Carbon_assignment import AssignCarbon
+
+                from Carbon_plotting import PlotCarbon
+
+                Isomers = AssignCarbon(NMRData,Isomers,settings)
+
+                PlotCarbon(NMRData, Isomers, settings)
+
+            print('Raw FID NMR datafound and read.')
+
+
+        #print('\nProcessing experimental NMR data...')
+
+        #NMRdata = NMR.ProcessNMRData(Isomers, settings.NMRsource, settings)
+
+        print('\nCalculating DP4 probabilities...')
+
+        DP4data = DP4.DP4data()
+
+        DP4data = DP4.ProcessIsomers(DP4data,Isomers)
+
+        DP4data = DP4.InternalScaling(DP4data)
+
+        DP4data = DP4.CalcProbs(DP4data,settings)
+
+        DP4data = DP4.CalcDP4(DP4data)
+
+        DP4data = DP4.MakeOutput(DP4data,Isomers,settings)
 
         quit()
 
-        print("Conformation data:")
-        NMR.PrintConformationData(Isomers)
+        #print(DP4.FormatData(DP4data))
 
-        if NMRData.Type == 'desc':
-            print('Experimental NMR description found and read.')
-            print('\nFurther analysis not implemented yet, quitting...')
-            quit()
-        elif NMRData.Type == 'fid':
-            print('Raw FID NMR datafound and read.')
-            print('\nFurther analysis not implemented yet, quitting...')
-            quit()
 
-        print('\nProcessing experimental NMR data...')
-        NMRdata = NMR.ProcessNMRData(Isomers, settings.NMRsource, settings)
-        print('\nCalculating DP4 probabilities...')
-        DP4data = DP4.CalcProbs(NMRdata)
-
-        print(DP4.FormatData(DP4data))
     else:
         print('\nNo DP4 analysis requested.')
 
@@ -528,8 +569,7 @@ if __name__ == '__main__':
         elif (not os.path.isfile(settings.StatsParamFile)) and\
             (not os.path.isfile(settings.ScriptDir+settings.StatsParamFile)):
             print("Stats file not found, quitting.")
-            quit()
-    
+
     now = datetime.datetime.now()
     settings.StartTime = now.strftime('%d%b%H%M')
 
