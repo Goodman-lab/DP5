@@ -429,6 +429,7 @@ def ReadShieldings(Isomers):
         iso.ShieldingLabels = labels
 
     os.chdir(jobdir)
+
     return Isomers
 
 

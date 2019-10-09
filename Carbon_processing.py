@@ -53,10 +53,14 @@ def ProcessCarbon(settings,NMRData):
         NMRData.Cshifts = carbondata["exppeaks"]
 '''
 
-def process_carbon(NMR_file,settings):
+def process_carbon(NMR_file,settings,datatype):
 
     total_spectral_ydata, spectral_ydata, spectral_xdata_ppm, threshold, corr_distance, uc = spectral_processing(
-        NMR_file)
+        NMR_file,datatype)
+
+    print("length y data",len(total_spectral_ydata))
+
+    print("length xdata",len(spectral_xdata_ppm))
 
     total_spectral_ydata = edge_removal(total_spectral_ydata)
 
@@ -72,9 +76,9 @@ def process_carbon(NMR_file,settings):
 # processing
 ########################################################################################################################
 
-def spectral_processing(file):
+def spectral_processing(file,datatype):
 
-    spectral_xdata_ppm, total_spectral_ydata, uc = initial_processing(file)
+    spectral_xdata_ppm, total_spectral_ydata, uc = initial_processing(file,datatype)
 
     corr_distance = estimate_autocorrelation(total_spectral_ydata)
 
@@ -106,11 +110,93 @@ def spectral_processing(file):
 
     return total_spectral_ydata,spectral_ydata,spectral_xdata_ppm,threshold,corr_distance,uc
 
-def initial_processing(file):
+def jcamp_guess_udic(dic, data):
+    """
+    Guess parameters of universal dictionary from dic, data pair.
+    Parameters
+    ----------
+    dic : dict
+        Dictionary of JCAMP-DX parameters.
+    data : ndarray
+        Array of NMR data.
+    Returns
+    -------
+    udic : dict
+        Universal dictionary of spectral parameters.
+    """
+
+    # create an empty universal dictionary
+    udic = ng.fileiobase.create_blank_udic(1)
+
+    # update default values (currently only 1D possible)
+    # "label"
+    try:
+        label_value = dic[".OBSERVENUCLEUS"][0].replace("^", "")
+        udic[0]["label"] = label_value
+    except KeyError:
+        # sometimes INSTRUMENTAL PARAMETERS is used:
+        try:
+            label_value = dic["INSTRUMENTALPARAMETERS"][0].replace("^", "")
+            udic[0]["label"] = label_value
+        except KeyError:
+            pass
+
+    # "obs"
+    obs_freq = None
+    try:
+        obs_freq = float(dic[".OBSERVEFREQUENCY"][0])
+        udic[0]["obs"] = obs_freq
+    except KeyError:
+        pass
+
+    # "size"
+    if isinstance(data, list):
+        data = data[0]  # if list [R,I]
+    if data is not None:
+        udic[0]["size"] = len(data)
+
+    # "sw"
+    # get firstx, lastx and unit
+    firstx, lastx, isppm = ng.jcampdx._find_firstx_lastx(dic)
+
+    # ppm data: convert to Hz
+    if isppm:
+        if obs_freq:
+            firstx = firstx * obs_freq
+            lastx = lastx * obs_freq
+        else:
+            firstx, lastx = (None, None)
+
+    if firstx is not None and lastx is not None:
+        udic[0]["sw"] = abs(lastx - firstx)
+
+    # keys not found in standard&required JCAMP-DX keys and thus left default:
+    # car, complex, encoding
+
+        udic[0]['car'] = firstx  -  abs(lastx - firstx)/2
+
+    return udic
+
+def initial_processing(file,datatype):
+
     print('Processing Spectrum')
-    dic, total_spectral_ydata = ng.bruker.read(file)  # read file
-    total_spectral_ydata = ng.bruker.remove_digital_filter(dic, total_spectral_ydata)  # remove the digital filter
+
+    if datatype =='jcamp':
+
+        dic, total_spectral_ydata = ng.jcampdx.read(file)  # read file
+
+        total_spectral_ydata = total_spectral_ydata[0] + 1j * total_spectral_ydata[1]
+
+        total_spectral_ydata = ng.proc_base.ifft_positive(total_spectral_ydata)
+
+    else:
+
+        dic, total_spectral_ydata = ng.bruker.read(file)  # read file
+
+        total_spectral_ydata = ng.bruker.remove_digital_filter(dic, total_spectral_ydata)  # remove the digital filter
+
     total_spectral_ydata = ng.proc_base.zf_double(total_spectral_ydata, 2)  # zero filling once
+
     total_spectral_ydata = ng.proc_base.fft_positive(total_spectral_ydata)  # Fourier transform
 
     real_part = ng.proc_bl.baseline_corrector(np.real(total_spectral_ydata), wd=2)
@@ -118,9 +204,16 @@ def initial_processing(file):
 
     total_spectral_ydata = real_part + 1j *im_part
 
+    if datatype == 'jcamp':
+
+        udic = jcamp_guess_udic(dic, total_spectral_ydata)
+
+    else:
+
+        udic = ng.bruker.guess_udic(dic, total_spectral_ydata)  # sorting units
 
     # total_spectral_ydata = ng.proc_autophase.autops(total_spectral_ydata, 'acme')  # automatic phase correction
-    udic = ng.bruker.guess_udic(dic, total_spectral_ydata)  # sorting units
+
     uc = ng.fileiobase.uc_from_udic(udic)  # unit conversion element
     spectral_xdata_ppm = uc.ppm_scale()  # ppmscale creation
 
@@ -769,8 +862,6 @@ def solvent_removal(simulated_y_data,spectral_xdata_ppm,solvent,uc,picked_peaks)
 
         exp = uc(p,"ppm")
 
-        print(exp)
-
         region = np.arange(exp - 1000, exp+1000)
 
         peak_region = []
@@ -806,8 +897,6 @@ def solvent_removal(simulated_y_data,spectral_xdata_ppm,solvent,uc,picked_peaks)
         params,fit_s_peaks, amp_vector, fit_s_y = first_order_peak(mxppm, J, np.array(region), 1, uc,1)
 
         print("fit_s_peaks",spectral_xdata_ppm[fit_s_peaks])
-
-        print(fit_s_peaks)
 
         #find average of fitted peaks for referencing:
 

@@ -15,8 +15,9 @@ import os
 from openbabel import *
 import subprocess
 
-
 MolConPath = '/home/' + settings.user + '/chemaxon/marvinsuite/bin/molconvert'
+
+MolConPath = '/home/ah809/opt/chemaxon/jchemsuite/bin/molconvert'
 
 
 def main(f):

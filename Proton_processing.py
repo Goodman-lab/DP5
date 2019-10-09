@@ -5,7 +5,6 @@ from lmfit import Minimizer, Parameters, report_fit
 import nmrglue as ng
 from scipy.stats import norm
 import pickle
-import itertools
 from openbabel import *
 from scipy.optimize import linear_sum_assignment as optimise
 import copy
@@ -53,9 +52,9 @@ def ProcessProton(settings,NMRData):
 '''
 
 
-def process_proton(NMR_file, settings):
+def process_proton(NMR_file, settings,datatype):
 
-    total_spectral_ydata, spectral_xdata_ppm, corr_distance, uc, noise_std, peak_regions = spectral_processing(NMR_file)
+    total_spectral_ydata, spectral_xdata_ppm, corr_distance, uc, noise_std, peak_regions = spectral_processing(NMR_file,datatype)
 
     print('peak picking')
 
@@ -145,21 +144,102 @@ def process_proton(NMR_file, settings):
 
     return exp_peaks, spectral_xdata_ppm, total_spectral_ydata, rounded_is, peak_regions, centres, cummulative_vectors, integral_sum, picked_peaks, total_params, sim_regions
 
+def guess_udic(dic, data):
+    """
+    Guess parameters of universal dictionary from dic, data pair.
+    Parameters
+    ----------
+    dic : dict
+        Dictionary of JCAMP-DX parameters.
+    data : ndarray
+        Array of NMR data.
+    Returns
+    -------
+    udic : dict
+        Universal dictionary of spectral parameters.
+    """
 
-def spectral_processing(file):
+    # create an empty universal dictionary
+    udic = ng.fileiobase.create_blank_udic(1)
+
+    # update default values (currently only 1D possible)
+    # "label"
+    try:
+        label_value = dic[".OBSERVENUCLEUS"][0].replace("^", "")
+        udic[0]["label"] = label_value
+    except KeyError:
+        # sometimes INSTRUMENTAL PARAMETERS is used:
+        try:
+            label_value = dic["INSTRUMENTALPARAMETERS"][0].replace("^", "")
+            udic[0]["label"] = label_value
+        except KeyError:
+            pass
+
+    # "obs"
+    obs_freq = None
+    try:
+        obs_freq = float(dic[".OBSERVEFREQUENCY"][0])
+        udic[0]["obs"] = obs_freq
+
+    except KeyError:
+        pass
+
+    # "size"
+    if isinstance(data, list):
+        data = data[0]  # if list [R,I]
+    if data is not None:
+        udic[0]["size"] = len(data)
+
+
+
+    # "sw"
+    # get firstx, lastx and unit
+    firstx, lastx, isppm = ng.jcampdx._find_firstx_lastx(dic)
+
+    # ppm data: convert to Hz
+    if isppm:
+        if obs_freq:
+            firstx = firstx * obs_freq
+            lastx = lastx * obs_freq
+        else:
+            firstx, lastx = (None, None)
+
+
+    if firstx is not None and lastx is not None:
+        udic[0]["sw"] = abs(lastx - firstx)
+
+
+    # keys not found in standard&required JCAMP-DX keys and thus left default:
+    # car, complex, encoding
+
+        udic[0]['car'] = firstx  -  abs(lastx - firstx)/2
+
+    return udic
+
+
+def spectral_processing(file, datatype):
     print('Processing Spectrum')
 
-    dic, total_spectral_ydata = ng.bruker.read(file)  # read file
+    if datatype == 'jcamp':
 
-    total_spectral_ydata = ng.bruker.remove_digital_filter(dic, total_spectral_ydata)  # remove the digital filter
+        dic, total_spectral_ydata = ng.jcampdx.read(file)  # read file
 
-    # total_spectral_ydata = ng.proc_base.zf_size(total_spectral_ydata, 400000)  # zero filling once
+        total_spectral_ydata = total_spectral_ydata[0] + 1j * total_spectral_ydata[1]
+
+        total_spectral_ydata = ng.proc_base.ifft_positive(total_spectral_ydata)
+
+    else:
+
+        dic, total_spectral_ydata = ng.bruker.read(file)  # read file
+
+        total_spectral_ydata = ng.bruker.remove_digital_filter(dic, total_spectral_ydata)  # remove the digital filter
 
     total_spectral_ydata = ng.proc_base.zf_double(total_spectral_ydata, 4)
 
     total_spectral_ydata = ng.proc_base.fft_positive(total_spectral_ydata)  # Fourier transform
 
     corr_distance = estimate_autocorrelation(total_spectral_ydata)
+
 
     # total_spectral_ydata = ng.proc_base.smo(total_spectral_ydata,corr_distance)
 
@@ -169,8 +249,16 @@ def spectral_processing(file):
 
     total_spectral_ydata = np.real(total_spectral_ydata / m) + 1j * np.imag(total_spectral_ydata / m)
 
-    udic = ng.bruker.guess_udic(dic, total_spectral_ydata)  # sorting units
+    if datatype == 'jcamp':
+
+        udic = guess_udic(dic, total_spectral_ydata)
+
+    else:
+
+        udic = ng.bruker.guess_udic(dic, total_spectral_ydata)  # sorting units
+
     uc = ng.fileiobase.uc_from_udic(udic)  # unit conversion element
+
     spectral_xdata_ppm = uc.ppm_scale()  # ppmscale creation
 
     # baseline and phasing
@@ -200,6 +288,8 @@ def spectral_processing(file):
         peak_regions.append(np.arange(s_start[r], s_end[r]))
 
     tydata = tydata / np.max(abs(tydata))
+
+    print("corrected")
 
     return tydata, spectral_xdata_ppm, corr_distance, uc, sigma, peak_regions
 
@@ -249,7 +339,7 @@ def estimate_autocorrelation(total_spectral_ydata):
 
     c = 1
 
-    tc = copy.copy(t0)
+    tc = 1
 
     t = []
 
@@ -458,8 +548,6 @@ def ACMEWLRhybrid(y, corr_distance):
     phase_angles = np.array(phase_angles)
 
     while switch == 0:
-
-        print("loop")
 
         intercept, gradient = np.polynomial.polynomial.polyfit(centres, phase_angles, deg=1, w=weights)
 
@@ -794,6 +882,8 @@ def gradient_peak_picking(y_data, corr_distance, uc, std, binary_map_regions):
     # draw new regions symmetrically around the newly found peaks
 
     dist_hz = uc(0, "Hz") - uc(9, "Hz")
+
+
 
     print("     resetting region boundries, distance = " + str(dist_hz))
 
@@ -1495,11 +1585,6 @@ def multiproc_BIC_minimisation(peak_regions, grouped_peaks, total_spectral_ydata
         ################################################################################################################
 
         print("     done region " + str(ind1))
-
-        if ind1 == 3:
-            print(fitted_peaks)
-            print(params)
-            print(fit_y)
 
         return fitted_peaks, params, fit_y
 

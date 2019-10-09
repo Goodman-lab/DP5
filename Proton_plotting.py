@@ -1,5 +1,6 @@
 from matplotlib import pyplot as plt
 import numpy as np
+import os
 
 def PlotProton(NMRData,Isomers,settings):
     
@@ -23,7 +24,13 @@ def PlotProton(NMRData,Isomers,settings):
 
     NMR_file = str(settings.NMRsource) + "/Proton"
 
-    gdir = "/home/ah809/pydp4/o_AT1_test/Graphs/" + settings.InputFiles[0]
+    if settings.OutputFolder == '':
+
+        gdir = str(os.getcwd()) + "/Graphs/" + settings.InputFiles[0] + "/"
+
+    else:
+
+        gdir = settings.OutputFolder + "/Graphs/" + settings.InputFiles[0] + "/"
 
     for isomerindex,isomer in enumerate(Isomers):
 
@@ -47,7 +54,7 @@ def PlotProton(NMRData,Isomers,settings):
         fig1.set_size_inches(30, 17)
         
         plt.xlim([10, 0])
-        
+
         plt.xlabel("ppm")
         
         plt.plot(xdata, ydata, label='data', color='grey')
@@ -157,12 +164,9 @@ def PlotProton(NMRData,Isomers,settings):
         
         #plt.legend()
 
-        print(gdir + "/Proton_" + str(isomerindex))
+        plt.savefig(gdir + "/Proton_" + str(isomerindex + 1) + '.svg',format = "svg", bbox_inches='tight')
 
-        plt.savefig(gdir + "/Proton_" + str(isomerindex) + '.png', bbox_inches='tight')
-        
         plt.close()
-
 
 def simulate_spectrum(spectral_xdata_ppm,calc_shifts,assigned_peaks,set_exp):
 

@@ -11,6 +11,8 @@ implementation.
 """
 from scipy import stats
 import bisect
+import os
+import numpy as np
 
 # Standard DP4 parameters
 meanC = 0.0
@@ -113,7 +115,9 @@ def CalcProbs(DP4data, Settings):
 
     if Settings.StatsModel == 'g' or 'm':
 
-        if Settings.StatsParamFile == '':
+        print(Settings.StatsParamFile)
+
+        if Settings.StatsParamFile == 'none':
 
             print('No stats model provided, using default')
 
@@ -245,13 +249,23 @@ def PrintAssignment(DP4Data):
 
 def PrintNMR(labels, values, scaled, exp,DP4Data):
 
+    s = np.argsort(values)
+
+    svalues = np.array(values)[s]
+
+    slabels = np.array(labels)[s]
+
+    sscaled = np.array(scaled)[s]
+
+    sexp = np.array(exp)[s]
+
     DP4Data.output += ("\nlabel, calc, corrected, exp, error")
 
     for i in range(len(labels)):
 
-        DP4Data.output += ("\n" + format(labels[i], "6s") + ' ' + format(values[i], "6.2f") + ' '
-            + format(scaled[i], "6.2f") + ' ' + format(exp[i], "6.2f") + ' ' +
-            format(exp[i]-scaled[i], "6.2f"))
+        DP4Data.output += ("\n" + format(slabels[i], "6s") + ' ' + format(svalues[i], "6.2f") + ' '
+            + format(sscaled[i], "6.2f") + ' ' + format(sexp[i], "6.2f") + ' ' +
+            format(sexp[i]-sscaled[i], "6.2f"))
 
 
 def MakeOutput(DP4Data,Isomers,Settings):
@@ -276,7 +290,7 @@ def MakeOutput(DP4Data,Isomers,Settings):
         DP4Data.output += "\n" + "DFT NMR Functional = " + Settings.nFunctional
         DP4Data.output += "\n" + "DFT NMR Basis = " + Settings.nBasisSet
 
-    if Settings.StatsParamFile != "":
+    if Settings.StatsParamFile != "none":
         DP4Data.output += "\n\nStats model = " + Settings.StatsParamFile
 
     DP4Data.output += "\n\nNumber of isomers = " + str(len(Isomers))
@@ -284,7 +298,9 @@ def MakeOutput(DP4Data,Isomers,Settings):
     c = 1
 
     for i in Isomers:
+
         DP4Data.output += "\nNumber of conformers for isomer " + str(c) + " = " + str(len(i.Conformers))
+
         c+=1
 
     PrintAssignment(DP4Data)
@@ -292,21 +308,27 @@ def MakeOutput(DP4Data,Isomers,Settings):
     DP4Data.output += ("\n\nResults of DP4 using Proton: ")
 
     for i,p in enumerate(DP4Data.HDP4probs):
-        DP4Data.output += ("\nIsomer " + str(i+1) + ": " + format(p, "4.1f") + "%")
+        DP4Data.output += ("\nIsomer " + str(i+1) + ": " + format(p * 100, "4.1f") + "%")
 
     DP4Data.output += ("\n\nResults of DP4 using Carbon: ")
 
     for i,p in enumerate(DP4Data.CDP4probs):
-        DP4Data.output += ("\nIsomer " + str(i+1) + ": " + format(p, "4.1f") + "%")
+        DP4Data.output += ("\nIsomer " + str(i+1) + ": " + format(p * 100, "4.1f") + "%")
 
     DP4Data.output += ("\n\nResults of DP4: ")
 
     for i,p in enumerate(DP4Data.DP4probs):
-        DP4Data.output += ("\nIsomer " + str(i+1) + ": " + format(p, "4.1f") + "%")
+        DP4Data.output += ("\nIsomer " + str(i+1) + ": " + format(p * 100, "4.1f") + "%")
 
     print(DP4Data.output)
 
-    out = open("DP4output.dp4","w+")
+    if Settings.OutputFolder == '':
+
+        out = open(str(os.getcwd()) + "/" + str(Settings.InputFiles[0] + "NMR.dp4"),"w+")
+
+    else:
+
+        out = open( Settings.out_folder + "/" +  str(Settings.InputFiles[0] + "NMR.dp4"),"w+")
 
     out.write(DP4Data.output)
 

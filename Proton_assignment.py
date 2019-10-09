@@ -1800,6 +1800,7 @@ def removecrossassignments(exp,calc,labels):
     return calc, expcopy,labels
 
 def methyl_protons(file):
+
     obconversion = OBConversion()
     obconversion.SetInFormat("sdf")
     obmol = OBMol()
@@ -1821,7 +1822,7 @@ def methyl_protons(file):
 
                 count += 1
 
-                nbrprotons.append('H' + str(l))
+                nbrprotons.append('H' + str(l + 1))
 
         if count == 3:
             methyl_protons.append(nbrprotons)

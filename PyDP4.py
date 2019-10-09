@@ -44,7 +44,7 @@ import argparse
 import importlib
 
 DFTpackages = [['n', 'w', 'j', 'g', 'z', 'd'],['NWChem', 'NWChemZiggy', 'Jaguar', 'Gaussian', 'GaussianZiggy', 'GaussianDarwin']]
-'''
+
 if os.name == 'nt':
     import pyximport
     pyximport.install()
@@ -53,7 +53,7 @@ else:
     import pyximport
     pyximport.install()
     import ConfPrune
-'''
+
 class Paths:
     TinkerPath = '~/tinker7/bin/scan '
     SCHRODINGER = '/usr/local/shared/schrodinger/current'
@@ -84,7 +84,7 @@ class Settings:
     SelectedStereocentres = []  # which stereocentres to vary for diastereomer generation
 
     # --- Molecular mechanics ---
-    ForceField = 'mmff'         # ff to use for conformational search
+    ForceField = 'mmff'         # ff tfOPto use for conformational search
     MMstepcount = 10000         # Max number of MM steps to do, if less than MMfactor*rotable_bonds
     MMfactor = 2500             # MMfactor*rotable_bonds gives number of steps to do if less than MMstepcount
     Rot5Cycle = False           # Special dealing with 5-membered saturated rings, see FiveConf.py
@@ -93,7 +93,7 @@ class Settings:
 
     # --- Conformer pruning ---
     HardConfLimit = 10000       # Immediately stop if conformers to run exceed this number
-    ConfPrune = False           # Should we prune conformations?
+    ConfPrune = True        # Should we prune conformations?
     PerStructConfLimit = 100    # Max numbers of conformers allowed per structure for DFT stages
     InitialRMSDcutoff = 0.75    # Initial RMSD threshold for pruning
     MaxCutoffEnergy = 10.0      # Max conformer MM energy in kJ/mol to allow
@@ -129,7 +129,10 @@ class Settings:
 
     # --- Stats ---
     StatsModel = 'g'            # What statistical model type to use
-    StatsParamFile = ''         # Where to find statistical model parameters
+    StatsParamFile = 'none'         # Where to find statistical model parameters
+
+    # --- Output folder ---
+    OutputFolder = ''             # folder to print dp4 output to - default is cwd
 
 settings = Settings()
 
@@ -339,10 +342,7 @@ def main(settings):
 
             Isomers = NMR.PairwiseAssignment(Isomers,NMRData)
 
-            # print('Clabels: ' + str(NMRData.Clabels))
             print('Cshifts: ' + str(NMRData.Cshifts))
-
-            # print('Hlabels: ' + str(NMRData.Hlabels))
             print('Hshifts: ' + str(NMRData.Hshifts))
 
             print('Equivalents: ' + str(NMRData.Equivalents))
@@ -372,7 +372,6 @@ def main(settings):
 
             print('Raw FID NMR datafound and read.')
 
-
         #print('\nProcessing experimental NMR data...')
 
         #NMRdata = NMR.ProcessNMRData(Isomers, settings.NMRsource, settings)
@@ -394,7 +393,6 @@ def main(settings):
         quit()
 
         #print(DP4.FormatData(DP4data))
-
 
     else:
         print('\nNo DP4 analysis requested.')
@@ -429,7 +427,6 @@ if __name__ == '__main__':
     "can contain g for generate diastereomers, m for molecular mechanics conformational search, " +
     "o for DFT optimization, e for DFT single-point energies, n for DFT NMR calculation, " +
     "s for computational and experimental NMR data extraction and stats analysis, default is 'gmns'", default=settings.Workflow)
-
     parser.add_argument('-m', '--mm', help="Select molecular mechanics program,\
     t for tinker or m for macromodel, default is m", choices=['t', 'm'],
     default='m')
@@ -502,6 +499,9 @@ if __name__ == '__main__':
     parser.add_argument('-f', '--ff', help="Selects force field for the \
     conformational search, implemented options 'mmff' and 'opls' (2005\
     version)", choices=['mmff', 'opls'], default=settings.ForceField)
+
+    parser.add_argument('-OutputFolder', help="Directory for dp4 ouput default is cwd",default=settings.OutputFolder)
+
     args = parser.parse_args()
     print(args.StructureFiles)
     print(args.ExpNMR)

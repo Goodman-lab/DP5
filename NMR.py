@@ -41,27 +41,48 @@ class NMRData:
         self.protondata = {}
         self.carbondata = {}
 
+        print(self.InputPath)
+
+        print(self.InputPath.split('.'))
+
+        #quit()
+
         if not os.path.exists(self.InputPath):
 
             print('NMR data path does not exist, quitting...')
             quit()
+
+        if os.path.isdir(self.InputPath):
+
+            if os.path.isdir(str(settings.NMRsource) + "/Proton"):
+
+                self.Type = 'fid'
+
+                self.ProcessProton(settings)
+
+            if os.path.isdir(str(settings.NMRsource) + "/Carbon"):
+
+                self.Type = 'fid'
+
+                self.ProcessCarbon(settings)
+
+            if os.path.isfile(str(settings.NMRsource) + "/Proton"):
+
+                self.Type = 'jcamp'
+
+                self.ProcessProton(settings)
+
+            if os.path.isfile(str(settings.NMRsource) + "/Carbon"):
+
+                self.Type = 'jcamp'
+
+                self.ProcessCarbon(settings)
 
         if os.path.isfile(self.InputPath):
 
             self.Type = 'desc'
             self.ExpNMRFromDesc()
 
-        else:
-
-            self.Type = 'fid'
-
-            if os.path.exists(str(settings.NMRsource) + "/Proton"):
-
-                self.ProcessProton(settings)
-
-            if os.path.exists(str(settings.NMRsource) + "/Carbon"):
-
-                self.ProcessCarbon(settings)
 
 
     def ExpNMRFromDesc(self):
@@ -114,9 +135,16 @@ class NMRData:
 
     def ProcessProton(self, settings):
 
-        pdir = "/home/ah809/pydp4/o_AT1_test/Pickles/"
+        if settings.OutputFolder == '':
 
-        gdir = "/home/ah809/pydp4/o_AT1_test/Graphs/"
+            pdir = str(os.getcwd()) +  "/Pickles/"
+
+            gdir = str(os.getcwd()) +  "/Graphs/"
+
+        else:
+            pdir =  settings.OutputFolder +  "/Pickles/"
+
+            gdir = settings.OutputFolder +  "/Graphs/"
 
         NMR_file = str(settings.NMRsource) + "/Proton"
 
@@ -124,19 +152,23 @@ class NMRData:
 
             os.mkdir(gdir)
 
+            os.mkdir(gdir  + settings.InputFiles[0] + "/")
+
+        if not os.path.exists(gdir + settings.InputFiles[0] + "/"):
+
             os.mkdir(gdir + settings.InputFiles[0] + "/")
 
-        if os.path.isfile(pdir + settings.InputFiles[0] +  "/protondata"):
+        if not os.path.exists(pdir):
 
-            self.protondata = pickle.load(open(pdir + settings.InputFiles[0] + "/"+ "protondata", "rb"))
+            os.mkdir(pdir)
+
+        if os.path.isfile(pdir + settings.InputFiles[0] +  "protondata"):
+
+            self.protondata = pickle.load(open(pdir + settings.InputFiles[0] + "protondata", "rb"))
 
             self.Hshifts = self.protondata["exppeaks"]
 
         else:
-
-            os.mkdir(pdir)
-
-            os.mkdir(pdir  + settings.InputFiles[0] + "/")
 
             protondata = {}
 
@@ -144,9 +176,9 @@ class NMRData:
                 "peakregions"], protondata["centres"], \
             protondata["cummulativevectors"], protondata["integralsum"], protondata["picked_peaks"], protondata[
                 "params"], protondata["sim_regions"] \
-                = process_proton(NMR_file, settings)
+                = process_proton(NMR_file, settings,self.Type)
 
-            pickle.dump(protondata, open(pdir + settings.InputFiles[0] + "/" + "protondata", "wb"))
+            pickle.dump(protondata, open(pdir + settings.InputFiles[0] + "protondata", "wb"))
 
             self.Hshifts = protondata["exppeaks"]
 
@@ -155,9 +187,17 @@ class NMRData:
 
     def ProcessCarbon(self, settings):
 
-        pdir = "/home/ah809/pydp4/o_AT1_test/Pickles/"
+        if settings.OutputFolder == '':
 
-        gdir = "/home/ah809/pydp4/o_AT1_test/Graphs/"
+            pdir = str(os.getcwd()) +  "/Pickles/"
+
+            gdir = str(os.getcwd()) +  "/Graphs/"
+
+        else:
+            pdir =  settings.OutputFolder +  "/Pickles/"
+
+            gdir = settings.OutputFolder +  "/Graphs/"
+
 
         NMR_file = str(settings.NMRsource) + "/Carbon"
 
@@ -165,34 +205,38 @@ class NMRData:
 
             os.mkdir(gdir)
 
+            os.mkdir(gdir  + settings.InputFiles[0] + "/")
+
+        if not os.path.exists(gdir  + settings.InputFiles[0] + "/"):
+
             os.mkdir(gdir + settings.InputFiles[0] + "/")
 
-        if os.path.isfile(pdir + settings.InputFiles[0] + "/carbondata"):
+        if not os.path.exists(pdir):
 
-            self.carbondata = pickle.load(open(pdir + settings.InputFiles[0] + "/carbondata", "rb"))
+            os.mkdir(pdir)
 
-            self.Cshifts = self.carbondata['xdata'][self.carbondata["exppeaks"]]
+        if os.path.isfile(pdir + settings.InputFiles[0] + "carbondata"):
+
+            self.carbondata = pickle.load(open(pdir + settings.InputFiles[0] + "carbondata", "rb"))
+
+            #self.Cshifts = self.carbondata['xdata'][self.carbondata["exppeaks"]]
+
+            self.Cshifts = self.carbondata["exppeaks"]
+
+            print("Cshifts", self.Cshifts)
 
         else:
-
-            if not os.path.exists(pdir):
-
-                os.mkdir(pdir)
-
-                os.mkdir(pdir + settings.InputFiles[0] + "/")
 
             carbondata = {}
 
             carbondata["ydata"], carbondata["xdata"], carbondata["corrdistance"], carbondata["uc"], \
             carbondata["exppeaks"], carbondata["simulated_ydata"], carbondata["removed"] = process_carbon(
-                NMR_file, settings)
+                NMR_file, settings,self.Type)
 
-            pickle.dump(carbondata, open(pdir + settings.InputFiles[0] + "/" + "carbondata", "wb"))
+            pickle.dump(carbondata, open(pdir + settings.InputFiles[0] + "carbondata", "wb"))
 
             self.carbondata = carbondata
             self.Cshifts = carbondata["exppeaks"]
-
-
 
 def CalcBoltzmannWeightedShieldings(Isomers):
 
@@ -300,12 +344,12 @@ def CalcNMRShifts(Isomers, settings):
             if atom == 'C':
                 shift = (settings.TMS_SC_C13-BShieldings[a]) / (1-(settings.TMS_SC_C13/10**6))
                 Cvalues.append(shift)
-                Clabels.append('C' + str(a))
+                Clabels.append('C' + str(a + 1))
 
             if atom == 'H':
                 shift = (settings.TMS_SC_H1-BShieldings[a]) / (1-(settings.TMS_SC_H1/10**6))
                 Hvalues.append(shift)
-                Hlabels.append('H' + str(a))
+                Hlabels.append('H' + str(a + 1))
 
         Isomers[i].Cshifts = Cvalues
         Isomers[i].Hshifts = Hvalues
