@@ -14,6 +14,7 @@ execution. Called by PyDP4.py.
 import subprocess
 import os
 import time
+import glob
 
 
 def SetupNMRCalcs(Isomers, settings):
@@ -178,6 +179,25 @@ def RunNMRCalcs(Isomers, settings):
     return Isomers
 
 
+def GetPrerunNMRCalcs(Isomers):
+
+    print('\nLooking for prerun Gaussian DFT NMR files...')
+
+    jobdir = os.getcwd()
+    os.chdir('nmr')
+
+    for iso in Isomers:
+        iso.NMRInputFiles = glob.glob(iso.BaseName + 'ginp*com')
+        iso.NMROutputFiles.extend([x[:-4] + '.out' for x in iso.NMRInputFiles if IsGausCompleted(x[:-4] + '.out')])
+
+    print('NMR calc files:')
+    print(', '.join([', '.join(x.NMROutputFiles) for x in Isomers]))
+
+    os.chdir(jobdir)
+
+    return Isomers
+
+
 def RunECalcs(Isomers, settings):
 
     print('\nRunning Gaussian DFT energy calculations locally...')
@@ -200,6 +220,25 @@ def RunECalcs(Isomers, settings):
     return Isomers
 
 
+def GetPrerunECalcs(Isomers):
+
+    print('\nLooking for prerun Gaussian DFT energy calculation files...')
+
+    jobdir = os.getcwd()
+    os.chdir('e')
+
+    for iso in Isomers:
+        iso.EInputFiles = glob.glob(iso.BaseName + 'ginp*com')
+        iso.EOutputFiles.extend([x[:-4] + '.out' for x in iso.EInputFiles if IsGausCompleted(x[:-4] + '.out')])
+
+    print('Energy files:')
+    print(', '.join([', '.join(x.EOutputFiles) for x in Isomers]))
+
+    os.chdir(jobdir)
+
+    return Isomers
+
+
 def RunOptCalcs(Isomers, settings):
 
     print('\nRunning Gaussian DFT geometry optimizations locally...')
@@ -216,6 +255,25 @@ def RunOptCalcs(Isomers, settings):
 
     for iso in Isomers:
         iso.OptOutputFiles.extend([x[:-4] + '.out' for x in iso.OptInputFiles if (x[:-4] + '.out') in Completed])
+
+    os.chdir(jobdir)
+
+    return Isomers
+
+
+def GetPrerunOptCalcs(Isomers):
+
+    print('\nLooking for prerun Gaussian DFT optimization files...')
+
+    jobdir = os.getcwd()
+    os.chdir('opt')
+
+    for iso in Isomers:
+        iso.OptInputFiles = glob.glob(iso.BaseName + 'ginp*com')
+        iso.OptOutputFiles.extend([x[:-4] + '.out' for x in iso.OptInputFiles if IsGausCompleted(x[:-4] + '.out')])
+
+    print('Opt files:')
+    print(', '.join([', '.join(x.OptOutputFiles) for x in Isomers]))
 
     os.chdir(jobdir)
 
@@ -257,6 +315,8 @@ def WriteGausFile(Gausinp, conformer, atoms, charge, settings, type):
         f.write('%nprocshared=' + str(settings.nProc) + '\n')
     if settings.DFT == 'g':
         f.write('%mem=2000MB\n%chk='+Gausinp + '.chk\n')
+    elif settings.DFT == 'z':
+        f.write('%mem=1000MB\n%chk=' + Gausinp + '.chk\n')
     else:
         f.write('%mem=6000MB\n%chk='+Gausinp + '.chk\n')
 

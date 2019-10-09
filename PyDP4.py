@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # -*- coding: utf-8 -*-
 """
 PyDP4 integrated workflow for the running of MM, DFT GIAO calculations and
@@ -112,11 +114,11 @@ class Settings:
 
     # --- Computational clusters ---
     """ These should probably be moved to relevant *.py files as Cambridge specific """
-    user = 'ah809'              # Linux user on computational clusters, not used for local calcs
+    user = 'ke291'              # Linux user on computational clusters, not used for local calcs
     TimeLimit = 24              # Queue time limit on comp clusters
     queue = 'SWAN'              # Which queue to use on Ziggy
     project = 'GOODMAN-SL3-CPU' # Which project to use on Darwin
-    DarwinScrDir = '/home/ah809/rds/hpc-work/'  # Which scratch directory to use on Darwin
+    DarwinScrDir = '/home/ke291/rds/hpc-work/'  # Which scratch directory to use on Darwin
     StartTime = ''              # Automatically set on launch, used for folder names
     nProc = 1                   # Cores used per job, must be less than node size on cluster
     DarwinNodeSize = 32         # Node size on current CSD3
@@ -300,17 +302,19 @@ def main(settings):
     else:
         # Read DFT optimized geometries, if requested
         if ('o' in settings.Workflow):
-            Isomers = DFT.ReadDFTGeometries(Isomers, settings)
+            Isomers = DFT.GetPrerunOptCalcs(Isomers)
+            Isomers = DFT.ReadGeometries(Isomers)
 
         # Read DFT single-point energies, if requested
         if ('e' in settings.Workflow):
-            Isomers = DFT.ReadDFTEnergies(Isomers, settings)
+            Isomers = DFT.GetPrerunECalcs(Isomers)
+            Isomers = DFT.ReadEnergies(Isomers, settings)
 
         # Read DFT NMR data, if requested
         if ('n' in settings.Workflow):
+            Isomers = DFT.GetPrerunNMRCalcs(Isomers)
             Isomers = DFT.ReadShieldings(Isomers)
-            Isomers = DFT.ReadDFTEnergies(Isomers)
-
+            Isomers = DFT.ReadEnergies(Isomers, settings)
 
     if not(NMR.NMRDataValid(Isomers)) or ('n' not in settings.Workflow):
 
