@@ -328,7 +328,7 @@ def MakeOutput(DP4Data,Isomers,Settings):
 
     else:
 
-        out = open( Settings.out_folder + "/" +  str(Settings.InputFiles[0] + "NMR.dp4"),"w+")
+        out = open( Settings.OutputFolder + "/" +  str(Settings.InputFiles[0] + "NMR.dp4"),"w+")
 
     out.write(DP4Data.output)
 

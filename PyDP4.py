@@ -584,5 +584,7 @@ if __name__ == '__main__':
     settings.InputFiles = args.StructureFiles
 
     settings.NMRsource = args.ExpNMR
+
+    settings.OutputFolder = args.OutputFolder
     
     main(settings)
