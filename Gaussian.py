@@ -526,21 +526,36 @@ def ReadGeometry(GOutpFile):
     return atoms, coords
 
 
-def ReadGeometries(Isomers):
+def ReadGeometries(Isomers, settings):
 
     jobdir = os.getcwd()
-    os.chdir('opt')
+    if ('o' in settings.Workflow):
+        os.chdir('opt')
 
-    for iso in Isomers:
+        for iso in Isomers:
 
-        iso.DFTConformers = [[] for x in iso.OptOutputFiles]
+            iso.DFTConformers = [[] for x in iso.OptOutputFiles]
 
-        for num, GOutpFile in enumerate(iso.OptOutputFiles):
+            for num, GOutpFile in enumerate(iso.OptOutputFiles):
 
-            atoms, coords = ReadGeometry(GOutpFile)
+                atoms, coords = ReadGeometry(GOutpFile)
 
-            iso.DFTConformers[num] = coords
+                iso.DFTConformers[num] = coords
 
+            iso.Atoms = atoms
+    else:
+        os.chdir('nmr')
+
+        for iso in Isomers:
+
+            iso.DFTConformers = [[] for x in iso.NMROutputFiles]
+
+            for num, GOutpFile in enumerate(iso.NMROutputFiles):
+                atoms, coords = ReadGeometry(GOutpFile)
+
+                iso.DFTConformers[num] = coords
+
+            iso.Atoms = atoms
     #return atoms, coords, charge
     os.chdir(jobdir)
     return Isomers

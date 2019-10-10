@@ -303,12 +303,14 @@ def main(settings):
         # Read DFT optimized geometries, if requested
         if ('o' in settings.Workflow):
             Isomers = DFT.GetPrerunOptCalcs(Isomers)
-            Isomers = DFT.ReadGeometries(Isomers)
+
+        Isomers = DFT.ReadGeometries(Isomers, settings)
 
         # Read DFT single-point energies, if requested
         if ('e' in settings.Workflow):
             Isomers = DFT.GetPrerunECalcs(Isomers)
-            Isomers = DFT.ReadEnergies(Isomers, settings)
+
+        Isomers = DFT.ReadEnergies(Isomers, settings)
 
         # Read DFT NMR data, if requested
         if ('n' in settings.Workflow):
@@ -332,12 +334,10 @@ def main(settings):
 
         print('\nReading experimental NMR data...')
         NMRData = NMR.NMRData(settings)
-
-        '''
+        """
         print("Conformation data:")
         NMR.PrintConformationData(Isomers)
-        '''
-
+        """
         if NMRData.Type == 'desc':
 
             print('Experimental NMR description found and read.')
