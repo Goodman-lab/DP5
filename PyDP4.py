@@ -44,6 +44,7 @@ import os
 import datetime
 import argparse
 import importlib
+import getpass
 
 DFTpackages = [['n', 'w', 'j', 'g', 'z', 'd'],['NWChem', 'NWChemZiggy', 'Jaguar', 'Gaussian', 'GaussianZiggy', 'GaussianDarwin']]
 
@@ -114,11 +115,11 @@ class Settings:
 
     # --- Computational clusters ---
     """ These should probably be moved to relevant *.py files as Cambridge specific """
-    user = 'ke291'              # Linux user on computational clusters, not used for local calcs
+    user = ''              # Linux user on computational clusters, not used for local calcs
     TimeLimit = 24              # Queue time limit on comp clusters
     queue = 'SWAN'              # Which queue to use on Ziggy
     project = 'GOODMAN-SL3-CPU' # Which project to use on Darwin
-    DarwinScrDir = '/home/ke291/rds/hpc-work/'  # Which scratch directory to use on Darwin
+    DarwinScrDir = '/home/u/rds/hpc-work/'  # Which scratch directory to use on Darwin
     StartTime = ''              # Automatically set on launch, used for folder names
     nProc = 1                   # Cores used per job, must be less than node size on cluster
     DarwinNodeSize = 32         # Node size on current CSD3
@@ -576,6 +577,9 @@ if __name__ == '__main__':
 
     now = datetime.datetime.now()
     settings.StartTime = now.strftime('%d%b%H%M')
+
+    settings.user = getpass.getuser()
+    settings.DarwinScrDir.replace('/u/', settings.user)
 
     with open('cmd.log', 'a') as f:
         f.write(' '.join(sys.argv) + '\n')
