@@ -465,6 +465,7 @@ def ReadShieldings(Isomers):
     for iso in Isomers:
 
         for GOutpFile in iso.NMROutputFiles:
+
             gausfile = open(GOutpFile, 'r')
             GOutp = gausfile.readlines()
             gausfile.close()
@@ -483,6 +484,8 @@ def ReadShieldings(Isomers):
                     data = [_f for _f in line.split(' ') if _f]
                     shieldings.append(float(data[4]))
                     labels.append(data[1] + data[0])
+
+            print(GOutpFile,len(shieldings))
 
             iso.ConformerShieldings.append(shieldings)
 

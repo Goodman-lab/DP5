@@ -244,6 +244,7 @@ def CalcBoltzmannWeightedShieldings(Isomers):
 
     for i, iso in enumerate(Isomers):
 
+
         # Calculate rel. energies in kJ/mol
         minE = min(iso.DFTEnergies)
 
@@ -275,7 +276,12 @@ def CalcBoltzmannWeightedShieldings(Isomers):
 
         for atom in range(len(iso.Atoms)):
             shielding = 0
+
+            c = 1
+
             for population, shieldings in zip(iso.Populations, iso.ConformerShieldings):
+
+                c+=1
                 shielding = shielding + shieldings[atom] * population
             BoltzmannShieldings.append(shielding)
 

@@ -11,6 +11,7 @@ import copy
 from scipy.interpolate import InterpolatedUnivariateSpline
 import pathos.multiprocessing as mp
 import time
+import itertools
 import os
 
 '''
@@ -50,7 +51,6 @@ def ProcessProton(settings,NMRData):
 
         NMRData.protondata = protondata
 '''
-
 
 def process_proton(NMR_file, settings,datatype):
 
@@ -2410,7 +2410,7 @@ def editsolvent_removal2(solvent, y_data, x_data, picked_peaks, peak_regions, gr
 
     s_differences = sum(differences)
 
-    x_data = x_data - s_differences
+    x_data = x_data + s_differences
 
     return peak_regions, picked_peaks, grouped_peaks, x_data, solvent_region_ind
 

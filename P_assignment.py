@@ -50,10 +50,6 @@ def iterative_assignment(exp_peaks,calculated_shifts, H_labels,rounded_integrals
 
             scaled_shifts = external_scale_proton_shifts(calculated_shifts)
 
-            scaled_mu = 0
-
-            scaled_std = 1
-
         else:
             old_assigned_shifts = copy.copy(new_assigned_shifts)
             old_assigned_peaks = copy.copy(new_assigned_peaks)
@@ -62,7 +58,6 @@ def iterative_assignment(exp_peaks,calculated_shifts, H_labels,rounded_integrals
 
             #scaled_mu,scaled_std = scale_params(slope,intercept)
 
-            scaled_std = 1
 
         ###############assign methyl groups first
 
@@ -105,7 +100,7 @@ def iterative_assignment(exp_peaks,calculated_shifts, H_labels,rounded_integrals
             for ind2, j in enumerate(methyl_peaks):
                 diff_matrix[ind1,ind2] = j-i
 
-        prob_matrix = proton_probabilities(diff_matrix,scaled_mu,scaled_std)
+        prob_matrix = proton_probabilities(diff_matrix,settings)
 
         prob_matrix = prob_matrix**2
 
@@ -178,7 +173,7 @@ def iterative_assignment(exp_peaks,calculated_shifts, H_labels,rounded_integrals
             for ind2, j in enumerate(exp_peaksp):
                 diff_matrix[ind1,ind2] = j-i
 
-        prob_matrix = proton_probabilities(diff_matrix,scaled_mu,scaled_std)
+        prob_matrix = proton_probabilities(diff_matrix,settings)
 
         prob_matrix = prob_matrix**2
 
@@ -280,7 +275,7 @@ def internal_scale_proton_shifts(assigned_shifts,assigned_peaks,calculated_shift
 
     return scaled_shifts,slope,intercept
 
-def proton_probabilities(diff_matrix,scaled_mu,scaled_std):
+def proton_probabilities(diff_matrix,settings):
 
     # unscaled error data
 
@@ -290,9 +285,40 @@ def proton_probabilities(diff_matrix,scaled_mu,scaled_std):
 
     #prob_matrix = norm.pdf(diff_matrix,0,0.2374164273141329) / norm.pdf(0,0,0.2374164273141329)
 
-    prob_matrix = norm.pdf(diff_matrix, scaled_mu, scaled_std) / norm.pdf(scaled_mu, scaled_mu, scaled_std)
+    if settings.StatsParamFile != 'none':
+
+        Cmeans, Cstdevs, scaled_mu, scaled_std = ReadParamFile(settings.StatsParamFile,'m')
+
+        prob_matrix = np.ones(np.shape(diff_matrix))
+
+        for mu, std in zip(scaled_mu,scaled_std):
+
+            prob_matrix *= norm.pdf(diff_matrix,mu, std) / norm.pdf(mu, mu, std)
+
+        prob_matrix /= len(scaled_mu)
+
+    else:
+
+        prob_matrix = norm.pdf(diff_matrix, 0, 1 ) / norm.pdf(0, 0, 1)
 
     return prob_matrix
+
+def ReadParamFile(f, t):
+    infile = open(f, 'r')
+    inp = infile.readlines()
+    infile.close()
+
+    if t not in inp[0]:
+        print("Wrong parameter file type, exiting...")
+        quit()
+
+    if t == 'm':
+        Cmeans = [float(x) for x in inp[1].split(',')]
+        Cstdevs = [float(x) for x in inp[2].split(',')]
+        Hmeans = [float(x) for x in inp[3].split(',')]
+        Hstdevs = [float(x) for x in inp[4].split(',')]
+
+        return Cmeans, Cstdevs, Hmeans, Hstdevs
 
 def simulate_spectrum(spectral_xdata_ppm,calc_shifts):
 
