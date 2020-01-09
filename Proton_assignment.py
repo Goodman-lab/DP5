@@ -31,8 +31,6 @@ def AssignProton(NMRData,Isomers,settings):
 
 def iterative_assignment(exp_peaks,calculated_shifts, H_labels,rounded_integrals,settings):
 
-    exp_peaks = np.array(exp_peaks)
-
     calculated_shifts = np.array(calculated_shifts)
 
     H_labels = np.array(H_labels)
@@ -180,6 +178,22 @@ def iterative_assignment(exp_peaks,calculated_shifts, H_labels,rounded_integrals
 
         prob_matrix = proton_probabilities(diff_matrix,scaled_mu,scaled_std)
 
+        b = abs(diff_matrix) >= 1
+
+        ##############################find any rows that are all zeros
+
+        b = np.where(np.sum(prob_matrix, 1) == 0)
+
+        prob_matrix[b] =  - np.inf
+
+        prob_matrix = np.delete(prob_matrix, b, 0)
+
+        unassignable_shifts = calculated_shiftsp[b]
+
+        ccalculated_shiftsp = np.delete(calculated_shiftsp, b)
+
+        ##############################
+
         prob_matrix = prob_matrix**2
 
         prob_matrix = 1 - prob_matrix
@@ -188,9 +202,11 @@ def iterative_assignment(exp_peaks,calculated_shifts, H_labels,rounded_integrals
 
         opt_peaksp =  exp_peaksp[horizontal_ind]
 
-        opt_shiftsp = calculated_shiftsp[vertical_ind]
+        opt_shiftsp = ccalculated_shiftsp[vertical_ind]
 
         opt_labelsp = H_labelsp[vertical_ind]
+
+        opt_shifts, opt_peaks, opt_labels = removecrossassignments(opt_peaksp, opt_shiftsp, opt_labelsp)
 
         ################ combine these assignments
 
@@ -222,7 +238,7 @@ def iterative_assignment(exp_peaks,calculated_shifts, H_labels,rounded_integrals
 
             opt_shifts = np.append(opt_shifts,shift)
 
-        opt_shifts,opt_peaks,opt_labels = removecrossassignments(opt_peaks, opt_shifts, opt_labels)
+
 
         #### sort output wrt original H labels
 

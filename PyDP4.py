@@ -38,7 +38,7 @@ Interprets the arguments and takes care of the general workflow logic.
 import NMR
 import Tinker
 import MacroModel
-import DP4n as DP4
+import DP4 as DP4
 import sys
 import os
 import datetime
@@ -102,7 +102,7 @@ class Settings:
     MaxCutoffEnergy = 10.0      # Max conformer MM energy in kJ/mol to allow
 
     # --- DFT ---
-    MaxDFTOptCycles = 50        # Max number of DFT geometry optimization cycles to request.
+    C = 50        # Max number of DFT geometry optimization cycles to request.
     CalcFC = False              # Calculate QM force constants before optimization
     OptStepSize = 30            # Max step Gaussian should take in geometry optimization
     charge = None               # Manually specify charge for DFT calcs
@@ -254,7 +254,7 @@ def main(settings):
 
             print('\nReading DFT optimized geometries...')
 
-            Isomers = DFT.ReadGeometries(Isomers)
+            Isomers = DFT.ReadGeometries(Isomers,settings)
 
             #Add convergence check here before continuing with calcs!
             if (DFT.Converged(Isomers) == False) and (settings.AssumeConverged == False):
@@ -392,14 +392,14 @@ def main(settings):
 
         DP4data = DP4.MakeOutput(DP4data,Isomers,settings)
 
-        quit()
-
         #print(DP4.FormatData(DP4data))
 
     else:
         print('\nNo DP4 analysis requested.')
 
     print('\nPyDP4 process completed successfully.')
+
+    return NMRData, Isomers, settings, DP4data
 
 
 # Selects which DFT package to import, returns imported module
@@ -561,7 +561,7 @@ if __name__ == '__main__':
         settings.RingAtoms =\
             [int(x) for x in (args.ra).split(',')]
     
-    if settings.StatsParamFile != '':
+    if settings.StatsParamFile != 'none':
         if os.path.isfile(settings.StatsParamFile):
             print("Statistical parameter file found at " + settings.StatsParamFile)
         elif (not os.path.isfile(settings.StatsParamFile)) and\

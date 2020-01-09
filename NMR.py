@@ -19,7 +19,7 @@ import os
 import math
 import copy
 import pickle
-from Proton_processing import process_proton
+from Proton_Processing_update import process_proton
 from Carbon_processing import process_carbon
 
 gasConstant = 8.3145
@@ -27,6 +27,7 @@ temperature = 298.15
 hartreeEnergy = 2625.499629554010
 
 # Data structure for loading and keeping all of experimental NMR data in one place.
+
 class NMRData:
     def __init__(self,settings):
         self.InputPath = settings.NMRsource  # Initial structure input file
@@ -82,8 +83,6 @@ class NMRData:
 
             self.Type = 'desc'
             self.ExpNMRFromDesc()
-
-
 
     def ExpNMRFromDesc(self):
 

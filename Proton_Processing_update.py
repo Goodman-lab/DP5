@@ -108,7 +108,7 @@ def process_proton(NMR_file, settings, datatype):
 
     exp_peaks = spectral_xdata_ppm[exp_peaks]
 
-    exp_peaks = np.array([ round(i,4) for i in exp_peaks])
+    exp_peaks = np.array([round(i, 4) for i in exp_peaks])
 
     return exp_peaks, spectral_xdata_ppm, total_spectral_ydata, integrals, peak_regions, centres, cummulative_vectors, integral_sum, picked_peaks, total_params, sim_regions
 
@@ -203,8 +203,6 @@ def spectral_processing(file, datatype):
 
     total_spectral_ydata = ng.proc_base.fft_positive(total_spectral_ydata)  # Fourier transform
 
-    corr_distance = estimate_autocorrelation(total_spectral_ydata)
-
     # total_spectral_ydata = ng.proc_base.smo(total_spectral_ydata,corr_distance)
 
     # normalise the data
@@ -222,6 +220,8 @@ def spectral_processing(file, datatype):
         udic = ng.bruker.guess_udic(dic, total_spectral_ydata)  # sorting units
 
     uc = ng.fileiobase.uc_from_udic(udic)  # unit conversion element
+
+    corr_distance = estimate_autocorrelation(total_spectral_ydata, uc)
 
     spectral_xdata_ppm = uc.ppm_scale()  # ppmscale creation
 
@@ -258,16 +258,25 @@ def spectral_processing(file, datatype):
     return tydata, spectral_xdata_ppm, corr_distance, uc, sigma, peak_regions
 
 
-def estimate_autocorrelation(total_spectral_ydata):
+def estimate_autocorrelation(total_spectral_ydata, uc):
+
+    '''
+
     # note this region may have a baseline distortion
 
-    y = np.real(total_spectral_ydata[0:10000])
+    #y = np.real(total_spectral_ydata[1000:11000])
+
+    m = int(len(total_spectral_ydata)/2)
+
+    q = int(len(total_spectral_ydata)/4)
+
+    y = np.real(total_spectral_ydata[m-q:m+q])
 
     params = Parameters()
 
-    # define a basleine polnomial
+    # define a baseline polynomial
 
-    order = 6
+    order = 1
 
     for p in range(order + 1):
         params.add('p' + str(p), value=0)
@@ -297,24 +306,109 @@ def estimate_autocorrelation(total_spectral_ydata):
 
     bl = poly(results.params, order, y)
 
+    ty = np.real(total_spectral_ydata)
+
+    ty -= poly(results.params, order, ty)
+
+    print("ty")
+
+    plt.plot(y)
+    plt.plot(bl)
+
+    plt.show()
+
     y = y - bl
 
     t0 = np.sum(y * y)
 
-    c = 1
-
     tc = 1
 
-    t = []
+    c=0
 
     while tc > 0.36:
-        tc = np.sum(np.roll(y, c) * y) / t0
 
-        t.append(tc)
+        tc = np.sum(np.roll(ty, c)[m-q:m+q] * y) / t0
 
         c += 1
 
     print('autocorrelation distance = ' + str(c))
+
+    '''
+
+    yd = np.array(np.real(total_spectral_ydata))
+
+    wd = int(uc(0, "Hz") - uc(9, "Hz"))
+
+    print("Nine Hz = ", wd, " points")
+
+    sd_all = _get_sd(yd, wd)
+
+    # find 20Hz region with lowest sd
+
+    print()
+
+    a = np.argmin(sd_all - np.median(sd_all))
+
+    region = np.arange(max(0,a - wd),min(a + wd,len(yd)))
+
+    sample = np.array(yd[region])
+
+    print(len(sample))
+
+    # fit poly baseline
+
+    params = Parameters()
+
+    # define a baseline polynomial
+
+    order = 2
+
+    for p in range(order + 1):
+        params.add('p' + str(p), value=0)
+
+    def poly(params, order, y, x0):
+
+        bl = np.zeros(len(y))
+        x = np.arange(len(y)) - x0
+
+        for p in range(order + 1):
+            bl += params['p' + str(p)] * x ** (p)
+
+        return bl
+
+    def res(params, order, y):
+
+        bl = poly(params, order, y, 0)
+
+        r = abs(y - bl)
+
+        return r
+
+    out = Minimizer(res, params,
+                    fcn_args=(order, sample))
+
+    results = out.minimize()
+
+    bl = poly(results.params, order, sample, 0)
+
+    sample -= bl
+
+    bl2 = poly(results.params, order, yd, a - wd)
+
+    yd -= bl2
+
+    t0 = np.sum(sample * sample)
+
+    tc = 1
+
+    c = 1
+
+    while tc > 0.36:
+        tc = np.sum(np.roll(yd, c)[region] * sample) / t0
+
+        c += 1
+
+    print("autocorrelation distance", c)
 
     return c
 
@@ -438,7 +532,9 @@ def ACMEWLRhybrid(y, corr_distance):
 
         return h1s + 1000 * p
 
-    # find regions
+    print("Phasing")
+
+    # find regions extend them by nine Hz in either direction, then make region boundaries
 
     classification, sigma = baseline_find_signal(y, corr_distance, True, 1)
 
@@ -455,8 +551,12 @@ def ACMEWLRhybrid(y, corr_distance):
     for r in range(len(s_start)):
         peak_regions.append(np.arange(s_start[r], s_end[r]))
 
-    # for region in peak_regions:
-    #    plt.plot(region,y[region],color = 'C1')
+    peak_regions = []
+
+    for r in range(len(s_start)):
+        peak_regions.append(np.arange(s_start[r], s_end[r]))
+
+    ####
 
     # phase each region independently
 
@@ -469,7 +569,7 @@ def ACMEWLRhybrid(y, corr_distance):
     for region in peak_regions:
         params = Parameters()
 
-        params.add('p0', value=0, min=-np.pi, max=np.pi)
+        params.add('p0', value=0, min=- np.pi, max= np.pi)
 
         out = Minimizer(residual_function, params,
                         fcn_args=(np.imag(y[region]), np.real(y[region])))
@@ -492,7 +592,9 @@ def ACMEWLRhybrid(y, corr_distance):
 
         res = data - r
 
-        weights.append(abs(np.sum(res[res > 0] / np.sum(y[y > 0]))))
+        #weights.append(abs(np.sum(res / np.sum(y))))
+
+        weights.append(np.sum(res[res>0]))
 
         centres.append(np.median(region) / len(y))
 
@@ -510,85 +612,141 @@ def ACMEWLRhybrid(y, corr_distance):
 
     weights = np.array(weights)
 
-    sweights = np.argsort(weights)[::-1]
-
     phase_angles = np.array(phase_angles)
 
-    ind1 = 0
+    #make sure all points are in the same phase calculate circular average
 
+    phase_angles = cicularphase(phase_angles,weights)
+
+    '''
+    plt.close()
+
+    plt.plot(np.linspace(0,1,len(y)),y,alpha = 0.2)
+
+    for region,angle in zip(peak_regions,phase_angles):
+        p = Parameters()
+
+        p.add('p0', value=angle)
+        p.add('p1', value=0)
+
+        plt.plot(region/len(y),ps(p, np.imag(y[region]), np.real(y[region]), 1))
+
+    plt.show()
+    '''
     while switch == 0:
 
-        intercept, gradient = np.polynomial.polynomial.polyfit(centres, phase_angles, deg=1, w=weights)
+        #intercept, gradient = np.polynomial.polynomial.polyfit(centres, phase_angles, deg=1,w=weights)
 
-        predicted_angles = gradient * centres + intercept
+        params2 = Parameters()
 
-        weighted_res = np.abs(predicted_angles - phase_angles) * weights
+        params2.add('intercept', value=0, min=-2 *np.pi, max= 2* np.pi)
+        params2.add('gradient', value=0, min= -2 * np.pi, max= 2* np.pi)
 
-        # find where largest weighted residual is
+        def resf(p,c,a,w):
 
-        #max_res = np.argmax(weighted_res)
+            predicted_angles = p['gradient'] * c + p['intercept']
 
-        max_res = sweights[ind1]
+            weighted_res = np.abs(predicted_angles - a) *w
 
-        s = 0
+            return weighted_res
 
-        if phase_angles[max_res] > 0:
+        out = Minimizer(resf, params2,
+                        fcn_args=(centres,phase_angles,weights))
 
-            s = -1
+        results = out.minimize()
 
-            phase_angles[max_res] -= 2 * np.pi
+        pr = results.params
+
+        predicted_angles = pr['gradient'] * centres + pr['intercept']
+
+        #weighted_res = np.abs(predicted_angles - phase_angles) *weights
+
+        weighted_res = resf(pr,centres,phase_angles,weights)
+
+        # find where smallest weighted residual is
+
+        min_weight = np.argmin(weights)
+
+        n_centres = np.delete(centres,min_weight)
+        n_weights = np.delete(weights, min_weight)
+        n_angles = np.delete(phase_angles, min_weight)
+
+        #do new regression without this point
+
+        out = Minimizer(resf, params2,
+                        fcn_args=(n_centres, n_angles, n_weights))
+
+        results2 = out.minimize()
+
+        pr2 = results2.params
+
+        new_predicted_angles = pr2['gradient'] *centres + pr2['intercept']
+
+        new_weighted_res = resf(pr2,centres,phase_angles,weights)
+
+        #check if there are enough points to remove one
+
+        if np.sum(new_weighted_res) / np.sum(weighted_res) < 1.0001:
+
+            #if they dont then remove this point
+
+            centres = copy.copy(n_centres)
+            weights = copy.copy(n_weights)
+            phase_angles = copy.copy(n_angles)
 
         else:
+            switch =1
 
-            s = +1
 
-            phase_angles[max_res] += 2 * np.pi
-
-        intercept1, gradient1 = np.polynomial.polynomial.polyfit(centres, phase_angles, deg=1, w=weights)
-
-        new_predicted_angles = gradient1 * centres + intercept1
-
-        new_weighted_res = np.abs(new_predicted_angles - phase_angles) * weights
-
-        if np.sum(new_weighted_res)  > np.sum(weighted_res):
-
+        if len(phase_angles) <= 3:
             switch = 1
 
-            '''
-            #changed line below check local vcs
-            if ( -predicted_angles + phase_angles)[max_res] > 0:
-                print("yerp1")
-                phase_angles[max_res] += 2 * np.pi
-            else:
-                print("nerp1")
-                phase_angles[max_res] -= 2 * np.pi
-                
-            '''
 
-            phase_angles[max_res] += -2*np.pi*s
+    '''
+    plt.close()
 
-        ind1 +=1
+    for c, w, a in zip(centres, weights, phase_angles):
+        plt.plot(c, a, 'o', markersize=w * 100)
 
+    plt.plot(centres,predicted_angles)
+
+    plt.show()
+    '''
     # phase the data
 
     p_final = Parameters()
 
-    p_final.add('p0', value=intercept)
-    p_final.add('p1', value=gradient)
+    p_final.add('p0', value=pr['intercept'])
+    p_final.add('p1', value=pr['gradient'])
 
     # p_final.pretty_print()
 
     y = ps(p_final, np.imag(y), np.real(y), 1)
 
-    #plt.plot(y)
-
-    #plt.show()
-
     classification, sigma = baseline_find_signal(y, corr_distance, True, 1)
+
+    classification[0] = 0
+
     r = gen_baseline(np.real(y), classification, corr_distance)
+
     y -= r
 
     return np.real(y)
+
+
+def cicularphase(angles,w):
+    from astropy.stats import circmean
+
+
+    circular_mean = circmean(angles, weights=w)
+
+    diff = angles - circular_mean
+
+    w = abs(diff) > np.pi
+
+    angles[w] -= 2 * np.pi * np.sign(diff[w])
+
+    return angles
 
 
 def ps(param, im, real, phase_order):
@@ -2425,7 +2583,7 @@ def integrate_sim_regions(sim_regions, grouped_peaks, peak_regions, y_data, para
 
         for peak in group:
             region_integral += params['A' + str(peak)] * 0.25 * np.pi * params['std' + str(peak)] * (
-                        (3 ** 0.5 - 2) * params['vregion' + str(r)] + 2)
+                    (3 ** 0.5 - 2) * params['vregion' + str(r)] + 2)
 
         sim_integrals.append(region_integral)
 
@@ -2463,7 +2621,6 @@ def integrate_sim_regions(sim_regions, grouped_peaks, peak_regions, y_data, para
 
 
 def integral_add(sim_regions, proton_guess):
-
     integrals = [np.sum(sim) for sim in sim_regions]
 
     i_sum = np.sum(integrals)
@@ -2513,7 +2670,7 @@ def remove_impurities(integrals, peak_regions, grouped_peaks, picked_peaks, sim_
 
     peaks_to_remove = []
 
-    #imp_I = np.sum(integrals[to_remove])
+    # imp_I = np.sum(integrals[to_remove])
 
     for group in to_remove:
         peaks_to_remove.append(grouped_peaks[group])
@@ -2524,7 +2681,7 @@ def remove_impurities(integrals, peak_regions, grouped_peaks, picked_peaks, sim_
 
     integrals = np.delete(integrals, to_remove)
 
-    #integrals += imp_I / len(integrals)
+    # integrals += imp_I / len(integrals)
 
     peak_regions = np.delete(peak_regions, to_remove)
 
@@ -2534,7 +2691,7 @@ def remove_impurities(integrals, peak_regions, grouped_peaks, picked_peaks, sim_
 
     rounded_integrals = r[r > 0.5]
 
-    return grouped_peaks, integrals, peak_regions, picked_peaks, number_of_impurities, sim_regions,rounded_integrals
+    return grouped_peaks, integrals, peak_regions, picked_peaks, number_of_impurities, sim_regions, rounded_integrals
 
 
 def proton_count(file):
@@ -2551,7 +2708,6 @@ def proton_count(file):
 
 
 def integral_score(integrals, structure_protons, proton_guess, l_protons, impurities):
-
     r_int = sum_round(integrals)
 
     r_int = np.array(r_int)
@@ -2676,11 +2832,11 @@ def find_integrals(file, peak_regions, grouped_peaks, sim_regions,
 
         impurities = len(r[r < 1])
 
-        #imp_I = np.sum(norm_integrals[r < 1])
+        # imp_I = np.sum(norm_integrals[r < 1])
 
         norm_integrals = norm_integrals[r > 0.5]
 
-        #norm_integrals += imp_I / len(norm_integrals)
+        # norm_integrals += imp_I / len(norm_integrals)
 
         scores[count] = integral_score(norm_integrals, structure_protons, proton_guess, l_protons, impurities)
 
@@ -2701,11 +2857,12 @@ def find_integrals(file, peak_regions, grouped_peaks, sim_regions,
 
     integrals = normalise_integration(integrals, best_fit)
 
-    grouped_peaks, integrals, peak_regions, picked_peaks_, impurities, sim_regions,rounded_integrals = remove_impurities(integrals,
-                                                                                                       peak_regions,
-                                                                                                       grouped_peaks,
-                                                                                                       picked_peaks,
-                                                                                                       sim_regions)
+    grouped_peaks, integrals, peak_regions, picked_peaks_, impurities, sim_regions, rounded_integrals = remove_impurities(
+        integrals,
+        peak_regions,
+        grouped_peaks,
+        picked_peaks,
+        sim_regions)
 
     integral_sum, cummulative_vectors = integral_add(sim_regions, best_fit)
 
@@ -2719,10 +2876,10 @@ def find_integrals(file, peak_regions, grouped_peaks, sim_regions,
 
     # double check the final integrals equal the final proton number
 
-    #print("integrals = " + str(integrals))
-    #print("integral total = " + str(total))
-    #print("rounded integrals = " + str(rounded_integrals))
-    #print("total rounded integrals = " + str(total_r))
+    # print("integrals = " + str(integrals))
+    # print("integral total = " + str(total))
+    # print("rounded integrals = " + str(rounded_integrals))
+    # print("total rounded integrals = " + str(total_r))
 
     return peak_regions, grouped_peaks, sim_regions, integral_sum, cummulative_vectors, rounded_integrals, structure_protons, \
            best_fit, total_r

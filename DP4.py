@@ -11,360 +11,355 @@ implementation.
 """
 from scipy import stats
 import bisect
+import os
+import numpy as np
 
-#Standard DP4 parameters
+# Standard DP4 parameters
 meanC = 0.0
 meanH = 0.0
 stdevC = 2.269372270818724
 stdevH = 0.18731058105269952
 
-output = []
+
+class DP4data:
+    def __init__(self):
+        self.Cshifts = []  # Carbon shifts used in DP4 calculation
+        self.Cexp = []  # Carbon experimental shifts used in DP4 calculation
+        self.Clabels = []  # Carbon atom labels
+        self.Hshifts = []  # Proton shifts used in DP4 calculation
+        self.Hexp = []  # Proton experimental shifts used in DP4 calculation
+        self.Hlabels = []  # Proton atom labels
+        self.Cscaled = []  # Internally scaled carbon shifts
+        self.Hscaled = []  # Internally scaled proton shifts
+        self.Cerrors = []  # Scaled Carbon prediction errors
+        self.Herrors = []  # Scaled Proton prediction errors
+        self.Cprobs = []  # Scaled carbon prediction error probabilities
+        self.Hprobs = []  # Scaled proton prediction error probabilities
+        self.CDP4probs = []  # Carbon DP4 probabilities
+        self.HDP4probs = []  # Proton DP4 probabilities
+        self.DP4probs = []  # combined Carbon and Proton DP4 probabilities
+        self.output = str()  # final DP4 output
 
 
-def DP4(Clabels, Cvalues, Hlabels, Hvalues, Cexp, Hexp, settings):
+def ProcessIsomers(DP4data, Isomers):
+    # extract calculated and experimental shifts and add to DP4data instance
 
-    Print(str(Cexp))
-    Print(str(Hexp))
+    # Carbon
 
-    C_cdp4 = []
-    H_cdp4 = []
-    Comb_cdp4 = []
+    # make sure any shifts with missing peaks are removed from all isomers
 
-    for isomer in range(0, len(Cvalues)):
+    removedC = []
 
-        sortedClabels, sortedCvalues, sortedCexp, _ =\
-            AssignExpNMR(Clabels, Cvalues[isomer], Cexp)
-        scaledC = ScaleNMR(sortedCvalues, sortedCexp)
+    removedH = []
 
-        sortedHlabels, sortedHvalues, sortedHexp, Jvalues = \
-            AssignExpNMR(Hlabels, Hvalues[isomer], Hexp)
-        scaledH = ScaleNMR(sortedHvalues, sortedHexp)
+    for iso in Isomers:
 
-        ScaledErrorsC = [scaledC[i] - sortedCexp[i]
-                         for i in range(0, len(scaledC))]
-        ErrorsC = [sortedCvalues[i] - sortedCexp[i]
-                         for i in range(0, len(sortedCvalues))]
-        ScaledErrorsH = [scaledH[i] - sortedHexp[i]
-                         for i in range(0, len(scaledH))]
-        ErrorsH = [sortedHvalues[i] - sortedHexp[i]
-                         for i in range(0, len(sortedHvalues))]
+        DP4data.Cshifts.append([])
+        DP4data.Cexp.append([])
+        DP4data.Clabels.append([])
 
-        Print("\nAssigned shifts for isomer " + str(isomer+1) + ": ")
-        PrintNMR('C', sortedClabels, sortedCvalues, scaledC, sortedCexp)
-        Print("Max C error: " + format(max(ScaledErrorsC, key=abs), "6.2f"))
-        PrintNMR('H', sortedHlabels, sortedHvalues, scaledH, sortedHexp)
-        Print("Max H error: " + format(max(ScaledErrorsH, key=abs), "6.2f"))
-        
-        Cprob, Hprob = CalcProbabilities(ScaledErrorsC, ScaledErrorsH, ErrorsC,
-                                         ErrorsH, sortedCexp, sortedHexp, settings)
-        C_cdp4.append(Cprob)
-        H_cdp4.append(Hprob)
+        for shift, exp, label in zip(iso.Cshifts, iso.Cexp, iso.Clabels):
 
-        Comb_cdp4.append(C_cdp4[-1]*H_cdp4[-1])
-        Print("\nDP4 based on C: " + format(C_cdp4[-1], "6.2e"))
-        Print("DP4 based on H: " + format(H_cdp4[-1], "6.2e"))
+            if exp != '':
+                DP4data.Cshifts[-1].append(shift)
+                DP4data.Cexp[-1].append(exp)
+                DP4data.Clabels[-1].append(label)
 
-    relCDP4 = [(100*x)/sum(C_cdp4) for x in C_cdp4]
-    relHDP4 = [(100*x)/sum(H_cdp4) for x in H_cdp4]
-    relCombDP4 = [(100*x)/sum(Comb_cdp4) for x in Comb_cdp4]
+            elif label not in removedC:
 
-    PrintRelDP4('all available data', relCombDP4)
-    PrintRelDP4('carbon data only', relCDP4)
-    PrintRelDP4('proton data only', relHDP4)
-    
-    return output
+                removedC.append(label)
 
+    for l in removedC:
 
-def f3(deltaExp, deltaCalc):
-    if (deltaCalc/deltaExp) > 1.0:
-        return deltaExp**3/deltaCalc
-    else:
-        return deltaExp*deltaCalc
+        for j, Clabel in enumerate(DP4data.Clabels):
 
+            if l in Clabel:
+                i = Clabel.index(l)
 
-def CalcSpreads(AllErrors):
-    spreads = []
-    for i in range(len(AllErrors[0])):
-        dserrors = [AllErrors[x][i] for x in range(len(AllErrors))]
-        spreads.append(max(dserrors)-min(dserrors))
-    return spreads
+                DP4data.Cshifts[j].pop(i)
 
+                DP4data.Cexp[j].pop(i)
 
-def ReorderAllErrors(AllErrors, AllLabels):
-    
-    Labels1 = AllLabels[0]
-    AllErrorsR = []
-    
-    for i, (labels, errors) in enumerate(zip(AllLabels, AllErrors)):
-        if i ==0:
-            AllErrorsR.append(errors)
-        else:
-            AllErrorsR.append(ReorderData(Labels1, labels, errors))
-    
-    return Labels1, AllErrorsR
+                DP4data.Clabels[j].pop(i)
+
+    # proton
+    for iso in Isomers:
+
+        DP4data.Hshifts.append([])
+        DP4data.Hexp.append([])
+        DP4data.Hlabels.append([])
+
+        for shift, exp, label in zip(iso.Hshifts, iso.Hexp, iso.Hlabels):
+
+            if exp != '':
+                DP4data.Hshifts[-1].append(shift)
+                DP4data.Hexp[-1].append(exp)
+                DP4data.Hlabels[-1].append(label)
+
+            elif label not in removedH:
+
+                removedH.append(label)
+
+    for l in removedH:
+
+        for j, Hlabel in enumerate(DP4data.Hlabels):
+
+            if l in Hlabel:
+                i = Hlabel.index(l)
+
+                DP4data.Hshifts[j].pop(i)
+
+                DP4data.Hexp[j].pop(i)
+
+                DP4data.Hlabels[j].pop(i)
+
+    return DP4data
 
 
-#given 2 sets of labels and one set of values, the set of values will be
-#reordered from the order in labels2 to the order in labels1
-def ReorderData(labels1, labels2, data2):
-    
-    newData = []
-    templabels2 = list(labels2)
-    
-    for l in labels1:
-        index = templabels2.index(l)
-        newData.append(data2[index])
-        #Remove the value to avoid adding the same value twice
-        templabels2[index] = 'XX'
-    
-    return newData
+def InternalScaling(DP4data):
+    # perform internal scaling process
+
+    # calculate prediction errors
+
+    if len(DP4data.Cexp[0]) > 0:
+
+        for Cshifts, Cexp in zip(DP4data.Cshifts, DP4data.Cexp):
+            DP4data.Cscaled.append(ScaleNMR(Cshifts, Cexp))
+
+        for Cscaled, Cexp in zip(DP4data.Cscaled, DP4data.Cexp):
+            DP4data.Cerrors.append([Cscaled[i] - Cexp[i] for i in range(0, len(Cscaled))])
+
+    if len(DP4data.Hexp[0]) > 0:
+
+        for Hshifts, Hexp in zip(DP4data.Hshifts, DP4data.Hexp):
+            DP4data.Hscaled.append(ScaleNMR(Hshifts, Hexp))
+
+        for Hscaled, Hexp in zip(DP4data.Hscaled, DP4data.Hexp):
+            DP4data.Herrors.append([Hscaled[i] - Hexp[i] for i in range(0, len(Hscaled))])
+
+    return DP4data
 
 
-def AssignExpNMR(labels, calcShifts, expLabels, expShifts):
-
-    #Prepare sorted calculated data with labels and sorted exp data
-    sortedCalc = sorted(calcShifts)
-    sortedExp = sorted(expShifts)
-    sortedExpLabels = SortExpAssignments(expShifts, expLabels)
-    sortedCalcLabels = []
-
-    tempCalcShifts = list(calcShifts)
-    for v in sortedCalc:
-        index = tempCalcShifts.index(v)
-        sortedCalcLabels.append(labels[index])
-        #Remove the value to avoid duplicate labels
-        tempCalcShifts[index] = -100
-
-    assignedExpLabels = ['' for i in range(0, len(sortedExp))]
-    
-    #First pass - assign the unambiguous shifts
-    for v in range(0, len(sortedExp)):
-        if len(sortedExpLabels[v]) == 1 and sortedExpLabels[v][0] != '':
-            #Check that assignment exists in computational data
-            if sortedExpLabels[v][0] in labels:
-                assignedExpLabels[v] = sortedExpLabels[v][0]
-            else:
-                Print("Label " + sortedExpLabels[v][0] +
-                " not found in among computed shifts, please check NMR assignment.")
-                quit()
-                
-    #Second pass - assign shifts from a limited set
-    for v in range(0, len(sortedExp)):
-        if len(sortedExpLabels[v]) != 1 and sortedExpLabels[v][0] != '':
-            for l in sortedCalcLabels:
-                if l in sortedExpLabels[v] and l not in assignedExpLabels:
-                    assignedExpLabels[v] = l
-                    break
-    
-    #Final pass - assign unassigned shifts in order
-    for v in range(0, len(sortedExp)):
-        if sortedExpLabels[v][0] == '':
-            for l in sortedCalcLabels:  # Take the first free label
-                if l not in assignedExpLabels:
-                    assignedExpLabels[v] = l
-                    break
-    
-    sortedCalc = []
-
-    #Rearrange calc values to match the assigned labels
-    for l in assignedExpLabels:
-        index = labels.index(l)
-        sortedCalc.append(calcShifts[index])
-
-    return assignedExpLabels, sortedCalc, sortedExp
-
-
-def SortExpAssignments(shifts, assignments):
-    tempshifts = list(shifts)
-    tempassignments = list(assignments)
-    sortedassignments = []
-    while len(tempassignments) > 0:
-        index = tempshifts.index(min(tempshifts))
-        sortedassignments.append(tempassignments[index])
-        tempshifts.pop(index)
-        tempassignments.pop(index)
-    return sortedassignments
-
-
-#Scale the NMR shifts
 def ScaleNMR(calcShifts, expShifts):
     slope, intercept, r_value, p_value, std_err = stats.linregress(expShifts,
                                                                    calcShifts)
-    scaled = [(x-intercept)/slope for x in calcShifts]
+    scaled = [(x - intercept) / slope for x in calcShifts]
+
     return scaled
 
 
-def CalcProbabilities(SErrorsC, SErrorsH, ErrorsC, ErrorsH, Cexp, Hexp, settings):
-    
-    if settings.StatsModel == 'g':
-        if settings.StatsParamFile == '':
-            C_cdp4 = CalculateCDP4(SErrorsC, meanC, stdevC)
-            H_cdp4 = CalculateCDP4(SErrorsH, meanH, stdevH)
+def CalcProbs(DP4data, Settings):
+    # calculates probability values for each scaled prediction error value using the chosen statistical model
+
+    if Settings.StatsModel == 'g' or 'm':
+
+        print(Settings.StatsParamFile)
+
+        if Settings.StatsParamFile == 'none':
+
+            print('No stats model provided, using default')
+
+            for errors in DP4data.Cerrors:
+                DP4data.Cprobs.append([SingleGausProbability(e, meanC, stdevC) for e in errors])
+
+            for errors in DP4data.Herrors:
+                DP4data.Hprobs.append([SingleGausProbability(e, meanH, stdevH) for e in errors])
+
         else:
-            Cmean, Cstdev, Hmean, Hstdev =\
-                ReadParamFile(settings.StatsParamFile, 'g')
-            C_cdp4 = CalculatePDP4(SErrorsC, Cmean, Cstdev)
-            H_cdp4 = CalculatePDP4(SErrorsH, Hmean, Hstdev)
-            
-    elif settings.StatsModel == 'm':
-        C_cdp4 = CalculateMultiGaus(SErrorsC, settings.StatsParamFile,
-                                         settings.StatsModel, 'C')
-        H_cdp4 = CalculateMultiGaus(SErrorsH, settings.StatsParamFile,
-                                         settings.StatsModel, 'H')
-    elif settings.StatsModel == 'n':
-        C_cdp4 = CalculateRMultiGaus(SErrorsC, Cexp, settings.StatsParamFile,
-                                         settings.StatsModel, 'C')
-        H_cdp4 = CalculateRMultiGaus(SErrorsH, Hexp, settings.StatsParamFile,
-                                         settings.StatsModel, 'H')    
-    elif settings.StatsModel == 'p':
-        C_cdp4 = CalculateRMultiGaus(ErrorsC, Cexp, settings.StatsParamFile,
-                                         settings.StatsModel, 'C')
-        H_cdp4 = CalculateRMultiGaus(ErrorsH, Hexp, settings.StatsParamFile,
-                                         settings.StatsModel, 'H')    
-    else:
-        print("Invalid stats model")
-        C_cdp4 = 0.0
-        H_cdp4 = 0.0
-        
-    return C_cdp4, H_cdp4
+
+            print('Using stats model provided')
+
+            Cmeans, Cstdevs, Hmeans, Hstdevs = ReadParamFile(Settings.StatsParamFile, Settings.StatsModel)
+
+            for errors in DP4data.Cerrors:
+                DP4data.Cprobs.append([MultiGausProbability(e, Cmeans, Cstdevs) for e in errors])
+
+            for errors in DP4data.Herrors:
+                DP4data.Hprobs.append([MultiGausProbability(e, Hmeans, Hstdevs) for e in errors])
+
+    return DP4data
 
 
-def PrintNMR(nucleus, labels, values, scaled, exp):
-    Print("\nAssigned " + nucleus +
-          " shifts: (label, calc, corrected, exp, error)")
-    for i in range(len(labels)):
-        Print(format(labels[i], "6s") + ' ' + format(values[i], "6.2f") + ' '
-            + format(scaled[i], "6.2f") + ' ' + format(exp[i], "6.2f") + ' ' +
-            format(exp[i]-scaled[i], "6.2f"))
+def SingleGausProbability(error, mean, stdev):
+    z = abs((error - mean) / stdev)
+    cdp4 = 2 * stats.norm.cdf(-z)
+
+    return cdp4
 
 
-def PrintErrors(labels, AllErrors):
-    
-    Print("\nLabel " + ' '.join(['DS' + str(x+1) for x in range(len(AllErrors))]))
-    for i in range(len(labels)):
-        Print(labels[i] +
-        ' '.join([format(AllErrors[x][i], "6.2f") for x in range(len(AllErrors))]))
+def MultiGausProbability(error, means, stdevs):
+    res = 0
 
+    for mean, stdev in zip(means, stdevs):
+        res += stats.norm(mean, stdev).pdf(error)
 
-def PrintRelDP4(title, RelDP4):
-    Print("\nResults of DP4 using " + title + ":")
-    for i in range(len(RelDP4)):
-        Print("Isomer " + str(i+1) + ": " + format(RelDP4[i], "4.1f") + "%")
-
-
-def Print(s):
-    print(s)
-    output.append(s)
-
-
-def ReadRMultiGausFile(f, t):
-    
-    infile = open(f, 'r')
-    inp = infile.readlines()
-    infile.close()
-    
-    Cregions = [float(x) for x in inp[1].split(',')]
-    Cmeans = [[float(x) for x in y.split(',')] for y in inp[2].split(';')]
-    Cstdevs = [[float(x) for x in y.split(',')] for y in inp[3].split(';')]
-    
-    Hregions = [float(x) for x in inp[4].split(',')]
-    Hmeans = [[float(x) for x in y.split(',')] for y in inp[5].split(';')]
-    Hstdevs = [[float(x) for x in y.split(',')] for y in inp[6].split(';')]
-
-    return Cregions, Cmeans, Cstdevs, Hregions, Hmeans, Hstdevs
+    return res / len(means)
 
 
 def ReadParamFile(f, t):
-    
     infile = open(f, 'r')
     inp = infile.readlines()
     infile.close()
-    
+
     if t not in inp[0]:
         print("Wrong parameter file type, exiting...")
         quit()
-    
-    if t == 'g':
-        [Cmean, Cstdev] = [float(x) for x in inp[1].split(',')]
-        [Hmean, Hstdev] = [float(x) for x in inp[2].split(',')]
-        return Cmean, Cstdev, Hmean, Hstdev
-    
+
     if t == 'm':
         Cmeans = [float(x) for x in inp[1].split(',')]
         Cstdevs = [float(x) for x in inp[2].split(',')]
         Hmeans = [float(x) for x in inp[3].split(',')]
         Hstdevs = [float(x) for x in inp[4].split(',')]
+
         return Cmeans, Cstdevs, Hmeans, Hstdevs
-    
-    elif t == 'k':
-        Cerrors = [float(x) for x in inp[1].split(',')]
-        Herrors = [float(x) for x in inp[2].split(',')]
-        return Cerrors, Herrors
-    
-    elif t == 'r' or t == 'u':
-        buf = inp[1].split(';')
-        Cregions = [float(x) for x in buf[0].split(',')]
-        Cerrors = [[float(x) for x in y.split(',')] for y in buf[1:]]
-        
-        buf = inp[2].split(';')
-        Hregions = [float(x) for x in buf[0].split(',')]
-        Herrors = [[float(x) for x in y.split(',')] for y in buf[1:]]
-        
-        return Cregions, Cerrors, Hregions, Herrors
 
 
-def CalculateCDP4(errors, expect, stdev):
-    cdp4 = 1.0
-    for e in errors:
-        z = abs((e-expect)/stdev)
-        cdp4 = cdp4*2*stats.norm.cdf(-z)
-    return cdp4
+def CalcDP4(DP4data):
+    # Calculate Carbon DP4 probabilities
+
+    for probs in DP4data.Cprobs:
+
+        DP4data.CDP4probs.append(1)
+
+        for p in probs:
+            DP4data.CDP4probs[-1] *= p
+
+    # Calculate Proton DP4 probabilities
+
+    for probs in DP4data.Hprobs:
+
+        DP4data.HDP4probs.append(1)
+
+        for p in probs:
+            DP4data.HDP4probs[-1] *= p
+
+    # Calculate Combined DP4 probabilities
+
+    for Hp, Cp in zip(DP4data.HDP4probs, DP4data.CDP4probs):
+        DP4data.DP4probs.append(Hp * Cp)
+
+    Cs = sum(DP4data.CDP4probs)
+
+    Hs = sum(DP4data.HDP4probs)
+
+    Ts = sum(DP4data.DP4probs)
+
+    DP4data.CDP4probs = [i / Cs for i in DP4data.CDP4probs]
+
+    DP4data.HDP4probs = [i / Hs for i in DP4data.HDP4probs]
+
+    DP4data.DP4probs = [i / Ts for i in DP4data.DP4probs]
+
+    return DP4data
 
 
-#Alternative function using probability density function instead of cdf
-def CalculatePDP4(errors, expect, stdev):
-    pdp4 = 1.0
-    for e in errors:
-        pdp4 = pdp4*stats.norm(expect, stdev).pdf(e)
-    return pdp4
+def PrintAssignment(DP4Data):
+    isomer = 0
+
+    for Clabels, Cshifts, Cexp, Cscaled in zip(DP4Data.Clabels, DP4Data.Cshifts, DP4Data.Cexp, DP4Data.Cscaled):
+        DP4Data.output += ("\n\nAssigned C shifts for isomer " + str(isomer + 1) + ": ")
+
+        PrintNMR(Clabels, Cshifts, Cscaled, Cexp, DP4Data)
+
+        isomer += 1
+
+    isomer = 0
+
+    for Hlabels, Hshifts, Hexp, Hscaled in zip(DP4Data.Hlabels, DP4Data.Hshifts, DP4Data.Hexp, DP4Data.Hscaled):
+        DP4Data.output += ("\n\nAssigned H shifts for isomer " + str(isomer + 1) + ": ")
+
+        PrintNMR(Hlabels, Hshifts, Hscaled, Hexp, DP4Data)
+
+        isomer += 1
 
 
-#load MultiGaus data from file and calculate probabilities
-def CalculateRMultiGaus(errors, shifts, ParamFile, t, nucleus):
+def PrintNMR(labels, values, scaled, exp, DP4Data):
+    s = np.argsort(values)
 
-    Cregions, Cmeans, Cstdevs, Hregions, Hmeans, Hstdevs = \
-        ReadRMultiGausFile(ParamFile, t)
-    
-    if nucleus == 'C':
-        regions, means, stdevs = Cregions, Cmeans, Cstdevs
-    elif nucleus == 'H':
-        regions, means, stdevs = Hregions, Hmeans, Hstdevs
+    svalues = np.array(values)[s]
 
-    prob = 1.0
-    for e, s in zip(errors, shifts):
-        region = bisect.bisect_left(regions, s)
-        prob = prob*MultiGaus(means[region], stdevs[region], e)
-    return prob
+    slabels = np.array(labels)[s]
 
+    sscaled = np.array(scaled)[s]
 
-#load MultiGaus data from file and calculate probabilities
-def CalculateMultiGaus(errors, ParamFile, t, nucleus):
+    sexp = np.array(exp)[s]
 
-    Cmeans, Cstdevs, Hmeans, Hstdevs = ReadParamFile(ParamFile, t)
-    if nucleus == 'C':
-        means, stdevs = Cmeans, Cstdevs
-    elif nucleus == 'H':
-        means, stdevs = Hmeans, Hstdevs
+    DP4Data.output += ("\nlabel, calc, corrected, exp, error")
 
-    prob = 1.0
-    for e in errors:
-        prob = prob*MultiGaus(means, stdevs, e)
-    return prob
+    for i in range(len(labels)):
+        DP4Data.output += ("\n" + format(slabels[i], "6s") + ' ' + format(svalues[i], "6.2f") + ' '
+                           + format(sscaled[i], "6.2f") + ' ' + format(sexp[i], "6.2f") + ' ' +
+                           format(sexp[i] - sscaled[i], "6.2f"))
 
 
-def MultiGaus(means, stdevs, x):
-    res = 0
-    for mean, stdev in zip(means, stdevs):
-        res += stats.norm(mean, stdev).pdf(x)
+def MakeOutput(DP4Data, Isomers, Settings):
+    # add some info about the calculation
 
-    return res/len(means)
+    DP4Data.output += Settings.InputFiles[0] + "\n"
+
+    DP4Data.output += "\n" + "Solvent = " + Settings.Solvent
+
+    DP4Data.output += "\n" + "Force Field = " + Settings.ForceField + "\n"
+
+    if 'o' in Settings.Workflow:
+        DP4Data.output += "\n" + "DFT optimisation Functional = " + Settings.oFunctional
+        DP4Data.output += "\n" + "DFT optimisation Basis = " + Settings.oBasisSet
+
+    if 'e' in Settings.Workflow:
+        DP4Data.output += "\n" + "DFT energy Functional = " + Settings.eFunctional
+        DP4Data.output += "\n" + "DFT energy Basis = " + Settings.eBasisSet
+
+    if 'n' in Settings.Workflow:
+        DP4Data.output += "\n" + "DFT NMR Functional = " + Settings.nFunctional
+        DP4Data.output += "\n" + "DFT NMR Basis = " + Settings.nBasisSet
+
+    if Settings.StatsParamFile != "none":
+        DP4Data.output += "\n\nStats model = " + Settings.StatsParamFile
+
+    DP4Data.output += "\n\nNumber of isomers = " + str(len(Isomers))
+
+    c = 1
+
+    for i in Isomers:
+        DP4Data.output += "\nNumber of conformers for isomer " + str(c) + " = " + str(len(i.Conformers))
+
+        c += 1
+
+    PrintAssignment(DP4Data)
+
+    DP4Data.output += ("\n\nResults of DP4 using Proton: ")
+
+    for i, p in enumerate(DP4Data.HDP4probs):
+        DP4Data.output += ("\nIsomer " + str(i + 1) + ": " + format(p * 100, "4.1f") + "%")
+
+    DP4Data.output += ("\n\nResults of DP4 using Carbon: ")
+
+    for i, p in enumerate(DP4Data.CDP4probs):
+        DP4Data.output += ("\nIsomer " + str(i + 1) + ": " + format(p * 100, "4.1f") + "%")
+
+    DP4Data.output += ("\n\nResults of DP4: ")
+
+    for i, p in enumerate(DP4Data.DP4probs):
+        DP4Data.output += ("\nIsomer " + str(i + 1) + ": " + format(p * 100, "4.1f") + "%")
+
+    print("number of c protons = " + str(len(Isomers[0].Hlabels)))
+    print("number of c carbons = " + str(len(Isomers[0].Clabels)))
+
+    print("number of e protons = " + str(len(DP4Data.Hexp[0])))
+    print("number of e carbons = " + str(len(DP4Data.Cexp[0])))
+
+    print(DP4Data.output)
+
+    if Settings.OutputFolder == '':
+
+        out = open(str(os.getcwd()) + "/" + str(Settings.InputFiles[0] + "NMR.dp4"), "w+")
+
+    else:
+
+        out = open(Settings.OutputFolder + "/" + str(Settings.InputFiles[0] + "NMR.dp4"), "w+")
+
+    out.write(DP4Data.output)
+
+    out.close()
+
+    return DP4Data

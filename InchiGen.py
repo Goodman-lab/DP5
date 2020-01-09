@@ -10,26 +10,25 @@ protomer generation is used.
 """
 from PyDP4 import settings
 import sys
-sys.path.append('/home/' + settings.user + '/Tools/openbabel-install/lib/python2.7/site-packages/')
+#sys.path.append('/home/' + settings.user + '/Tools/openbabel-install/lib/python2.7/site-packages/')
+
 import os
 from openbabel import *
 import subprocess
-
-MolConPath = '/home/' + settings.user + '/chemaxon/marvinsuite/bin/molconvert'
-
-MolConPath = '/home/ah809/opt/chemaxon/jchemsuite/bin/molconvert'
-
+from rdkit import Chem
+from rdkit.Chem import AllChem
 
 def main(f):
 
     inchi, aux = GetInchi(f)
 
-    print(inchi)
-
     ds_inchis = GenDiastereomers(inchi)
     ds_inchis = [FixTautProtons(f, i, aux) for i in ds_inchis]
 
     for ds in range(0, len(ds_inchis)):
+
+        print("Isomer " + str(ds) + " inchi = " + ds_inchis[ds])
+
         Inchi2Struct(ds_inchis[ds], f[:-4] + str(ds+1), aux)
         RestoreNumsSDF(f[:-4] + str(ds+1) + '.sdf', f, aux)
 
@@ -158,27 +157,37 @@ def RestoreNumsSDF(f, fold, AuxInfo):
     obconversion.SetOutFormat("sdf")
     obconversion.WriteFile(newmol, f)
 
-
 def GetInchi(f):
-    
-    cwd = os.getcwd()
-    outp = subprocess.check_output(MolConPath + ' inchi ' + cwd + '/' + f, shell=True)
-    idata = outp.decode().split('\n')
 
-    aux = idata[1][:]
-    return idata[0], aux
+    cwd = os.getcwd()
+
+    m = Chem.MolFromMolFile(cwd + '/' + f,removeHs = False)
+
+    idata = Chem.MolToInchiAndAuxInfo(m)
+
+    return idata[0], idata[1]
 
 
 def Inchi2Struct(inchi, f, aux):
+
 
     cwd = os.getcwd()
     fullf = cwd + '/' + f
     infile = open(f + '.inchi', 'w')
     infile.write(inchi)
     infile.close()
-    
-    outp = subprocess.check_output(MolConPath + ' sdf ' + fullf +
-        '.inchi -3:S{fine}[prehydrogenize] -o ' + fullf + '.sdf', shell=True)
+
+    inchi = open(f + '.inchi', "r").read()
+
+    m = AllChem.inchi.MolFromInchi(inchi, sanitize=True, removeHs=False)
+
+    m = AllChem.AddHs(m, addCoords=True)
+
+    AllChem.EmbedMolecule(m)
+
+    save3d = Chem.SDWriter(fullf + '.sdf')
+
+    save3d.write(m)
 
 
 def GetTautProtons(inchi):
@@ -283,12 +292,16 @@ def GenDiastereomers(structf, atoms=[]):
     f = structf
     inchi, aux = GetInchi(f)
 
-    print(inchi)
+
+    i,a = GetInchi(f)
 
     ds_inchis = GenDSInchis(inchi)
     ds_inchis = [FixTautProtons(f, i, aux) for i in ds_inchis]
     filenames = []
     for ds in range(0, len(ds_inchis)):
+
+        print("Isomer " + str(ds) + " inchi = " + ds_inchis[ds])
+
         Inchi2Struct(ds_inchis[ds], f[:-4] + str(ds+1), aux)
         RestoreNumsSDF(f[:-4] + str(ds+1) + '.sdf', f, aux)
         filenames.append(f[:-4] + str(ds+1))

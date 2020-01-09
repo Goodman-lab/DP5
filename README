@@ -1,22 +1,39 @@
 ===============================================================
 
-PyDP4 workflow integrating MacroModel/TINKER, Gaussian/NWChem
-and DP4 analysis
+DP4-AI
 
-version 0.7
+version 1.0
 
-Copyright (c) 2016 Kristaps Ermanis, Jonathan M. Goodman
+Copyright (c) 2020 Alexander Howarth, Kristaps Ermanis, Jonathan M. Goodman
 
 distributed under MIT license
 
 ===============================================================
 
 CONTENTS
-1) Requirements and Setup
-2) Usage
-3) NMR Description Format
-4) Included Utilites
-5) Code Organization
+1) Release Notes
+2) Requirements and Setup
+3) Usage
+4) NMR Description Format
+5) Included Utilites
+6) Code Organization
+
+===============================================================
+
+RELEASE NOTES
+
+DP4-AI version 1.0 is the successor the PyDP4. As described in (DOI) DP4-AI represents a stepped increase in
+functionality over PyDP4.
+
+DP4-AI integrates NMR-AI, software for automatic processing, assignment and visualisation of raw NMR data.
+This functionality affords fully automated DP4 analysis of databases of molecules with no user input. DP4-AI also
+utilises a fully revised version of PyDP4 updated for Python 3 and with major workflow improvements.
+
+Users can now also choose to run DP4-AI within a Graphical user interface for increased ease of use when single DP4
+calculations. This graphical user interface can also be used to explore the spectra processed and assigned by NMR-AI.
+
+More details about the software can be found in the publication DP4-AI Straight from Spectrometer to Structure (DOI) and
+in the accompanying supporting information.
 
 ===============================================================
 
@@ -57,23 +74,55 @@ modification.
 
 ===================
 
-USAGE
+USAGE - GUI
 
-To call the script:
+To call the script from the Graphical User Interface
+
+the folder containing the input files must be opened in terminal and the correct python environment activated.
+
+the GUI is then simply called by:
+
+python PyDP4_GUI.py
+
+This will open the main DP4-AI GUI window, the user can then select the required input files and the settings for MM and
+DFT calculations.
+
+Once the DP4-AI has finished all calculations the GUI will open a number of new tabs. These tabs display interactive
+carbon and proton NMR spectra as processed and assigned by NMR-AI as well as interactive plots of the NMR prediction
+errors and probabilities and conformer energies and populations.
+
+===================
+
+USAGE - Terminal
+
+To call the script from terminal:
+
 1) With all diastereomer generation:
 
 PyDP4.py Candidate CandidateNMR
 
 where Candidate is the sdf file containing 3D coordinates of the candidate
-structure (without the extension),
-and CandidateNMR contains the NMR description. The NMR description largely
-follows the DP4 format, but see bellow for differences.
+structure (without the extension).
+
+DP4-AI will automatically detect whether an NMR description (see below) or raw NMR data has been provided by the user.
+If raw NMR data has been provided (currently in the Bruker file format), NMR-AI will automatically process the NMR spectra
+provided. In this case the NMR data should be organised into a single folder (passed to DP4-AI) containing one or two
+folders labelled Proton and (or) Carbon.
 
 Alternatively:
 
+PyDP4.py -w gmns Candidate CandidateNMR
+
+The -w switch specifies the PyDP4 workflow, g specifies diastereomer generation, m molecular mechanics
+conformational searching, o DFT geometry optimisation, n DFT NMR calculation, e M062X single point energy calculations,
+s calculate DP4 statistics. The defalut workflow is gnms, optimum workflow is gnomes.
+
+In addition the -s switch can be used to specify the solvent for use in MM and DFT calculations. Supported solvents are
+listed in the TMSdata file.
+
 PyDP4.py -s chloroform Candidate CandidateNMR
 
-specifies solvent for DFT calculation. If solvent is not given, no solvent is used.
+If solvent is not given, no solvent is used.
 
 2) With explicit diastereomer/other candidate structures:
 
@@ -220,8 +269,11 @@ The code is organized in several python script files, as well as several java
 files.
 
 PyDP4.py
-Main file, that should be called to start the PyDP4 workflow. Interprets the
+file that should be called to start the DP4-AI workflow. Interprets the
 arguments and takes care of the general workflow logic.
+
+PyDP4_GUI.py
+file that should be called to start the DP4-AI graphical user interface
 
 InchiGen.py
 Gets called if diastereomer and/or tautomer and/or protomer generation is
@@ -271,3 +323,15 @@ Equivalent and compact port to python of the same DP4 process. The results
 produced are essentially equivalent, but not identical due to different
 floating point precision used in the Python (53 bits) and Java (32 bits)
 implementation.
+
+Proton_processing.py/Carbon_processing.py
+NMR-AI python script from processing of raw proton/carbon NMR data
+
+Proton_assignment.py/Carbon_assignment.py
+NMR-AI python script for assignment of raw proton/carbon NMR data
+
+Proton_plotting.py/Carbon_plotting
+NMR-AI python script for plotting of raw proton/carbon NMR data processed and assigned by NMR-AI
+
+
+

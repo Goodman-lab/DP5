@@ -25,17 +25,22 @@ def PlotCarbon(NMRData,Isomers,settings):
         gdir = settings.OutputFolder + "/Graphs/" + settings.InputFiles[0] + "/"
 
     for isomerindex,isomer in enumerate(Isomers):
-        
-        assigned_shifts = isomer.Cshifts
 
         assigned_peaks = []
 
-        for peak in isomer.Cexp:
+        assigned_shifts = []
+
+        assigned_labels = []
+
+        for i,peak in enumerate(isomer.Cexp):
 
             if peak != '':
+
                 assigned_peaks.append(peak)
 
-        assigned_labels = isomer.Clabels
+                assigned_shifts.append(isomer.Cshifts[i])
+
+                assigned_labels.append(isomer.Clabels[i])
 
         ###################will probs need to fix sorting here
 
@@ -105,9 +110,15 @@ def PlotCarbon(NMRData,Isomers,settings):
     
         ####some quick sorting
     
-        argss = np.argsort(assigned_shifts)
-        sortshifts = np.sort(assigned_shifts)[::-1]
-        slabels = np.array(assigned_labels)[argss][::-1]
+        #argss = np.argsort(assigned_shifts)
+
+        #sortshifts = np.sort(assigned_shifts)[::-1]
+
+        #slabels = np.array(assigned_labels)[argss][::-1]
+
+        sortshifts = isomer.Cshifts[::-1]
+
+        slabels = isomer.Clabels[::-1]
     
         prev = sortshifts[0]
     
@@ -124,7 +135,7 @@ def PlotCarbon(NMRData,Isomers,settings):
         # ax1.plot(exppeaks_ppm,ydata[exppeaks],
         #        'co', label='Picked Peaks')
     
-        simulated_calc_ydata = simulate_calc_data(xdata, assigned_shifts, simulated_ydata)
+        simulated_calc_ydata = simulate_calc_data(xdata, isomer.Cshifts, simulated_ydata)
     
         plt.plot(xdata, simulated_calc_ydata + 1.1, label='calculated spectrum')
 
