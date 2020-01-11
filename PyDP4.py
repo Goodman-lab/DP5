@@ -102,7 +102,7 @@ class Settings:
     MaxCutoffEnergy = 10.0      # Max conformer MM energy in kJ/mol to allow
 
     # --- DFT ---
-    C = 50        # Max number of DFT geometry optimization cycles to request.
+    MaxDFTOptCycles = 50        # Max number of DFT geometry optimization cycles to request.
     CalcFC = False              # Calculate QM force constants before optimization
     OptStepSize = 30            # Max step Gaussian should take in geometry optimization
     charge = None               # Manually specify charge for DFT calcs
@@ -193,7 +193,7 @@ def main(settings):
     print("Generated input files: " + str(settings.InputFiles) + '\n')
 
     # Create isomer data structures
-    Isomers = [Isomer(f) for f in settings.InputFiles]
+    Isomers = [Isomer(f.split('.sdf')[0]) for f in settings.InputFiles]
 
     # Run conformational search, if requested
     if ('m' in settings.Workflow) and not(settings.AssumeDone or settings.UseExistingInputs):
@@ -358,8 +358,10 @@ def main(settings):
 
                 from Proton_plotting import PlotProton
 
+                print('\nAssigning proton spectrum...')
                 Isomers = AssignProton(NMRData,Isomers,settings)
 
+                print('\nPlotting proton spectrum...')
                 PlotProton(NMRData, Isomers, settings)
 
             if os.path.exists(str(settings.NMRsource) + "/Carbon"):
@@ -368,8 +370,10 @@ def main(settings):
 
                 from Carbon_plotting import PlotCarbon
 
+                print('\nAssigning carbon spectrum...')
                 Isomers = AssignCarbon(NMRData,Isomers,settings)
 
+                print('\nPlotting carbon spectrum...')
                 PlotCarbon(NMRData, Isomers, settings)
 
             print('Raw FID NMR datafound and read.')

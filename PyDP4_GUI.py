@@ -1801,7 +1801,7 @@ class ProtonPlotTab(QtWidgets.QWidget):
         for i in atom:
             highlight[i] = colors[color]
 
-        m = Chem.MolFromMolFile(str(ui.table_widget.Tab1.worker.settings.InputFiles[0]) + '.sdf', removeHs=False)
+        m = Chem.MolFromMolFile(str(ui.table_widget.Tab1.worker.settings.InputFiles[0]).split('.sdf')[0] + '.sdf', removeHs=False)
 
         # m = Chem.AddHs(m)
 
@@ -2237,7 +2237,7 @@ class CarbonPlotTab(QtWidgets.QWidget):
         for i in atom:
             highlight[i] = (0, 1, 1)
 
-        m = Chem.MolFromMolFile(str(ui.table_widget.Tab1.worker.settings.InputFiles[0]) + '.sdf', removeHs=False)
+        m = Chem.MolFromMolFile(str(ui.table_widget.Tab1.worker.settings.InputFiles[0]).split('.sdf')[0] + '.sdf', removeHs=False)
 
         # m = Chem.AddHs(m)
 

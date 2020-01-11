@@ -66,7 +66,7 @@ def iterative_assignment(exp_peaks,calculated_shifts, H_labels,rounded_integrals
 
         #find methyl groups
 
-        m_protons = methyl_protons(settings.InputFiles[0] + ".sdf")
+        m_protons = methyl_protons(settings.InputFiles[0].split('.sdf')[0] + ".sdf")
 
         m_shifts = np.array([])
 
@@ -1742,7 +1742,7 @@ def scale_params(slope,intercept):
 
 def remove_labile_protons(sdffile,lbls,shifts):
 
-    f = sdffile + '.sdf'
+    f = sdffile.split('.sdf')[0] + '.sdf'
 
     obconversion = OBConversion()
     obconversion.SetInFormat("sdf")

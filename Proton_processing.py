@@ -2607,11 +2607,11 @@ def find_integrals(file, peak_regions, grouped_peaks, sim_regions,
                    picked_peaks, params, y_data, solvent_region_ind):
     # count number of protons in the file
 
-    structure_protons = proton_count(str(file) + ".sdf")
+    structure_protons = proton_count(str(file).split('.sdf')[0] + ".sdf")
 
     # find number of methyl groups
 
-    m = methyl_protons(str(file) + ".sdf")
+    m = methyl_protons(str(file).split('.sdf')[0] + ".sdf")
 
     number_of_methyl_groups = len(m)
 

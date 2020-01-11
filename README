@@ -22,7 +22,7 @@ CONTENTS
 
 RELEASE NOTES
 
-DP4-AI version 1.0 is the successor the PyDP4. As described in (DOI) DP4-AI represents a stepped increase in
+DP4-AI version 1.0 is the successor the PyDP4. As described in our latest paper (DOI) DP4-AI represents a significant increase in
 functionality over PyDP4.
 
 DP4-AI integrates NMR-AI, software for automatic processing, assignment and visualisation of raw NMR data.
@@ -50,25 +50,28 @@ This setup has several requirements.
 
 1) One should have MacroModel or TINKER and NWChem or Gaussian.
 The beginning PyDP4.py file contains a structure "Settings", where the location
-of the TINKER scan executable or MacroModel bmin executable should be specified. All instances of 'ke291' should be replaced with the CRSid of the user.
+of the TINKER scan executable or MacroModel bmin executable should be specified.
 
-2) The various manipulations of sdf files (renumbering, ring corner flipping)
-requires OpenBabel, including Python bindings. The following links provide
-instructions for building OpenBabel with Python bindings:
+2) In order to run DP4-AI a python 3.6+ environment the following packages are required:
+numpy scipy Cython matplotlib nmrglue statsmodels lmfit openbabel rdkit
+Additionally, the graphical user interface requires PyQT5
+
+3) RDKit and OpenBabel are required for the automatic diastereomer generation and
+other manipulations of sdf files (renumbering, ring corner flipping). For OpenBabel
+this includes Python bindings. The following links provide instructions for building
+OpenBabel with Python bindings:
 http://openbabel.org/docs/dev/UseTheLibrary/PythonInstall.html
 http://openbabel.org/docs/dev/Installation/install.html#compile-bindings
-The Settings structure contain path to OpenBabel, but currently it also
-needs to be specified in InchiGen.py and FiveConf.py
-This dependency can be ignored, if no diastereomer generation or
-5 membered ring flipping is done.
+Alternatively, the OpenBabel package in conda repository has also lately become
+more reliable, and is much easier to install.
 
-3) Finally, to run calculations on a computational cluster, a passwordless
+4) Finally, to run calculations on a computational cluster, a passwordless
 ssh connection should be set up in both directions -
 desktop -> cluster and cluster -> desktop. In most cases the modification
 of the relevant functions in Gaussian.py or NWChem.py will be required
 to fit your situation.
 
-4) All development and testing was done on Linux. However, both the scripts
+5) All development and testing was done on Linux. However, both the scripts
 and all the backend software should work equally well on windows with little
 modification.
 
@@ -115,10 +118,11 @@ PyDP4.py -w gmns Candidate CandidateNMR
 
 The -w switch specifies the PyDP4 workflow, g specifies diastereomer generation, m molecular mechanics
 conformational searching, o DFT geometry optimisation, n DFT NMR calculation, e M062X single point energy calculations,
-s calculate DP4 statistics. The defalut workflow is gnms, optimum workflow is gnomes.
+s calculate DP4 statistics. The default workflow is gnms, optimum workflow is gnomes.
 
 In addition the -s switch can be used to specify the solvent for use in MM and DFT calculations. Supported solvents are
-listed in the TMSdata file.
+listed in the TMSdata file. Other Gaussian/Jaguar/NWChem supported solvents can be used, but only with manually interpreted
+data.
 
 PyDP4.py -s chloroform Candidate CandidateNMR
 
@@ -223,50 +227,7 @@ description
 
 =====================
 
-UTILITIES
-
-There are 2 utilities included, not necessary for the process, but sometimes
-useful.
-
-If the DP4 workflow fails at the TINKER stage, the 2 likely reasons are either 
-lack of 1gb of free memory or TINKER not accepting the numbering of the sdf
-file (this is a bug in TINKER). The latter can be fixed by running the following
-script:
-
-TreeRenum.py Candidate CandidateNMR
-
-It takes the sdf file and performs a spanning tree renumbering - making sure,
-that there are as many connected atoms in sequence as possible. So far this
-has always solved the TINKER problem.
-The script also renumbers the NMR description file, if it contains any atom numbers.
-The renumbered files are saved as Candidater and CandidateNMRr (r appended to their
-original name).
-
-----------------------
-Another utility is NMRhelper (called by simply typing NMRhelper.py in shell).
-It is a script with GUI interface, that assists in describing and assigning the
-NMR. In the top textbox a structure file can be chosen. This allows the utility
-to automatically detect protons attached to heteroatoms and add them to the
-OMIT list, as well as detect the chemically eqivalent atoms (currently only
-implemented for methyl groups). It also lets the script to help tracking which
-atoms are yet to be assigned (show in the bottom 2 text boxes).
-The next 2 large textboxes are for pasting raw NMR descriptions.Based on the pasted
-text, the script will try to detect the shifts and make up a rough draft of the 
-description file. After this the final version can be prepared in the main textbox.
-At any point the button to generate the NMR file can be pressed and this will write
-the file to the NMRhelper folder with the name CandidateNMR, where Candidate is the
-name of the structure file.
-IMPORTANT NOTE: Do not edit the raw data textboxes, if you have done any work in the
-main textbox, as this will cause the main textbox to revert to the rough
-automatically generated version
-
-
-=====================
-
 CODE ORGANIZATION
-
-The code is organized in several python script files, as well as several java
-files.
 
 PyDP4.py
 file that should be called to start the DP4-AI workflow. Interprets the
@@ -299,6 +260,12 @@ Gaussian.py
 Contains all of the Gaussian specific code for input generation and calculation
 execution. Called by PyDP4.py.
 
+GaussianZiggy.py
+Code specific to running Gaussian on Cambridge CMI local cluster. Called by PyDP4.py.
+
+GaussianDarwin.py
+Code specific to running Gaussian on Cambridge CSD3 HPC cluster. Called by PyDP4.py.
+
 NWChem.py
 Contains all of the NWChem specific code for input generation and calculation
 execution. Called by PyDP4.py.
@@ -312,17 +279,9 @@ PyDP4.py
 nmrPredictNWChem.py
 Extracts NMR shifts from NWChem output files
 
-nmrPredictGaussian.java
-Extracts NMR shifts from Gaussian output files
-
-DP4.jar
-Original DP4 implementation as in J. Am. Chem. Soc. 2010, 132, 12946.
-
 DP4.py
-Equivalent and compact port to python of the same DP4 process. The results
-produced are essentially equivalent, but not identical due to different
-floating point precision used in the Python (53 bits) and Java (32 bits)
-implementation.
+Equivalent and compact port of the original DP4 java implementation to Python
+of the same DP4 process. Has been updated to include multigaussian models.
 
 Proton_processing.py/Carbon_processing.py
 NMR-AI python script from processing of raw proton/carbon NMR data
