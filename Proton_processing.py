@@ -14,45 +14,6 @@ import time
 import itertools
 import os
 
-'''
-def ProcessProton(settings,NMRData):
-
-    pdir = "/home/ah809/pydp4/o_AT1_test/Pickles/"
-
-    gdir = "/home/ah809/pydp4/o_AT1_test/Graphs/"
-
-    NMR_file = str(settings.NMRsource) + "/Proton"
-
-    if not os.path.exists(gdir):
-
-        os.mkdir(gdir)
-
-        os.mkdir("/home/ah809/pydp4/o_AT1_test/Graphs/" + settings.InputFiles[0] + "/")
-
-    if os.path.exists(pdir):
-
-        NMRData.protondata = pickle.load(open(pdir + "protondata", "rb"))
-
-    else:
-
-        os.mkdir(pdir)
-
-        os.mkdir(pdir + settings.InputFiles[0] + "/")
-
-        protondata = {}
-
-        protondata["exppeaks"], protondata["xdata"], protondata["ydata"], protondata["integrals"], protondata["peakregions"], protondata["centres"], \
-        protondata["cummulativevectors"],protondata["integralsum"], protondata["picked_peaks"], protondata["params"], protondata["sim_regions"] \
-            = process_proton(NMR_file, settings)
-
-        pickle.dump(NMRData,open(pdir + "protondata","wb"))
-
-        NMRData.Hshifts = protondata["exppeaks"]
-
-        NMRData.protondata = protondata
-'''
-
-
 def process_proton(NMR_file, settings, datatype):
     total_spectral_ydata, spectral_xdata_ppm, corr_distance, uc, noise_std, peak_regions = spectral_processing(NMR_file,
                                                                                                                datatype)
@@ -204,8 +165,6 @@ def spectral_processing(file, datatype):
     total_spectral_ydata = ng.proc_base.fft_positive(total_spectral_ydata)  # Fourier transform
 
     corr_distance = estimate_autocorrelation(total_spectral_ydata)
-
-    # total_spectral_ydata = ng.proc_base.smo(total_spectral_ydata,corr_distance)
 
     # normalise the data
 
@@ -526,8 +485,6 @@ def ACMEWLRhybrid(y, corr_distance):
 
         # find where largest weighted residual is
 
-        #max_res = np.argmax(weighted_res)
-
         max_res = sweights[ind1]
 
         s = 0
@@ -554,17 +511,6 @@ def ACMEWLRhybrid(y, corr_distance):
 
             switch = 1
 
-            '''
-            #changed line below check local vcs
-            if ( -predicted_angles + phase_angles)[max_res] > 0:
-                print("yerp1")
-                phase_angles[max_res] += 2 * np.pi
-            else:
-                print("nerp1")
-                phase_angles[max_res] -= 2 * np.pi
-                
-            '''
-
             phase_angles[max_res] += -2*np.pi*s
 
         ind1 +=1
@@ -580,9 +526,6 @@ def ACMEWLRhybrid(y, corr_distance):
 
     y = ps(p_final, np.imag(y), np.real(y), 1)
 
-    #plt.plot(y)
-
-    #plt.show()
 
     classification, sigma = baseline_find_signal(y, corr_distance, True, 1)
     r = gen_baseline(np.real(y), classification, corr_distance)
@@ -659,8 +602,6 @@ def gen_baseline(y_data, sn_vector, corr_distance):
     spl = InterpolatedUnivariateSpline(points[sn_vector == 0], y_data[sn_vector == 0], k=1)
 
     r = spl(points)
-
-    # r = _smooth(r, corr_distance)
 
     # is corr distance odd or even
 
@@ -755,7 +696,6 @@ def p7residualsolvent(params, x, picked_points, y_data, region, differential):
         dy_ydata = np.gradient(y_data)
         ddy_ydata = np.gradient(dy_ydata)
 
-        # difference = (dy_ydata - dy) ** 2 + (ddy_ydata - ddy) ** 2
         difference = (y - y_data) ** 2 + (dy_ydata - dy) ** 2 + (ddy_ydata - ddy) ** 2
 
     else:
@@ -867,10 +807,6 @@ def gradient_peak_picking(y_data, corr_distance, uc, std, binary_map_regions):
 
     final_peaks = sorted(list(peakscopy))
 
-    # peaks = peaks.astype(list)
-
-    # final_peaks = sorted(peaks)
-
     # draw new regions symmetrically around the newly found peaks
 
     dist_hz = uc(0, "Hz") - uc(9, "Hz")
@@ -918,665 +854,6 @@ def multiproc_BIC_minimisation(peak_regions, grouped_peaks, total_spectral_ydata
     new_grouped_peaks = [[] for i in range(len(peak_regions))]
     new_grouped_params = [[] for i in range(len(peak_regions))]
     new_sim_y = [[] for i in range(len(peak_regions))]
-
-    # previous version with old bic removal method
-
-    '''
-    def BIC_minimisation_region(ind1, distance, peak_regions, grouped_peaks, total_spectral_ydata, corr_distance, std):
-
-        BIC_param = 15
-
-        region = peak_regions[ind1]
-
-        print("minimising region " + str(ind1) + " of " + str(len(peak_regions)))
-
-        copy_peaks = np.array(grouped_peaks[ind1])
-
-        params = Parameters()
-
-        fitted_peaks = []
-
-        region_y = total_spectral_ydata[region]
-        fit_y = np.zeros(len(region))
-
-        out = Minimizer(vsgphaseresidual, params,
-                        fcn_args=(region, fitted_peaks, region_y, True, region))
-
-        results = out.minimize()
-
-        BIC = results.bic
-
-        new_BIC = BIC - BIC_param - 1
-
-        c = 0
-
-        #params.add('vregion' + str(ind1), value=2.5, max=5, min=1)
-        params.add('vregion' + str(ind1), value=2.5, min=1)
-
-        #params.add('std' + str(ind1), value=4 * corr_distance, vary=True, min=2 * corr_distance,
-         #                 max=corr_distance * 8)
-
-        ttotal = 0
-
-        av_std = 6 * corr_distance
-
-        while (len(copy_peaks) > 0) & (ttotal < 600):
-
-            s = time.time()
-
-            new_params = copy.copy(params)
-
-            new_fitted_peaks = list(fitted_peaks)
-
-            # pick peak that is furthest from fitted data:
-
-            diff_array = region_y - fit_y
-
-            ind2 = np.argmax(diff_array[copy_peaks - region[0]])
-
-            maxpeak = copy_peaks[ind2]
-
-            copy_peaks = np.delete(copy_peaks, ind2)
-
-            for peak in new_fitted_peaks:
-
-                if (peak > maxpeak - distance) & (peak < maxpeak + distance):
-
-                    new_params['A' + str(peak)].set(vary=False)
-                    new_params['std' + str(peak)].set(vary=False)
-                    new_params['mu' + str(peak)].set(vary=False)
-
-                else:
-
-                    new_params['A' + str(peak)].set(vary=False)
-                    new_params['std' + str(peak)].set(vary=False)
-                    new_params['mu' + str(peak)].set(vary=True)
-
-            # add new parameters
-
-            ############################################################################################################
-
-            if len(fitted_peaks) > 0:
-
-                widths = []
-
-                for p in fitted_peaks:
-                    widths.append(new_params['std' + str(p)])
-
-                av_std = sum(widths)/len(widths)
-
-            ############################################################################################################
-
-            new_fitted_peaks.append(maxpeak)
-
-            new_fitted_peaks = sorted(new_fitted_peaks)
-
-            new_params.add('A' + str(maxpeak), value=total_spectral_ydata[maxpeak], min=0, max=total_spectral_ydata[maxpeak] +0.1,vary = False)
-
-            new_params.add('std' + str(maxpeak), value=av_std, vary=True, min = 4 * corr_distance,
-                           max = 10*corr_distance)
-
-            new_params.add('mu' + str(maxpeak), value=maxpeak, vary=True,min = maxpeak - 2 *corr_distance,max = maxpeak + 2* corr_distance)
-
-            ############################################################################################################
-            #adjust amplitudes of the current model
-
-            initial_y = vsgphasesim(new_params, region, new_fitted_peaks, ind1)
-
-            p = [i - region[0] for i in new_fitted_peaks]
-
-            ratios = (region_y/initial_y)[p]
-
-            for r,adj_peak in zip(ratios, new_fitted_peaks):
-
-                new_params['A' + str(adj_peak)].set( value= new_params['A' + str(adj_peak)] * r)
-
-            n_y = vsgsim(new_params, region, new_fitted_peaks, ind1)
-
-
-            ###########################################################################################################
-
-            out = Minimizer(vsgresidual, new_params,
-                            fcn_args=(region, new_fitted_peaks, region_y, ind1, False))
-
-            results = out.minimize()
-
-            fit_y = vsgsim(results.params, region, new_fitted_peaks, ind1)
-
-            new_BIC = results.bic
-
-            #if new_BIC < BIC - BIC_param:
-
-            if 1==1:
-
-                BIC = copy.copy(new_BIC)
-
-                fitted_peaks = list(new_fitted_peaks)
-
-                params = results.params
-
-                fit_y = vsgsim(params, region, fitted_peaks, ind1)
-
-                #remaining_points_fity = fit_y[np.searchsorted(region, copy_peaks)]
-
-                #remaining_points_y = total_spectral_ydata[copy_peaks]
-
-                #diff = remaining_points_y - remaining_points_fity
-
-                #wh = np.where(diff > 3 * std)
-
-                #copy_peaks = copy_peaks[wh[0]]
-
-            e = time.time()
-
-            ttotal += e - s
-
-        fitted_peaks = sorted(fitted_peaks)
-
-        print("     done region " + str(ind1))
-
-        return fitted_peaks, params, fit_y
-    '''
-
-    '''
-    def BIC_minimisation_region2(ind1, distance, peak_regions, grouped_peaks, total_spectral_ydata, corr_distance, std):
-
-        BIC_param = 15
-
-        region = peak_regions[ind1]
-
-        print("minimising region " + str(ind1) + " of " + str(len(peak_regions)))
-
-        params = Parameters()
-
-        fitted_peaks = np.array(np.sort(grouped_peaks[ind1]))
-
-        region_y = total_spectral_ydata[region]
-
-        params.add('vregion' + str(ind1), value=2.5, min=1,vary =True)
-
-        params.add('stdregion' + str(ind1), value=4 * corr_distance, min=2 * corr_distance,vary=True)
-
-        # amp params are the y values normalised by the sum of the peak heights
-
-        for i, peak in enumerate(fitted_peaks):
-
-            params.add('A' + str(peak), value=total_spectral_ydata[peak], min=0,max = total_spectral_ydata[peak],vary = False)
-
-            params.add('mu' + str(peak), value=peak, max=peak + int(corr_distance / 2),
-                       min=peak - int(corr_distance / 2),vary = False)
-
-        ##########################################
-
-        #do initial fit of amplitudes
-
-        for l in range(0,1000):
-
-            initial_amps = p7sim(params, fitted_peaks, fitted_peaks, ind1)
-
-            diff = total_spectral_ydata[fitted_peaks] - initial_amps
-
-            initial_amps = initial_amps +  1.1 * diff
-
-            for i , peak in enumerate(fitted_peaks):
-                params['A' + str(peak)].set(initial_amps[i])
-
-        ###################################
-
-        out = Minimizer(p7residual, params,
-                        fcn_args=(region, fitted_peaks, region_y, ind1, False))
-
-        results = out.minimize()
-
-        print("     done initial fit region " + str(ind1))
-
-        BIC = results.bic
-
-        params = results.params
-
-        c = 0
-
-        ttotal = 0
-        prevt = 0
-
-        # now delete peaks in turn (ordered by amplitude to find minimum number of peaks)
-
-        trial_peaks = np.array(fitted_peaks)
-
-        params['vregion' + str(ind1)].set(vary = False)
-        params['stdregion' + str(ind1)].set(vary=False)
-
-        for peak in fitted_peaks:
-
-            params['A' + str(peak)].set(vary=False)
-            params['mu' + str(peak)].set(vary=False)
-
-        amps = []
-
-        for peak in trial_peaks:
-            amps.append(params['A' + str(peak)])
-
-        amps = np.array(amps)
-
-        while (len(trial_peaks) > 0) & (ttotal + prevt < 600):
-
-            s = time.time()
-
-            new_params = copy.copy(params)
-
-            # find peak with smallest amp
-
-            minpeak = trial_peaks[np.argmin(amps)]
-
-            # remove this peak from the set left to try
-
-            trial_peaks = np.delete(trial_peaks, np.argmin(amps))
-            amps = np.delete(amps,np.argmin(amps))
-
-            # remove this peak from the trial peaks list and the trial params
-
-            new_params.__delitem__('A' + str(minpeak))
-            new_params.__delitem__('mu' + str(minpeak))
-
-            new_fitted_peaks = np.delete(fitted_peaks, np.where(fitted_peaks == minpeak))
-
-            # redo the optimisation and record the new bic value
-
-            out = Minimizer(p7residual, new_params,
-                            fcn_args=(region, new_fitted_peaks, region_y, ind1, False))
-
-            results = out.minimize()
-
-            new_BIC = results.bic
-
-            # if the fit is significantly better remove this peak
-
-            if new_BIC < BIC + BIC_param:
-
-                print("yes")
-
-                fitted_peaks = copy.copy(new_fitted_peaks)
-
-                params = copy.copy(results.params)
-
-                BIC = copy.copy(new_BIC)
-
-            e = time.time()
-
-            prevt = e - s
-
-            ttotal += prevt
-
-        fitted_peaks = sorted(fitted_peaks)
-
-        print("          done region " + str(ind1))
-
-        fit_y = p7sim(params, region, fitted_peaks, ind1)
-
-        return fitted_peaks, params, fit_y
-    '''
-
-    # previous version of full minimisation
-
-    '''
-    def BIC_minimisation_region2(ind1, distance, peak_regions, grouped_peaks, total_spectral_ydata, corr_distance, std):
-
-        BIC_param = 15
-
-        region = np.array(peak_regions[ind1])
-
-        print("minimising region " + str(ind1) + " of " + str(len(peak_regions)))
-
-        params = Parameters()
-
-        fitted_peaks = np.array(np.sort(grouped_peaks[ind1]))
-
-        region_y = total_spectral_ydata[region]
-
-        #initialise paramerters
-
-        params.add('vregion' + str(ind1), value=2.5, min=1,max = 10,vary =True)
-
-        params.add('std' + str(peak), value=4 * corr_distance, min=2 * corr_distance,max = 12 * corr_distance,vary=True)
-
-        for i, peak in enumerate(fitted_peaks):
-
-            params.add('A' + str(peak), value=total_spectral_ydata[peak], min=0,max = total_spectral_ydata[peak] + 0.1,vary = True)
-
-            params.add('mu' + str(peak), value=peak, max=peak + int(corr_distance / 2),
-                       min=peak - int(corr_distance / 2),vary = True)
-
-        out = Minimizer(p7residual, params,
-                        fcn_args=(region, fitted_peaks, region_y, ind1, False))
-
-        results = out.minimize()
-
-        print("done")
-
-        params = results.params
-
-        ##################################
-
-        # now delete peaks in turn (ordered by amplitude to find minimum number of peaks) using BIC value
-
-        trial_peaks = np.array(fitted_peaks)
-
-        amps = []
-
-        for peak in trial_peaks:
-            amps.append(params['A' + str(peak)])
-
-        amps = np.array(amps)
-
-        trial_y = p7sim(params, region, fitted_peaks, ind1)
-
-        r = trial_y - region_y
-
-        chi2 = r ** 2
-
-        N = len(chi2)
-
-        BIC = N * np.log(np.sum(chi2) / N) + np.log(N) * (2 * len(fitted_peaks) + 2)
-
-        while (len(trial_peaks) > 0):
-
-            new_params = copy.copy(params)
-
-            # find peak with smallest amp
-
-            minpeak = trial_peaks[np.argmin(amps)]
-
-            # remove this peak from the set left to try
-
-            trial_peaks = np.delete(trial_peaks, np.argmin(amps))
-            amps = np.delete(amps,np.argmin(amps))
-
-            # remove this peak from the trial peaks list and the trial params
-
-            new_params.__delitem__('A' + str(minpeak))
-            new_params.__delitem__('mu' + str(minpeak))
-
-            new_fitted_peaks = np.delete(fitted_peaks, np.where(fitted_peaks == minpeak))
-
-            trial_y = p7sim(params, region, new_fitted_peaks, ind1)
-
-            r = trial_y - region_y
-
-            chi2 = r ** 2
-
-            N = len(chi2)
-
-            new_BIC = N * np.log(np.sum(chi2) / N) + np.log(N) * (2 * len(new_fitted_peaks) + 2)
-
-            # if the fit is significantly better remove this peak
-
-            if new_BIC < BIC + BIC_param:
-
-                fitted_peaks = copy.copy(new_fitted_peaks)
-
-                params = copy.copy(results.params)
-
-                BIC = copy.copy(new_BIC)
-
-        fitted_peaks = sorted(fitted_peaks)
-
-        if len(fitted_peaks) > 0:
-
-            #allow all params to vary
-
-            params['vregion' + str(ind1)].set(vary = True)
-
-            for peak in fitted_peaks:
-
-                params['A' + str(peak)].set(vary=True)
-                params['mu' + str(peak)].set(vary=True)
-
-            #do final fit
-
-            out = Minimizer(p7residual, params,
-                            fcn_args=(region, fitted_peaks, region_y, ind1, False),maxfev = len(fitted_peaks) + 2)
-
-            results = out.minimize()
-
-        fit_y = p7sim(params, region, fitted_peaks, ind1)
-
-        print("          done region " + str(ind1))
-
-        return fitted_peaks, results.params, fit_y
-    '''
-
-    def BIC_minimisation_region_del(ind1, uc, peak_regions, grouped_peaks, total_spectral_ydata, corr_distance, std):
-
-        ################################################################################################################
-        # initialise process
-        ################################################################################################################
-
-        print("minimising region " + str(ind1) + " of " + str(len(peak_regions)))
-
-        BIC_param = 15
-
-        region = np.array(peak_regions[ind1])
-
-        region_y = total_spectral_ydata[region]
-
-        fit_y = np.zeros(len(region_y))
-
-        copy_peaks = np.array(grouped_peaks[ind1])
-
-        params = Parameters()
-
-        fitted_peaks = []
-
-        ttotal = 0
-
-        ################################################################################################################
-        # build initial model
-        ################################################################################################################
-
-        av_std = 6 * corr_distance
-        av_gamma = 6 * corr_distance
-
-        params.add('phregion' + str(ind1), value=0, min=-np.pi / 100000, max=np.pi / 100000, vary=False)
-
-        distance = uc(0, "hz") - uc(5, "hz")
-
-        std_upper = uc(0, "hz") - uc(1, "hz")
-        std_lower = uc(0, "hz") - uc(0.1, "hz")
-
-        prev = 0
-
-        while (len(copy_peaks) > 0) & (ttotal + prev < 600):
-
-            s = time.time()
-
-            # pick peak that is furthest from fitted data:
-
-            diff_array = region_y - fit_y
-
-            ind2 = np.argmax(diff_array[copy_peaks - region[0]])
-
-            maxpeak = copy_peaks[ind2]
-
-            copy_peaks = np.delete(copy_peaks, ind2)
-
-            # only allow params < distance away vary at a time
-
-            for peak in fitted_peaks:
-
-                if (peak > maxpeak - distance) & (peak < maxpeak + distance):
-
-                    params['A' + str(peak)].set(vary=True)
-                    params['std' + str(peak)].set(vary=True)
-                    params['gamma' + str(peak)].set(vary=True)
-                    params['mu' + str(peak)].set(vary=True)
-
-                else:
-
-                    params['A' + str(peak)].set(vary=False)
-                    params['std' + str(peak)].set(vary=False)
-                    params['gamma' + str(peak)].set(vary=False)
-                    params['mu' + str(peak)].set(vary=False)
-
-            # find current average width param
-
-            if len(fitted_peaks) > 0:
-
-                stds = []
-                gammas = []
-
-                for p in fitted_peaks:
-                    stds.append(params['std' + str(p)])
-                    gammas.append(params['gamma' + str(p)])
-
-                av_std = sum(stds) / len(stds)
-                av_gamma = sum(gammas) / len(gammas)
-
-            # add new params
-
-            fitted_peaks.append(maxpeak)
-
-            fitted_peaks = sorted(fitted_peaks)
-
-            params.add('gamma' + str(maxpeak), value=av_gamma, vary=True, min=0,
-                       max=std_upper)
-
-            params.add('A' + str(maxpeak), value=total_spectral_ydata[maxpeak], min=0,
-                       max=total_spectral_ydata[maxpeak] + 0.1, vary=True)
-
-            params.add('std' + str(maxpeak), value=av_std, vary=True, min=std_lower,
-                       max=std_upper)
-
-            params.add('mu' + str(maxpeak), value=maxpeak, vary=True
-                       , min=maxpeak - 4 * corr_distance, max=maxpeak + 4 * corr_distance)
-
-            # adjust amplitudes of the current model
-
-            initial_y = p7sim(params, region, fitted_peaks, ind1)
-
-            for f in fitted_peaks:
-                params['A' + str(f)].set(
-                    value=params['A' + str(f)] * region_y[int(params['mu' + str(f)]) - region[0]] / (
-                        initial_y[f - region[0]]))
-
-            # do minimisation
-
-            out = Minimizer(p7residual, params,
-                            fcn_args=(region, fitted_peaks, region_y, ind1, False))
-
-            results = out.minimize()
-
-            fit_y = p7sim(results.params, region, fitted_peaks, ind1)
-
-            params = results.params
-
-            e = time.time()
-
-            prev = e - s
-
-            ttotal += prev
-
-        print('built model region ' + str(ind1))
-
-        ################################################################################################################
-        # no remove peaks in turn
-        ################################################################################################################
-
-        trial_y = p7sim(params, region, fitted_peaks, ind1)
-
-        trial_peaks = np.array(fitted_peaks)
-
-        amps = []
-
-        for peak in trial_peaks:
-            amps.append(params['A' + str(peak)])
-
-        r = trial_y - region_y
-
-        chi2 = r ** 2
-
-        N = len(chi2)
-
-        BIC = N * np.log(np.sum(chi2) / N) + np.log(N) * (2 * len(fitted_peaks) + 2)
-
-        while (len(trial_peaks) > 0):
-
-            new_params = copy.copy(params)
-
-            # find peak with smallest amp
-
-            minpeak = trial_peaks[np.argmin(amps)]
-
-            # remove this peak from the set left to try
-
-            trial_peaks = np.delete(trial_peaks, np.argmin(amps))
-            amps = np.delete(amps, np.argmin(amps))
-
-            # remove this peak from the trial peaks list and the trial params
-
-            new_params.__delitem__('A' + str(minpeak))
-            new_params.__delitem__('mu' + str(minpeak))
-            new_params.__delitem__('gamma' + str(minpeak))
-            new_params.__delitem__('std' + str(minpeak))
-
-            new_fitted_peaks = np.delete(fitted_peaks, np.where(fitted_peaks == minpeak))
-
-            # simulate data with one fewer peak
-
-            new_trial_y = p7sim(params, region, new_fitted_peaks, ind1)
-
-            r = new_trial_y - region_y
-
-            chi2 = r ** 2
-
-            N = len(chi2)
-
-            new_BIC = N * np.log(np.sum(chi2) / N) + np.log(N) * (2 * len(new_fitted_peaks) + 2)
-
-            # if the fit is significantly better remove this peak
-
-            if new_BIC < BIC + BIC_param:
-                fitted_peaks = copy.copy(new_fitted_peaks)
-
-                params = copy.copy(results.params)
-
-                BIC = copy.copy(new_BIC)
-
-        fitted_peaks = sorted(fitted_peaks)
-
-        ################################################################################################################
-        # now relax all params
-        ################################################################################################################
-
-        if ttotal + prev < 600:
-
-            if len(fitted_peaks) > 0:
-
-                # allow all params to vary
-
-                params['phregion' + str(ind1)].set(vary=False)
-
-                for peak in fitted_peaks:
-                    params['A' + str(peak)].set(vary=True)
-                    params['mu' + str(peak)].set(vary=True)
-                    params['std' + str(peak)].set(vary=True)
-                    params['gamma' + str(peak)].set(vary=True)
-
-                out = Minimizer(p7residual, params,
-                                fcn_args=(region, fitted_peaks, region_y, ind1, False))
-
-                results = out.minimize()
-
-                params = results.params
-
-            print('relaxed params region ' + str(ind1))
-
-        fit_y = p7sim(params, region, fitted_peaks, ind1)
-
-        ################################################################################################################
-
-        print("     done region " + str(ind1))
-
-        return fitted_peaks, params, fit_y
 
     def BIC_minimisation_region_full(ind1, uc, peak_regions, grouped_peaks, total_spectral_ydata, corr_distance, std):
 
@@ -1829,7 +1106,6 @@ def multiproc_BIC_minimisation(peak_regions, grouped_peaks, total_spectral_ydata
             final_grouped_peaks.append([])
             total_params.add('vregion' + str(newgroupind),
                              value=new_grouped_params[oldgroupind]['vregion' + str(oldgroupind)])
-            # total_params.add('stdregion' + str(newgroupind), value=new_grouped_params[oldgroupind]['stdregion' + str(oldgroupind)])
 
             final_peaks.extend(group)
 
@@ -1850,9 +1126,6 @@ def multiproc_BIC_minimisation(peak_regions, grouped_peaks, total_spectral_ydata
 
                     total_params.add('vregion' + str(newgroupind),
                                      value=new_grouped_params[oldgroupind]['vregion' + str(oldgroupind)])
-
-                    # total_params.add('stdregion' + str(newgroupind),
-                    #              value=new_grouped_params[oldgroupind]['stdregion' + str(oldgroupind)])
 
                     # allow peaks to be added to the new group
                     final_grouped_peaks.append([])
@@ -1991,217 +1264,6 @@ def new_first_order_peak(start_ppm, J_vals, x_data, corr_distance, uc, spin):
     # y = y[where]
 
     return peak_vector, amp_vector, y
-
-
-'''
-def solvent_removal(solvent, peak_regions, grouped_peaks, uc, picked_peaks, total_params,
-                    spectral_xdata_ppm):
-    # define some solvents
-
-    # need to add a section for removing solvent peaks with only one peak
-
-    if solvent == 'chloroform':
-
-        exp_ppm = [7.26]
-
-        Jv = [[]]
-
-    elif solvent == 'dmso':
-
-        exp_ppm = [2.50]
-
-        Jv = [[1.9, 1.9, 1.9, 1.9]]
-
-    elif solvent == 'methanol':
-
-        exp_ppm = [4.78, 3.31]
-
-        Jv = [[], [1.7, 1.7]]
-
-    elif solvent == 'benzene':
-
-        exp_ppm = [7.16]
-
-        Jv = [[]]
-
-    elif solvent == 'pyridine':
-
-        exp_ppm = [8.74, 7.58, 7.22]
-
-        Jv = [[], [], []]
-
-    exp_point = [uc(p, "ppm") for p in exp_ppm]
-
-    solvent_region_indicies = []
-
-    for i, exp in enumerate(exp_point):
-
-        if len(Jv[i]) > 0:
-
-            # define region to search for solvent peak
-
-            solvent_region = np.arange(uc(exp_ppm[i] + 0.5, "ppm"), uc(exp_ppm[i] - 0.5, "ppm"))
-
-            centre = solvent_region[int(len(solvent_region) / 2)]
-
-            centre = uc.ppm(centre)
-
-            # seperate peaks in this region
-
-            solvent_region_peaks = []
-
-            for peak in picked_peaks:
-
-                if (peak > solvent_region[0]) & (peak < solvent_region[-1]):
-                    solvent_region_peaks.append(peak)
-
-            solvent_region_peaks = np.array(solvent_region_peaks)
-
-            # test each peak in this region
-
-            amp_res = []
-            dist_res = []
-
-            for peak in solvent_region_peaks:
-
-                mxppm = uc.ppm(peak)
-
-                # simulate peak in new position
-
-                fit_s_peaks, amp_vector, fit_s_y = new_first_order_peak(mxppm, Jv, np.array(solvent_region), 0.1, uc,1)
-
-                # plt.show()
-
-                # find peaks closest to those in the simulated curve
-
-                diff_matrix = np.zeros((len(fit_s_peaks), len(solvent_region_peaks)))
-
-                for i, f in enumerate(fit_s_peaks):
-                    for j, g in enumerate(solvent_region_peaks):
-                        diff_matrix[i, j] = abs(f - g)
-
-                # minimise these distances
-
-                vertical_ind, horizontal_ind = optimise(diff_matrix)
-
-                closest_peaks = np.sort(solvent_region_peaks[horizontal_ind])
-
-                # use the gsd data to find amplitudes of these peaks
-
-                closest_amps = []
-
-                for cpeak in closest_peaks:
-                    closest_amps.append(total_params['A' + str(cpeak)])
-
-                # find the amplitude residual between the closest peaks and the predicted pattern
-
-                # normalise these amplitudes
-
-                amp_vector = [i / max(amp_vector) for i in amp_vector]
-
-                closest_amps = [i / max(closest_amps) for i in closest_amps]
-
-                # append to the vector
-
-                amp_res.append(sum([abs(amp_vector[i] - closest_amps[i]) for i in range(len(amp_vector))]))
-
-                dist_res.append(np.sum((np.abs(closest_peaks - fit_s_peaks))))
-
-            # normalise these residuals
-
-            dist_res = [i / max(dist_res) for i in dist_res]
-
-            amp_res = [i / max(amp_res) for i in amp_res]
-
-            # calculate geometric mean of two metrics for each peak
-
-            g_mean = [(dist_res[i] * amp_res[i]) ** 0.5 for i in range(0, len(amp_res))]
-
-            # compare the residuals and find the minimum
-
-            minBIC = np.argmin(g_mean)
-
-            final_mxpoint = solvent_region_peaks[minBIC]
-
-            final_mxppm = spectral_xdata_ppm[final_mxpoint]
-
-            # find what region this peak is in
-
-            ind = 0
-
-            for region in peak_regions:
-
-                if (final_mxpoint > region[0]) & (final_mxpoint < region[-1]):
-                    break
-
-                ind += 1
-
-            fit_s_peaks, amp_vector, fit_s_y = new_first_order_peak(final_mxppm, Jv, solvent_region, 0.1, uc,1)
-
-        else:
-
-            fit_s_peaks = [exp]
-
-            final_mxppm = exp_ppm[i]
-
-            ind = 0
-
-            for region in peak_regions:
-
-                if (exp > region[0]) & (exp < region[-1]):
-                    break
-
-                ind += 1
-
-        to_remove = []
-
-        # find picked peaks closest to the "fitted" solvent multiplet and remove
-
-        for peak in fit_s_peaks:
-            i = np.abs(np.array(grouped_peaks[ind]) - peak).argmin()
-
-            to_remove.append(i)
-
-        to_remove = sorted(list(set(to_remove)), reverse=True)
-
-        p_t_remove = []
-
-        for peak in to_remove:
-            id = np.where(region == grouped_peaks[ind][peak])
-            p_t_remove.append(grouped_peaks[ind][peak])
-
-        remove = []
-        for val in p_t_remove:
-            where = np.where(picked_peaks == val)[0][0]
-            remove.append(where)
-
-        picked_peaks = np.delete(picked_peaks, remove)
-
-        # for peak in to_remove:
-        #   grouped_peaks[ind].pop(peak)
-
-        # for peak in grouped_peaks[ind]:
-        #    id = np.where(region == peak)
-
-        # check length of new region, resimulate the region if required
-
-        # if len(grouped_peaks[ind]) == 0:
-
-        #    peak_regions = np.delete(peak_regions, ind)
-
-        # sim_regions = np.delete(sim_regions, ind)
-
-        #   grouped_peaks = np.delete(grouped_peaks, ind)
-
-        # reference against the solvent peak
-
-        spectral_xdata_ppm += exp_ppm[-1] - final_mxppm
-
-        solvent_region_indicies.append(ind)
-
-    return peak_regions, picked_peaks, grouped_peaks, spectral_xdata_ppm, solvent_region_indicies
-'''
-
 
 def editsolvent_removal2(solvent, y_data, x_data, picked_peaks, peak_regions, grouped_peaks, total_params, uc):
     picked_peaks = np.array(picked_peaks)
@@ -2451,13 +1513,7 @@ def integrate_sim_regions(sim_regions, grouped_peaks, peak_regions, y_data, para
     for region in sim_regions:
         simr_regions.append(np.sum(region))
 
-    # print("sim",[round(i,2) for i in simr_regions])
-
-    # print("real",[round(i,2) for i in integrals])
-
     integrals = k * integrals
-
-    # print("scaled",[round(i,2) for i in integrals])
 
     return integrals
 
@@ -2513,8 +1569,6 @@ def remove_impurities(integrals, peak_regions, grouped_peaks, picked_peaks, sim_
 
     peaks_to_remove = []
 
-    #imp_I = np.sum(integrals[to_remove])
-
     for group in to_remove:
         peaks_to_remove.append(grouped_peaks[group])
 
@@ -2523,8 +1577,6 @@ def remove_impurities(integrals, peak_regions, grouped_peaks, picked_peaks, sim_
     picked_peaks = np.delete(picked_peaks, whdel)
 
     integrals = np.delete(integrals, to_remove)
-
-    #integrals += imp_I / len(integrals)
 
     peak_regions = np.delete(peak_regions, to_remove)
 
@@ -2577,10 +1629,6 @@ def integral_score(integrals, structure_protons, proton_guess, l_protons, impuri
 
     # only allow intergrals that are between the expected number and that number - the number of labile protons
 
-    # if (sum_r > structure_protons):
-
-    #    mean = 0
-
     if (sum_r < structure_protons - l_protons):
         mean = 0
 
@@ -2631,33 +1679,6 @@ def find_integrals(file, peak_regions, grouped_peaks, sim_regions,
 
     scores = np.zeros(len(number_vector))
 
-    '''
-
-    # integrate y data for regions
-
-    integrals = integrate_regions(peak_regions, total_spectral_ydata, noise_std)
-
-    # integrate simulated data for solvent region only
-
-    for i in solvent_region_ind:
-        integrals[i] = np.sum(sim_regions[i])
-
-    for proton_guess in number_vector:
-
-        norm_integrals = normalise_integration(integrals, proton_guess)
-
-        grouped_peaks_c, norm_integrals, peak_regions_c, picked_peaks_, impurities, sim_regions_c = remove_impurities(
-            norm_integrals,
-            peak_regions,
-            grouped_peaks,
-            picked_peaks, sim_regions)
-
-        scores[count] = integral_score(norm_integrals, structure_protons, proton_guess, l_protons)
-
-        count += 1
-
-    '''
-
     integrals = integrate_sim_regions(sim_regions, grouped_peaks, peak_regions, y_data, params, solvent_region_ind)
 
     for proton_guess in number_vector:
@@ -2676,11 +1697,7 @@ def find_integrals(file, peak_regions, grouped_peaks, sim_regions,
 
         impurities = len(r[r < 1])
 
-        #imp_I = np.sum(norm_integrals[r < 1])
-
         norm_integrals = norm_integrals[r > 0.5]
-
-        #norm_integrals += imp_I / len(norm_integrals)
 
         scores[count] = integral_score(norm_integrals, structure_protons, proton_guess, l_protons, impurities)
 
@@ -2716,13 +1733,6 @@ def find_integrals(file, peak_regions, grouped_peaks, sim_regions,
     for i in range(0, len(integrals)):
         total += integrals[i]
         total_r += rounded_integrals[i]
-
-    # double check the final integrals equal the final proton number
-
-    #print("integrals = " + str(integrals))
-    #print("integral total = " + str(total))
-    #print("rounded integrals = " + str(rounded_integrals))
-    #print("total rounded integrals = " + str(total_r))
 
     return peak_regions, grouped_peaks, sim_regions, integral_sum, cummulative_vectors, rounded_integrals, structure_protons, \
            best_fit, total_r

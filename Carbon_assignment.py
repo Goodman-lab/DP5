@@ -279,16 +279,6 @@ def iterative_assignment(picked_peaks, spectral_xdata_ppm, total_spectral_ydata,
 
             assigned_peaks.append('')
 
-    '''
-
-    assigned_shifts = np.array(new_assigned_shifts)[indv]
-
-    assigned_peaks = np.array(new_assigned_peaks)[indv]
-
-    assigned_labels = new_assigned_labels[indv]
-
-    '''
-
     return assigned_shifts, assigned_peaks, assigned_labels, scaled_shifts
 
 
@@ -303,60 +293,8 @@ def internal_scale_carbon_shifts(assigned_shifts, assigned_peaks, calculated_shi
 
     scaled_shifts = calculated_shifts * slope + intercept
 
-    # plt.close()
-
-    # plt.plot(assigned_shifts,assigned_shifts,color= 'grey')
-
-    # plt.plot(assigned_shifts, assigned_peaks,'ro')
-
-    # plt.plot(np.array(assigned_shifts) *slope + intercept,assigned_peaks,'co')
-
-    # plt.plot(assigned_shifts,np.array(assigned_shifts)*slope + intercept)
-
-    # plt.show()
 
     return scaled_shifts, slope, intercept
-
-
-'''
-def amp_weighting(total_spectral_ydata, picked_peaks, prob_matrix,shifts,steep_weights):
-
-    print(np.round(steep_weights,2))
-
-    peak_amps = total_spectral_ydata[picked_peaks]
-
-    peak_amps = peak_amps / np.max(peak_amps)
-
-    samps = np.sort(peak_amps)
-
-    thresh = samps[max([len(samps) - len(shifts),0])]
-
-    #plt.plot(total_spectral_ydata)
-    #plt.plot(picked_peaks,total_spectral_ydata[picked_peaks],'co')
-    #plt.show()
-
-    def weight_curve(x, thresh, steep):
-
-        y = 1 / (1 + np.exp(-steep * (x - thresh)))
-
-        return y
-
-    steep =100* np.std(peak_amps)
-
-    #x = np.linspace(0,1,1000)
-
-    #plt.plot(x,weight_curve(x,thresh,steep))
-
-    amp_matrix = np.zeros((len(shifts),len(picked_peaks)))
-
-    for  i in range(0,len(amp_matrix[:,0])):
-        amp_matrix[i,:] = weight_curve(peak_amps, thresh, steep * steep_weights[i])
-
-    #plt.plot(peak_amps,weight_curve(peak_amps,thresh,steep),'co')
-    #plt.show()
-
-    return amp_matrix
-'''
 
 
 def amp_weighting(total_spectral_ydata, picked_peaks, prob_matrix, shifts, steep_weights):
@@ -374,10 +312,6 @@ def amp_weighting(total_spectral_ydata, picked_peaks, prob_matrix, shifts, steep
     samps = np.sort(peak_amps)
 
     thresh = samps[max([len(samps) - len(shifts), 0])]
-
-    # plt.plot(total_spectral_ydata)
-    # plt.plot(picked_peaks,total_spectral_ydata[picked_peaks],'co')
-    # plt.show()
 
     def weight_curve(x, thresh, steep):
 
@@ -416,13 +350,6 @@ def amp_kde(total_spectral_ydata, picked_peaks, prob_matrix, shifts):
     kde = gaussian_kde(peak_amps)
 
     y = kde.evaluate(x)
-
-    # plt.plot(x,y)
-    # plt.show()
-
-    # find minima
-
-    # find maxima in second derivative,
 
     ddy = np.diff(y, 2)
 
@@ -495,7 +422,7 @@ def amp_kde(total_spectral_ydata, picked_peaks, prob_matrix, shifts):
 def multiple_assignment_weighting(prob_matrix):
     # shifts are columns
     # peaks are rows
-    # duplicate matrix along the horizontal but multiply by 0.5 each time
+
 
     pmcopy = copy.copy(prob_matrix)
 
@@ -506,17 +433,8 @@ def multiple_assignment_weighting(prob_matrix):
 
 
 def carbon_probabilities(diff_matrix, scaled_mu, scaled_std):
-    # unscaled error data
-    # prob_matrix = norm.pdf(diff_matrix,-4.585221745350501,3.2910538642479277) / norm.pdf(0,-4.585221745350501,3.2910538642479277)
-
-    # scaled error data
-    # prob_matrix = norm.pdf(diff_matrix,0,2.486068603518297) / norm.pdf(0,0,2.486068603518297)
 
     prob_matrix = norm.pdf(diff_matrix, scaled_mu, scaled_std) / norm.pdf(scaled_mu, scaled_mu, scaled_std)
-
-    # prob_matrix = norm.pdf(diff_matrix, 0, 10) / norm.pdf(scaled_mu, 0, 10)
-
-    # normalise rows
 
     for i in range(prob_matrix.shape[0]):
         prob_matrix[i, :] = prob_matrix[i, :] / np.sum(prob_matrix[i, :])

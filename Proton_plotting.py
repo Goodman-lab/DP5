@@ -97,8 +97,6 @@ def PlotProton(NMRData,Isomers,settings):
         for index, region in enumerate(peak_regions):
             plt.plot(xdata[region], sim_regions[index], color='C' + str(index % 10))
 
-        #plt.legend()
-        
         ### plotting assignment
         
         plt.yticks([], [])
@@ -154,15 +152,8 @@ def PlotProton(NMRData,Isomers,settings):
                 prev = s_assigned_shifts[::-1][x]
                 
             plt.annotate(txt, (s_assigned_shifts[::-1][x], + 1.25 + 0.05 * count), size=18,color = 'C' + str(color))
-        
 
-
-        # ax1.plot(picked_peaks_ppm,ydata[picked_peaks],
-        #        'co', label='Picked Peaks')
-        
         plt.ylim([-0.5, 2.0])
-        
-        #plt.legend()
 
         plt.savefig(gdir + "/Proton_" + str(isomerindex + 1) + '.svg',format = "svg", bbox_inches='tight')
 

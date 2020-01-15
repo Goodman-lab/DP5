@@ -42,8 +42,6 @@ def PlotCarbon(NMRData,Isomers,settings):
 
                 assigned_labels.append(isomer.Clabels[i])
 
-        ###################will probs need to fix sorting here
-
         plt.close()
     
         fig1 = plt.figure(1)
@@ -109,12 +107,6 @@ def PlotCarbon(NMRData,Isomers,settings):
         count = 0
     
         ####some quick sorting
-    
-        #argss = np.argsort(assigned_shifts)
-
-        #sortshifts = np.sort(assigned_shifts)[::-1]
-
-        #slabels = np.array(assigned_labels)[argss][::-1]
 
         sortshifts = isomer.Cshifts[::-1]
 
@@ -131,9 +123,6 @@ def PlotCarbon(NMRData,Isomers,settings):
                 prev = sortshifts[x]
     
             ax1.annotate(txt, (sortshifts[x], + 2.05 + 0.05 * count), size=18)
-
-        # ax1.plot(exppeaks_ppm,ydata[exppeaks],
-        #        'co', label='Picked Peaks')
     
         simulated_calc_ydata = simulate_calc_data(xdata, isomer.Cshifts, simulated_ydata)
     

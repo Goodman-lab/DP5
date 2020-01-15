@@ -15,44 +15,6 @@ import statsmodels.api as sm
 import os
 
 
-'''
-def ProcessCarbon(settings,NMRData):
-
-    pdir = "/home/ah809/pydp4/o_AT1_test/Pickles/"
-
-    gdir = "/home/ah809/pydp4/o_AT1_test/Graphs/"
-
-    NMR_file = str(settings.NMRsource) + "/Carbon"
-
-    if not os.path.exists(gdir):
-
-        os.mkdir(gdir)
-
-        os.mkdir("/home/ah809/pydp4/o_AT1_test/Graphs/" + settings.InputFiles[0] + "/")
-
-    if os.path.exists(pdir):
-
-        NMRData.carbondata = pickle.load(open(pdir + "carbondata", "rb"))
-
-    else:
-
-        os.mkdir(pdir)
-
-        os.mkdir(pdir + settings.InputFiles[0] + "/")
-
-        carbondata = {}
-
-        carbondata["ydata"], carbondata["xdata"],carbondata["corrdistance"], carbondata["uc"],\
-        carbondata["exppeaks"], carbondata["simulated_ydata"], carbondata["removed"] = process_carbon(
-            NMR_file, settings)
-
-        pickle.dump(NMRData.carbondata,open(pdir + "carbondata","wb"))
-
-
-        NMRData.carbondata = carbondata
-        NMRData.Cshifts = carbondata["exppeaks"]
-'''
-
 def process_carbon(NMR_file,settings,datatype):
 
     total_spectral_ydata, spectral_ydata, spectral_xdata_ppm, threshold, corr_distance, uc = spectral_processing(
@@ -217,7 +179,6 @@ def initial_processing(file,datatype):
     uc = ng.fileiobase.uc_from_udic(udic)  # unit conversion element
     spectral_xdata_ppm = uc.ppm_scale()  # ppmscale creation
 
-    #spectral_xdata_ppm = np.ndarray.tolist(spectral_xdata_ppm)  # converts spectral_xdata_ppm -> list
     maximum= np.max(total_spectral_ydata)
 
     total_spectral_ydata = total_spectral_ydata/np.max(total_spectral_ydata)
@@ -300,7 +261,7 @@ def iterative_point_picking(convolved_y, threshold):
     pickednumber = 1
     while pickednumber > 0:
         mu, std = norm.fit(copy_convolved_y)
-        #print("threshold = %d*sigma" % threshold + "=" + str(threshold * std))
+
         index = np.where(copy_convolved_y - mu > threshold * std)
         pickednumber = len(index[0])
         picked_points.extend(np.ndarray.tolist(index[0]))
