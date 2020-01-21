@@ -19,8 +19,8 @@ import os
 import math
 import copy
 import pickle
-from Proton_processing import process_proton
-from Carbon_processing import process_carbon
+from Update_Proton_Processing import process_proton
+from Update_Carbon_Processing import process_carbon
 
 gasConstant = 8.3145
 temperature = 298.15
@@ -67,13 +67,13 @@ class NMRData:
 
                 self.ProcessCarbon(settings)
 
-            if os.path.isfile(str(settings.NMRsource) + "/Proton"):
+            if os.path.isfile(str(settings.NMRsource) + "/Proton.dx"):
 
                 self.Type = 'jcamp'
 
                 self.ProcessProton(settings)
 
-            if os.path.isfile(str(settings.NMRsource) + "/Carbon"):
+            if os.path.isfile(str(settings.NMRsource) + "/Carbon.dx"):
 
                 self.Type = 'jcamp'
 

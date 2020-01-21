@@ -15,6 +15,7 @@ import itertools
 import os
 
 def process_proton(NMR_file, settings, datatype):
+
     total_spectral_ydata, spectral_xdata_ppm, corr_distance, uc, noise_std, peak_regions = spectral_processing(NMR_file,
                                                                                                                datatype)
 

@@ -157,11 +157,14 @@ def RestoreNumsSDF(f, fold, AuxInfo):
     obconversion.SetOutFormat("sdf")
     obconversion.WriteFile(newmol, f)
 
+
 def GetInchi(f):
+
+    print("Get inchi f",f)
 
     cwd = os.getcwd()
 
-    m = Chem.MolFromMolFile(cwd + '/' + f,removeHs = False)
+    m = Chem.MolFromMolFile(cwd + '/' + f ,removeHs = False)
 
     idata = Chem.MolToInchiAndAuxInfo(m)
 

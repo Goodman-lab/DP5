@@ -336,6 +336,7 @@ def main(settings):
         print("Conformation data:")
         NMR.PrintConformationData(Isomers)
         """
+
         if NMRData.Type == 'desc':
 
             print('Experimental NMR description found and read.')
@@ -350,7 +351,7 @@ def main(settings):
             print('Equivalents: ' + str(NMRData.Equivalents))
             print('Omits: ' + str(NMRData.Omits))
 
-        elif NMRData.Type == 'fid':
+        elif NMRData.Type == "fid":
 
             if os.path.exists(str(settings.NMRsource) + "/Proton"):
 
@@ -372,6 +373,30 @@ def main(settings):
 
                 print('\nAssigning carbon spectrum...')
                 Isomers = AssignCarbon(NMRData,Isomers,settings)
+
+                print('\nPlotting carbon spectrum...')
+                PlotCarbon(NMRData, Isomers, settings)
+
+        elif NMRData.Type == "jcamp":
+
+            if os.path.exists(str(settings.NMRsource) + "/Proton.dx"):
+                from Proton_assignment import AssignProton
+
+                from Proton_plotting import PlotProton
+
+                print('\nAssigning proton spectrum...')
+                Isomers = AssignProton(NMRData, Isomers, settings)
+
+                print('\nPlotting proton spectrum...')
+                PlotProton(NMRData, Isomers, settings)
+
+            if os.path.exists(str(settings.NMRsource) + "/Carbon.dx"):
+                from Carbon_assignment import AssignCarbon
+
+                from Carbon_plotting import PlotCarbon
+
+                print('\nAssigning carbon spectrum...')
+                Isomers = AssignCarbon(NMRData, Isomers, settings)
 
                 print('\nPlotting carbon spectrum...')
                 PlotCarbon(NMRData, Isomers, settings)
