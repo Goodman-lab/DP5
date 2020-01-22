@@ -71,7 +71,29 @@ def SetupOptCalcs(Isomers, settings):
         os.mkdir('opt')
     os.chdir('opt')
 
-    # Insert code for opt calc setup here!
+    for iso in Isomers:
+        if iso.ExtCharge > -10:
+            charge = iso.ExtCharge
+        else:
+            charge = iso.MMCharge
+
+        if iso.DFTConformers == []:
+            conformers = iso.Conformers
+        else:
+            conformers = iso.DFTConformers
+
+        for num in range(0, len(conformers)):
+            filename = iso.BaseName + 'nwinp' + str(num + 1).zfill(3)
+
+            if os.path.exists(filename + '.nwo'):
+                if IsNWChemCompleted(filename + '.nwo'):
+                    iso.OptOutputFiles.append(filename + '.nwo')
+                    continue
+                else:
+                    os.remove(filename + '.nwo')
+
+            WriteNWChemFile(filename, conformers[num], iso.Atoms, charge, settings, 'opt')
+            iso.OptInputFiles.append(filename + '.nw')
 
     os.chdir(jobdir)
 
@@ -188,15 +210,16 @@ def RunOptCalcs(Isomers, settings):
     os.chdir('opt')
 
     NWJobs = []
-    """
+
     for iso in Isomers:
-        GausJobs.extend([x for x in iso.OptInputFiles if (x[:-4] + '.out') not in iso.OptOutputFiles])
-    """
+        print(iso.NMRInputFiles)
+        NWJobs.extend([x for x in iso.OptInputFiles if (x[:-3] + '.nwo') not in iso.OptOutputFiles])
+
     Completed = RunCalcs(NWJobs)
-    """
+
     for iso in Isomers:
-        iso.OptOutputFiles.extend([x[:-4] + '.out' for x in iso.OptInputFiles if (x[:-4] + '.out') in Completed])
-    """
+        iso.NMROutputFiles.extend([x[:-3] + '.nwo' for x in iso.OptInputFiles if (x[:-3] + '.nwo') in Completed])
+
     os.chdir(jobdir)
 
     return Isomers
@@ -320,6 +343,8 @@ def OptSuffix(settings):
     elif (settings.oFunctional).lower() == 'm062x' or (settings.oFunctional).lower() == 'm06-2x':
         suffix += 'dft\n  xc m06-2x\n  mult 1\nend\n\n'
         suffix += 'task dft optimize\n\n'
+
+    return suffix
 
 
 def IsNWChemCompleted(f):
