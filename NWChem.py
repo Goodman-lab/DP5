@@ -104,12 +104,13 @@ def RunNMRCalcs(Isomers, settings):
     NWJobs = []
 
     for iso in Isomers:
-        NWJobs.extend([x for x in iso.NMRInputFiles if (x[:-4] + '.nwo') not in iso.NMROutputFiles])
+        print(iso.NMRInputFiles)
+        NWJobs.extend([x for x in iso.NMRInputFiles if (x[:-3] + '.nwo') not in iso.NMROutputFiles])
 
     Completed = RunCalcs(NWJobs)
 
     for iso in Isomers:
-        iso.NMROutputFiles.extend([x[:-4] + '.nwo' for x in iso.NMRInputFiles if (x[:-4] + '.nwo') in Completed])
+        iso.NMROutputFiles.extend([x[:-3] + '.nwo' for x in iso.NMRInputFiles if (x[:-3] + '.nwo') in Completed])
 
     os.chdir(jobdir)
 
@@ -324,7 +325,7 @@ def ReadEnergies(Isomers, settings):
 
         DFTEnergies = []
         for NWOutpFile in NWOutpFiles:
-            nwfile = open(NWOutpFile + '.nwo', 'r')
+            nwfile = open(NWOutpFile, 'r')
             NWOutp = nwfile.readlines()
             nwfile.close()
 
@@ -349,7 +350,7 @@ def ReadShieldings(Isomers):
     for iso in Isomers:
 
         for NWOutpFile in iso.NMROutputFiles:
-            nwfile = open(NWOutpFile + '.nwo', 'r')
+            nwfile = open(NWOutpFile, 'r')
             NWOutp = nwfile.readlines()
             nwfile.close()
 
