@@ -269,27 +269,57 @@ def WriteNWChemFile(NWinp, conformer, atoms, charge, settings, type):
     if settings.Solvent != "":
         f.write('cosmo\n  do_cosmo_smd true\n  solvent ' + settings.Solvent + '\n')
         f.write('end\n\n')
-    if type == 'opt':
-        f.write('driver\n  maxiter ' + str(settings.MaxDFTOptCycles) + '\nend\n\n')
-        if (settings.oFunctional).lower() == 'b3lyp':
-            f.write('dft\n  xc b3lyp\n  mult 1\nend\n\n')
-            f.write('task dft optimize\n\n')
-        if (settings.oFunctional).lower() == 'm062x' or (settings.oFunctional).lower() == 'm06-2x':
-            f.write('dft\n  xc m06-2x\n  mult 1\nend\n\n')
-            f.write('task dft optimize\n\n')
+
+    if type == 'nmr':
+        f.write(NMRSuffix(settings))
+    elif type == 'e':
+        f.write(ESuffix(settings))
+    elif type == 'opt':
+        f.write(OptSuffix(settings))
+
+    f.close()
+
+
+def NMRSuffix(settings):
+    suffix = ''
     if (settings.nFunctional).lower() == 'b3lyp':
-        f.write('dft\n  xc b3lyp\n  mult 1\nend\n\n')
+        suffix += 'dft\n  xc b3lyp\n  mult 1\nend\n\n'
     elif (settings.nFunctional).lower() == 'm062x' or \
             (settings.nFunctional).lower() == 'm06-2x':
-        f.write('dft\n  xc m06-2x\n  mult 1\nend\n\n')
+        suffix +=  'dft\n  xc m06-2x\n  mult 1\nend\n\n'
     elif (settings.nFunctional).lower() == 'mpw1pw91':
-        f.write('dft\n  xc mpw91 0.75 HFexch 0.25 perdew91\n  mult 1\nend\n\n')
+        suffix += 'dft\n  xc mpw91 0.75 HFexch 0.25 perdew91\n  mult 1\nend\n\n'
     else:
-        f.write('dft\n  xc ' + settings.nFunctional + '\n  mult 1\nend\n\n')
-    f.write('task dft energy\n\n')
-    f.write('property\n  shielding\nend\n')
-    f.write('task dft property\n')
-    f.close()
+        suffix += 'dft\n  xc ' + settings.nFunctional + '\n  mult 1\nend\n\n'
+    suffix += 'task dft energy\n\nproperty\n  shielding\nend\ntask dft property\n'
+
+    return suffix
+
+
+def ESuffix(settings):
+    suffix = ''
+    if (settings.nFunctional).lower() == 'b3lyp':
+        suffix += 'dft\n  xc b3lyp\n  mult 1\nend\n\n'
+    elif (settings.nFunctional).lower() == 'm062x' or \
+            (settings.nFunctional).lower() == 'm06-2x':
+        suffix +=  'dft\n  xc m06-2x\n  mult 1\nend\n\n'
+    elif (settings.nFunctional).lower() == 'mpw1pw91':
+        suffix += 'dft\n  xc mpw91 0.75 HFexch 0.25 perdew91\n  mult 1\nend\n\n'
+    else:
+        suffix += 'dft\n  xc ' + settings.nFunctional + '\n  mult 1\nend\n\n'
+    suffix += 'task dft energy\n'
+
+    return suffix
+
+
+def OptSuffix(settings):
+    suffix = 'driver\n  maxiter ' + str(settings.MaxDFTOptCycles) + '\nend\n\n'
+    if (settings.oFunctional).lower() == 'b3lyp':
+        suffix += 'dft\n  xc b3lyp\n  mult 1\nend\n\n'
+        suffix += 'task dft optimize\n\n'
+    elif (settings.oFunctional).lower() == 'm062x' or (settings.oFunctional).lower() == 'm06-2x':
+        suffix += 'dft\n  xc m06-2x\n  mult 1\nend\n\n'
+        suffix += 'task dft optimize\n\n'
 
 
 def IsNWChemCompleted(f):
