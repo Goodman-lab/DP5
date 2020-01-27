@@ -243,12 +243,11 @@ def GetPrerunOptCalcs(Isomers):
 
     return Isomers
 
-    pass
-
 
 def RunCalcs(NWJobs):
 
     NCompleted = 0
+    Completed = []
     NWChemPrefix = "nwchem "
 
     for f in NWJobs:
@@ -258,6 +257,19 @@ def RunCalcs(NWJobs):
         NCompleted += 1
         print("NWChem job " + str(NCompleted) + " of " + str(len(NWJobs)) + \
             " completed.")
+        if IsNWChemCompleted(f[:-3] + '.nwo'):
+            Completed.append(f[:-3] + '.nwo')
+            print("NWChem job " + str(NCompleted) + " of " + str(len(NWJobs)) + \
+                  " completed.")
+        else:
+            print("NWChem job terminated with an error. Continuing.")
+
+    if NCompleted > 0:
+        print(str(NCompleted) + " NWChem jobs completed successfully.")
+    elif len(NWJobs) == 0:
+        print("There were no jobs to run.")
+
+    return Completed
 
 
 def WriteNWChemFile(NWinp, conformer, atoms, charge, settings, type):
@@ -358,6 +370,17 @@ def IsNWChemCompleted(f):
         return False
 
 
+def IsNWChemConverged(f):
+    Nfile = open(f, 'r')
+    outp = Nfile.readlines()
+    Nfile.close()
+    outp = "".join(outp)
+    if 'Optimization converged' in outp:
+        return True
+    else:
+        return False
+
+
 #Read energy from e, if not present, then o, if not present, then nmr
 def ReadEnergies(Isomers, settings):
     jobdir = os.getcwd()
@@ -438,7 +461,34 @@ def ReadShieldings(Isomers):
 
 
 def ReadGeometry(NWOutpFile):
-    pass
+
+    nwfile = open(NWOutpFile, 'r')
+    NWOutp = nwfile.readlines()
+    nwfile.close()
+
+    atoms = []
+    coords = []
+    gindex = -1
+
+    # Find the last geometry section
+    for index in range(len(NWOutp)):
+        if ('Geometry "geometry" -> "geometry"' in NWOutp[index]):
+            gindex = index + 7
+
+    if gindex < 0:
+        print('Error: No geometry found in file ' + NWOutpFile)
+        quit()
+
+    # Read geometry
+    for line in NWOutp[gindex:]:
+        if len(line) < 2:
+            break
+        else:
+            data = [_f for _f in line[:-1].split(' ') if _f]
+            atoms.append(data[1])
+            coords.append(data[3:])
+
+    return atoms, coords
 
 
 def ReadGeometries(Isomers, settings):
