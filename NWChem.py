@@ -57,7 +57,29 @@ def SetupECalcs(Isomers, settings):
         os.mkdir('e')
     os.chdir('e')
 
-    # Insert code for energy calc setup here!
+    for iso in Isomers:
+        if iso.ExtCharge > -10:
+            charge = iso.ExtCharge
+        else:
+            charge = iso.MMCharge
+
+        if iso.DFTConformers == []:
+            conformers = iso.Conformers
+        else:
+            conformers = iso.DFTConformers
+
+        for num in range(0, len(conformers)):
+            filename = iso.BaseName + 'nwinp' + str(num + 1).zfill(3)
+
+            if os.path.exists(filename + '.nwo'):
+                if IsNWChemCompleted(filename + '.nwo'):
+                    iso.EOutputFiles.append(filename + '.nwo')
+                    continue
+                else:
+                    os.remove(filename + '.nwo')
+
+            WriteNWChemFile(filename, conformers[num], iso.Atoms, charge, settings, 'e')
+            iso.EInputFiles.append(filename + '.nw')
 
     os.chdir(jobdir)
 
@@ -166,20 +188,19 @@ def RunECalcs(Isomers, settings):
     os.chdir('e')
 
     NWJobs = []
-    """
     for iso in Isomers:
-        NWJobs.extend([x for x in iso.EInputFiles if (x[:-4] + '.out') not in iso.EOutputFiles])
-    """
+        print(iso.EInputFiles)
+        NWJobs.extend([x for x in iso.EInputFiles if (x[:-3] + '.nwo') not in iso.EOutputFiles])
+
+    print('To run: ' + str(NWJobs))
     Completed = RunCalcs(NWJobs)
-    """
+
     for iso in Isomers:
-        iso.EOutputFiles.extend([x[:-4] + '.out' for x in iso.EInputFiles if (x[:-4] + '.out') in Completed])
-    """
+        iso.EOutputFiles.extend([x[:-3] + '.nwo' for x in iso.EInputFiles if (x[:-3] + '.nwo') in Completed])
+
     os.chdir(jobdir)
 
     return Isomers
-
-    pass
 
 
 def GetPrerunECalcs(Isomers):
@@ -412,7 +433,6 @@ def ReadEnergies(Isomers, settings):
                     start = line.index('Total')
                     energy = float(line[start + 19:])
 
-            #iso.DFTEnergies.append(energy)
             DFTEnergies.append(energy)
 
         Isomers[i].DFTEnergies = DFTEnergies
