@@ -448,7 +448,6 @@ def ReadEnergies(Isomers, settings):
                     end = line.index('A.U.')
                     energy = float(line[start + 4:end])
 
-            #iso.DFTEnergies.append(energy)
             DFTEnergies.append(energy)
 
         Isomers[i].DFTEnergies = DFTEnergies

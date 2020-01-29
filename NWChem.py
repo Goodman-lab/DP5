@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Nov 19 15:56:54 2014
+Rewritten on Wed Jan 15 2020
 
 @author: ke291
 
@@ -8,198 +8,376 @@ Contains all of the NWChem specific code for input generation and calculation
 execution. Called by PyDP4.py.
 """
 
-import Tinker
-import MacroModel
-import nmrPredictNWChem
-
 import glob
 import os
 import subprocess
-import time
-import socket
-"""
-if os.name == 'nt':
-    import pyximport
-    pyximport.install()
-    import ConfPrune
-else:
-    import pyximport
-    pyximport.install()
-    import ConfPrune
-"""
-
-def SetupNWChem(MMoutp, NWCheminp, numDigits, settings, adjRMSDcutoff):
-
-    #Reads conformer geometry, energies and atom labels from Tinker output
-    #(atoms, conformers) = ReadConformers(MMoutp, MaxEnergy)
-
-    if settings.MMTinker:
-        #Reads conformer geometry, energies and atom labels from Tinker output
-        (atoms, conformers, charge) = Tinker.ReadTinker(MMoutp, settings)
-    else:
-        (atoms, conformers, charge) = MacroModel.ReadMacromodel(MMoutp,
-                                                                settings)
-    if settings.charge is not None:
-        charge = settings.charge
-    #Prune similar conformations, if the number exceeds the limit
-    if len(conformers) > settings.PerStructConfLimit:
-        pruned = ConfPrune.RMSDPrune(conformers, atoms, adjRMSDcutoff)
-    else:
-        pruned = conformers
-
-    print(str(len(conformers) - len(pruned)) +\
-        " or " + "{:.1f}".format(100 * (len(conformers) - len(pruned)) /
-        len(conformers)) + "% of conformations have been pruned based on " + \
-        str(adjRMSDcutoff) + " angstrom cutoff")
-
-    for num in range(0, len(pruned)):
-        filename = NWCheminp+str(num+1).zfill(3)
-        WriteNWChemFile(filename, pruned[num], atoms, charge, settings)
-
-    print(str(len(pruned)) + " .nw files written")
 
 
-#Adjust the RMSD cutoff to keep the conformation numbers reasonable
-def AdaptiveRMSD(MMoutp, settings):
+def SetupNMRCalcs(Isomers, settings):
+    jobdir = os.getcwd()
 
-    if settings.MMTinker:
-        #Reads conformer geometry, energies and atom labels from Tinker output
-        (atoms, conformers, charge) = Tinker.ReadTinker(MMoutp, settings)
-    else:
-        (atoms, conformers, charge) = MacroModel.ReadMacromodel(MMoutp,
-                                                                settings)
+    if not os.path.exists('nmr'):
+        os.mkdir('nmr')
+    os.chdir('nmr')
 
-    return ConfPrune.AdaptRMSDPrune(conformers, atoms,
-                                    settings.InitialRMSDcutoff,
-                                    settings.PerStructConfLimit)
-
-
-def WriteNWChemFile(NWCheminp, conformer, atoms, charge, settings):
-
-    f = file(NWCheminp + '.nw', 'w')
-    f.write('memory stack 1500 mb heap 1500 mb global 3000 mb\n')
-    if settings.DFT == 'w':
-        f.write('scratch_dir /scratch/' + settings.user + '/' + NWCheminp + '\n')
-    f.write('echo\n\nstart molecule\n\ntitle "'+NWCheminp+'"\n')
-    f.write('echo\n\nstart\n\n')
-    
-    if settings.charge is not None:
-        f.write('charge ' + str(settings.charge) + '\n\n')
-    else:
-        f.write('charge ' + str(charge) + '\n\n')
-    
-    f.write('geometry units angstroms print xyz autosym\n')
-
-    natom = 0
-    for atom in conformer:
-        f.write('  ' + atoms[natom] + ' ' + atom[1] + ' ' + atom[2] + ' ' +
-                atom[3] + '\n')
-        natom = natom + 1
-    
-    basis = settings.BasisSet
-    if basis.lower() == '6-31g(d,p)':
-        basis = '6-31g**'
-    elif basis.lower() == '6-311g(d)':
-        basis = '6-311g*'
-    
-    f.write('end\n\nbasis\n  * library ' + basis + '\nend\n\n')
-    if settings.Solvent != "":
-        f.write('cosmo\n  do_cosmo_smd true\n  solvent ' + settings.Solvent + '\n')
-        f.write('end\n\n')
-    if settings.DFTOpt or settings.HFOpt:
-        f.write('driver\n  maxiter ' + str(settings.MaxDFTOptCycles)+ '\nend\n\n')
-        if settings.DFTOpt:
-            f.write('dft\n  xc b3lyp\n  mult 1\nend\n\n')
-            f.write('task dft optimize\n\n')
-        if settings.M06Opt:
-            f.write('dft\n  xc m06-2x\n  mult 1\nend\n\n')
-            f.write('task dft optimize\n\n')
-        if settings.HFOpt:
-            f.write('task scf optimize\n\n')
-    if (settings.Functional).lower() == 'b3lyp':
-        f.write('dft\n  xc b3lyp\n  mult 1\nend\n\n')
-    elif (settings.Functional).lower() == 'm062x' or\
-        (settings.Functional).lower() == 'm06-2x':
-        f.write('dft\n  xc m06-2x\n  mult 1\nend\n\n')
-    elif (settings.Functional).lower() == 'mpw1pw91':
-        f.write('dft\n  xc mpw91 0.75 HFexch 0.25 perdew91\n  mult 1\nend\n\n')
-    else:
-        f.write('dft\n  xc ' + settings.Functional + '\n  mult 1\nend\n\n')
-    f.write('task dft energy\n\n')
-    f.write('property\n  shielding\nend\n')
-    f.write('task dft property\n')
-    f.close()
-
-
-def GetFiles2Run(inpfiles, settings):
-    #Get the names of all relevant input files
-    NinpFiles = []
-    for filename in inpfiles:
-        NinpFiles = NinpFiles + glob.glob(filename + 'nwinp???.nw')
-
-    Files2Run = []
-
-    #for every input file check that there is a completed output file,
-    #delete the incomplete outputs and add the inputs to be done to Files2Run
-    for filename in NinpFiles:
-        if not os.path.exists(filename[:-3]+'.nwo'):
-            Files2Run.append(filename)
+    for iso in Isomers:
+        if iso.ExtCharge > -10:
+            charge = iso.ExtCharge
         else:
-            if IsNWChemCompleted(filename[:-3] + '.nwo'):
-                continue
-            else:
-                os.remove(filename[:-3] + '.nwo')
-                Files2Run.append(filename)
+            charge = iso.MMCharge
 
-    return Files2Run
+        if iso.DFTConformers == []:
+            conformers = iso.Conformers
+        else:
+            conformers = iso.DFTConformers
+
+        for num in range(0, len(conformers)):
+            filename = iso.BaseName + 'nwinp' + str(num + 1).zfill(3)
+
+            if os.path.exists(filename + '.nwo'):
+                if IsNWChemCompleted(filename + '.nwo'):
+                    iso.NMROutputFiles.append(filename + '.nwo')
+                    continue
+                else:
+                    os.remove(filename + '.nwo')
+
+            WriteNWChemFile(filename, conformers[num], iso.Atoms, charge, settings, 'nmr')
+            iso.NMRInputFiles.append(filename + '.nw')
+
+    os.chdir(jobdir)
+
+    return Isomers
 
 
-def RunNWChem(inpfiles, settings):
+def SetupECalcs(Isomers, settings):
+
+    jobdir = os.getcwd()
+
+    if not os.path.exists('e'):
+        os.mkdir('e')
+    os.chdir('e')
+
+    for iso in Isomers:
+        if iso.ExtCharge > -10:
+            charge = iso.ExtCharge
+        else:
+            charge = iso.MMCharge
+
+        if iso.DFTConformers == []:
+            conformers = iso.Conformers
+        else:
+            conformers = iso.DFTConformers
+
+        for num in range(0, len(conformers)):
+            filename = iso.BaseName + 'nwinp' + str(num + 1).zfill(3)
+
+            if os.path.exists(filename + '.nwo'):
+                if IsNWChemCompleted(filename + '.nwo'):
+                    iso.EOutputFiles.append(filename + '.nwo')
+                    continue
+                else:
+                    os.remove(filename + '.nwo')
+
+            WriteNWChemFile(filename, conformers[num], iso.Atoms, charge, settings, 'e')
+            iso.EInputFiles.append(filename + '.nw')
+
+    os.chdir(jobdir)
+
+    return Isomers
+
+
+def SetupOptCalcs(Isomers, settings):
+    jobdir = os.getcwd()
+
+    if not os.path.exists('opt'):
+        os.mkdir('opt')
+    os.chdir('opt')
+
+    for iso in Isomers:
+        if iso.ExtCharge > -10:
+            charge = iso.ExtCharge
+        else:
+            charge = iso.MMCharge
+
+        if iso.DFTConformers == []:
+            conformers = iso.Conformers
+        else:
+            conformers = iso.DFTConformers
+
+        for num in range(0, len(conformers)):
+            filename = iso.BaseName + 'nwinp' + str(num + 1).zfill(3)
+
+            if os.path.exists(filename + '.nwo'):
+                if IsNWChemCompleted(filename + '.nwo'):
+                    iso.OptOutputFiles.append(filename + '.nwo')
+                    continue
+                else:
+                    os.remove(filename + '.nwo')
+
+            WriteNWChemFile(filename, conformers[num], iso.Atoms, charge, settings, 'opt')
+            iso.OptInputFiles.append(filename + '.nw')
+
+    os.chdir(jobdir)
+
+    return Isomers
+
+
+def Converged(Isomers):
+
+    jobdir = os.getcwd()
+
+    if not os.path.exists('opt'):
+        os.chdir(jobdir)
+        return False
+
+    # insert code for convergence testing here
+
+    os.chdir('opt')
+
+    os.chdir(jobdir)
+    return True
+
+
+def RunNMRCalcs(Isomers, settings):
+
+    print('\nRunning NWChem DFT NMR calculations locally...')
+
+    jobdir = os.getcwd()
+    os.chdir('nmr')
+
+    NWJobs = []
+
+    for iso in Isomers:
+        print(iso.NMRInputFiles)
+        NWJobs.extend([x for x in iso.NMRInputFiles if (x[:-3] + '.nwo') not in iso.NMROutputFiles])
+
+    Completed = RunCalcs(NWJobs)
+
+    for iso in Isomers:
+        iso.NMROutputFiles.extend([x[:-3] + '.nwo' for x in iso.NMRInputFiles if (x[:-3] + '.nwo') in Completed])
+
+    os.chdir(jobdir)
+
+    return Isomers
+
+
+def GetPrerunNMRCalcs(Isomers):
+
+    print('\nLooking for prerun NWChem DFT NMR files...')
+
+    jobdir = os.getcwd()
+    os.chdir('nmr')
+    """
+    for iso in Isomers:
+        iso.NMRInputFiles = glob.glob(iso.BaseName + 'ginp*com')
+        iso.NMROutputFiles.extend([x[:-4] + '.out' for x in iso.NMRInputFiles if IsGausCompleted(x[:-4] + '.out')])
+    """
+    print('NMR calc files:')
+    print(', '.join([', '.join(x.NMROutputFiles) for x in Isomers]))
+
+    os.chdir(jobdir)
+
+    return Isomers
+
+
+def RunECalcs(Isomers, settings):
+
+    print('\nRunning NWChem DFT energy calculations locally...')
+
+    jobdir = os.getcwd()
+    os.chdir('e')
+
+    NWJobs = []
+    for iso in Isomers:
+        print(iso.EInputFiles)
+        NWJobs.extend([x for x in iso.EInputFiles if (x[:-3] + '.nwo') not in iso.EOutputFiles])
+
+    print('To run: ' + str(NWJobs))
+    Completed = RunCalcs(NWJobs)
+
+    for iso in Isomers:
+        iso.EOutputFiles.extend([x[:-3] + '.nwo' for x in iso.EInputFiles if (x[:-3] + '.nwo') in Completed])
+
+    os.chdir(jobdir)
+
+    return Isomers
+
+
+def GetPrerunECalcs(Isomers):
+
+    print('\nLooking for prerun NWChem DFT energy calculation files...')
+
+    jobdir = os.getcwd()
+    os.chdir('e')
+
+    """
+    for iso in Isomers:
+        iso.EInputFiles = glob.glob(iso.BaseName + 'ginp*com')
+        iso.EOutputFiles.extend([x[:-4] + '.out' for x in iso.EInputFiles if IsGausCompleted(x[:-4] + '.out')])
+    """
+    print('Energy files:')
+    print(', '.join([', '.join(x.EOutputFiles) for x in Isomers]))
+
+    os.chdir(jobdir)
+
+    return Isomers
+
+
+def RunOptCalcs(Isomers, settings):
+
+    print('\nRunning NWChem DFT geometry optimizations locally...')
+
+    jobdir = os.getcwd()
+    os.chdir('opt')
+
+    NWJobs = []
+
+    for iso in Isomers:
+        print(iso.NMRInputFiles)
+        NWJobs.extend([x for x in iso.OptInputFiles if (x[:-3] + '.nwo') not in iso.OptOutputFiles])
+
+    Completed = RunCalcs(NWJobs)
+
+    for iso in Isomers:
+        iso.NMROutputFiles.extend([x[:-3] + '.nwo' for x in iso.OptInputFiles if (x[:-3] + '.nwo') in Completed])
+
+    os.chdir(jobdir)
+
+    return Isomers
+
+
+def GetPrerunOptCalcs(Isomers):
+
+    print('\nLooking for prerun NWChem DFT optimization files...')
+
+    jobdir = os.getcwd()
+    os.chdir('opt')
+    """
+    for iso in Isomers:
+        iso.OptInputFiles = glob.glob(iso.BaseName + 'ginp*com')
+        iso.OptOutputFiles.extend([x[:-4] + '.out' for x in iso.OptInputFiles if IsGausCompleted(x[:-4] + '.out')])
+    """
+    print('Opt files:')
+    print(', '.join([', '.join(x.OptOutputFiles) for x in Isomers]))
+
+    os.chdir(jobdir)
+
+    return Isomers
+
+
+def RunCalcs(NWJobs):
 
     NCompleted = 0
+    Completed = []
     NWChemPrefix = "nwchem "
 
-    for f in inpfiles:
+    for f in NWJobs:
         print(NWChemPrefix + f + ' > ' + f[:-2] + 'nwo')
         outp = subprocess.check_output(NWChemPrefix + f + ' > ' + f[:-2] +
                                        'nwo', shell=True)
         NCompleted += 1
-        print("NWChem job " + str(NCompleted) + " of " + str(len(inpfiles)) + \
+        print("NWChem job " + str(NCompleted) + " of " + str(len(NWJobs)) + \
             " completed.")
+        if IsNWChemCompleted(f[:-3] + '.nwo'):
+            Completed.append(f[:-3] + '.nwo')
+            print("NWChem job " + str(NCompleted) + " of " + str(len(NWJobs)) + \
+                  " completed.")
+        else:
+            print("NWChem job terminated with an error. Continuing.")
+
+    if NCompleted > 0:
+        print(str(NCompleted) + " NWChem jobs completed successfully.")
+    elif len(NWJobs) == 0:
+        print("There were no jobs to run.")
+
+    return Completed
 
 
-def RunNMRPredict(numDS, *args):
+def WriteNWChemFile(NWinp, conformer, atoms, charge, settings, type):
 
-    NWNames = []
-    NTaut = []
+    f = open(NWinp + '.nw', 'w')
+    f.write('memory stack 1500 mb heap 1500 mb global 3000 mb\n')
+    if settings.DFT == 'w':
+        f.write('scratch_dir /scratch/' + settings.user + '/' + NWinp + '\n')
+    f.write('echo\n\nstart molecule\n\ntitle "' + NWinp + '"\n')
+    f.write('echo\n\nstart\n\n')
 
-    for val in range(0, numDS):
-        NTaut.append(args[val*2])
-        NWNames.append(args[val*2+1])
+    if settings.charge is not None:
+        f.write('charge ' + str(settings.charge) + '\n\n')
+    else:
+        f.write('charge ' + str(charge) + '\n\n')
 
-    RelEs = []
-    populations = []
-    BoltzmannShieldings = []
-    SigConfs = []
+    f.write('geometry units angstroms print xyz autosym\n')
 
-    print(NWNames)
-    print(NTaut)
-    #This loop runs nmrPredict for each diastereomer and collects
-    #the outputs    
-    for isomer in NWNames:
+    natom = 0
+    for atom in conformer:
+        f.write('  ' + atoms[natom] + ' ' + atom[0] + ' ' + atom[1] + ' ' +
+                atom[2] + '\n')
+        natom = natom + 1
 
-        NWFiles = glob.glob(isomer + 'nwinp*.nwo')
-        for f in range(0, len(NWFiles)):
-            NWFiles[f] = NWFiles[f][:-4]
+    basis = settings.nBasisSet
+    if basis.lower() == '6-31g(d,p)':
+        basis = '6-31g**'
+    elif basis.lower() == '6-311g(d)':
+        basis = '6-311g*'
 
-        #Runs nmrPredictNWChem Name001, ... and collects output
-        (x, y, labels, z, SCs) = nmrPredictNWChem.main(*NWFiles)
-        RelEs.append(x)
-        populations.append(y)
-        BoltzmannShieldings.append(z)
-        SigConfs.append(SCs)
+    f.write('end\n\nbasis\n  * library ' + basis + '\nend\n\n')
+    if settings.Solvent != "":
+        f.write('cosmo\n  do_cosmo_smd true\n  solvent ' + settings.Solvent + '\n')
+        f.write('end\n\n')
 
-    return (RelEs, populations, labels, BoltzmannShieldings, SigConfs, NTaut)
+    if type == 'nmr':
+        f.write(NMRSuffix(settings))
+    elif type == 'e':
+        f.write(ESuffix(settings))
+    elif type == 'opt':
+        f.write(OptSuffix(settings))
+
+    f.close()
+
+
+def NMRSuffix(settings):
+    suffix = ''
+    if (settings.nFunctional).lower() == 'b3lyp':
+        suffix += 'dft\n  xc b3lyp\n  mult 1\nend\n\n'
+    elif (settings.nFunctional).lower() == 'm062x' or \
+            (settings.nFunctional).lower() == 'm06-2x':
+        suffix +=  'dft\n  xc m06-2x\n  mult 1\nend\n\n'
+    elif (settings.nFunctional).lower() == 'mpw1pw91':
+        suffix += 'dft\n  xc mpw91 0.75 HFexch 0.25 perdew91\n  mult 1\nend\n\n'
+    else:
+        suffix += 'dft\n  xc ' + settings.nFunctional + '\n  mult 1\nend\n\n'
+    suffix += 'task dft energy\n\nproperty\n  shielding\nend\ntask dft property\n'
+
+    return suffix
+
+
+def ESuffix(settings):
+    suffix = ''
+    if (settings.nFunctional).lower() == 'b3lyp':
+        suffix += 'dft\n  xc b3lyp\n  mult 1\nend\n\n'
+    elif (settings.nFunctional).lower() == 'm062x' or \
+            (settings.nFunctional).lower() == 'm06-2x':
+        suffix +=  'dft\n  xc m06-2x\n  mult 1\nend\n\n'
+    elif (settings.nFunctional).lower() == 'mpw1pw91':
+        suffix += 'dft\n  xc mpw91 0.75 HFexch 0.25 perdew91\n  mult 1\nend\n\n'
+    else:
+        suffix += 'dft\n  xc ' + settings.nFunctional + '\n  mult 1\nend\n\n'
+    suffix += 'task dft energy\n'
+
+    return suffix
+
+
+def OptSuffix(settings):
+    suffix = 'driver\n  maxiter ' + str(settings.MaxDFTOptCycles) + '\nend\n\n'
+    if (settings.oFunctional).lower() == 'b3lyp':
+        suffix += 'dft\n  xc b3lyp\n  mult 1\nend\n\n'
+        suffix += 'task dft optimize\n\n'
+    elif (settings.oFunctional).lower() == 'm062x' or (settings.oFunctional).lower() == 'm06-2x':
+        suffix += 'dft\n  xc m06-2x\n  mult 1\nend\n\n'
+        suffix += 'task dft optimize\n\n'
+
+    return suffix
 
 
 def IsNWChemCompleted(f):
@@ -213,220 +391,157 @@ def IsNWChemCompleted(f):
         return False
 
 
-def RunOnZiggy(folder, queue, NWFiles, settings):
-
-    print("ziggy NWChem job submission script\n")
-
-    #Check that folder does not exist, create job folder on ziggy
-    outp = subprocess.check_output('ssh ziggy ls', shell=True)
-    if folder in outp:
-        print("Folder exists on ziggy, choose another folder name.")
-        return
-
-    outp = subprocess.check_output('ssh ziggy mkdir ' + folder, shell=True)
-    #Write the qsub scripts
-    for f in NWFiles:
-        WriteSubScript(f[:-3], queue, folder, settings)
-    print(str(len(NWFiles)) + ' .qsub scripts generated')
-
-    #Upload .com files and .qsub files to directory
-    print("Uploading files to ziggy...")
-    for f in NWFiles:
-        outp = subprocess.check_output('scp ' + f +' ziggy:~/' + folder,
-                                       shell=True)
-        outp = subprocess.check_output('scp ' + f[:-3] +'.qsub ziggy:~/' +
-                                       folder, shell=True)
-
-    print(str(len(NWFiles)) + ' .nw and .qsub files uploaded to ziggy')
-
-    #Launch the calculations
-    for f in NWFiles:
-        job = '~/' + folder + '/' + f[:-3]
-        outp = subprocess.check_output('ssh ziggy qsub -q ' + queue + ' -o '
-            + job + '.log -e ' + job + '.err -l nodes=1:ppn=1:ivybridge ' +
-            job + '.qsub', shell=True)
-        time.sleep(3)
-
-    print(str(len(NWFiles)) + ' jobs submitted to the queue on ziggy')
-
-    outp = subprocess.check_output('ssh ziggy showq', shell=True)
-    if settings.user in outp:
-        print("Jobs are running on ziggy")
-
-    Jobs2Complete = list(NWFiles)
-    n2complete = len(Jobs2Complete)
-
-    #Check and report on the progress of calculations
-    while len(Jobs2Complete) > 0:
-        JustCompleted = [job for job in Jobs2Complete if
-            IsZiggyGComplete(job[:-2] + 'nwo', folder, settings)]
-        Jobs2Complete[:] = [job for job in Jobs2Complete if
-             not IsZiggyGComplete(job[:-2] + 'nwo', folder, settings)]
-        if n2complete != len(Jobs2Complete):
-            n2complete = len(Jobs2Complete)
-            print(str(n2complete) + " remaining.")
-
-        time.sleep(60)
-
-    #When done, copy the results back
-    print("\nCopying the output files back to localhost...")
-    print('ssh ziggy scp /home/' + settings.user + '/' + folder + '/*.nwo ' +\
-        socket.getfqdn() + ':' + os.getcwd())
-    outp = subprocess.check_output('ssh ziggy scp /home/' + settings.user + '/'
-                                   + folder + '/*.nwo ' + socket.getfqdn() + ':'
-                                   + os.getcwd(), shell=True)
-
-
-def RunOnMedivir(NWFiles, settings):
-
-    print("Medivir NWChem job submission script\n")
-
-    #Write the qsub scripts
-    for f in NWFiles:
-        WriteMedivirSubScript(f[:-3], settings)
-    print(str(len(NWFiles)) + ' .qsub scripts generated')
-
-    #Launch the calculations
-    for f in NWFiles:
-        job = f[:-3]
-        outp = subprocess.check_output('qsub ' + job + '.qsub', shell=True)
-        time.sleep(3)
-
-    print(str(len(NWFiles)) + ' jobs submitted to the queue on ziggy')
-
-    outp = subprocess.check_output('qstat', shell=True)
-    if 'nwinp' in outp:
-        print("Jobs are running on the cluster")
-
-    Jobs2Complete = list(NWFiles)
-    n2complete = len(Jobs2Complete)
-
-    #Check and report on the progress of calculations
-    while len(Jobs2Complete) > 0:
-        JustCompleted = [job for job in Jobs2Complete if
-            IsMedivirComplete(job[:-2] + 'nwo', settings)]
-        Jobs2Complete[:] = [job for job in Jobs2Complete if
-             not IsMedivirComplete(job[:-2] + 'nwo', settings)]
-        if n2complete != len(Jobs2Complete):
-            n2complete = len(Jobs2Complete)
-            print(str(n2complete) + " remaining.")
-
-        time.sleep(60)
-
-    print("Calculation on the cluster done.\n")
-                                   
-                                   
-def WriteSubScript(NWJob, queue, ZiggyJobFolder, settings):
-
-    if not (os.path.exists(NWJob+'.nw')):
-        print("The input file " + NWJob + ".nw does not exist. Exiting...")
-        return
-
-    #Create the submission script
-    QSub = open(NWJob + ".qsub", 'w')
-
-    #Choose the queue
-    QSub.write('#PBS -q ' + queue + '\n#PBS -l nodes=1:ppn=1\n#\n')
-
-    #define input files and output files
-    QSub.write('file=' + NWJob + '\n\n')
-    QSub.write('inpfile=${file}.nw\noutfile=${file}.nwo\n')
-
-    #define cwd and scratch folder and ask the machine
-    #to make it before running the job
-    QSub.write('HERE=/home/' + settings.user + '/' + ZiggyJobFolder + '\n')
-    QSub.write('SCRATCH=/sharedscratch/' + settings.user + '/' + NWJob + '\n')
-    QSub.write('LSCRATCH=/scratch/' + settings.user + '/' + NWJob + '\n')
-    QSub.write('mkdir ${SCRATCH}\n')
-    QSub.write('mkdir ${LSCRATCH}\n')
-
-    #load relevant modules
-    QSub.write('set OMP_NUM_THREADS=1\n')
-    QSub.write('module load anaconda\n')
-    QSub.write('module load gcc/4.8.3\n')
-    QSub.write('module load mpi/openmpi/gnu/1.8.1\n')
-    QSub.write('module load nwchem\n')
-
-    #copy the input file to scratch
-    QSub.write('cp ${HERE}/${inpfile}  $SCRATCH\ncd $SCRATCH\n')
-
-    #write useful info to the job output file (not the gaussian)
-    QSub.write('echo "Starting job $PBS_JOBID"\necho\n')
-    QSub.write('echo "PBS assigned me this node:"\ncat $PBS_NODEFILE\necho\n')
-
-    QSub.write('ln -s $HERE/$outfile $SCRATCH/$outfile\n')
-    QSub.write('nwchem $inpfile > $outfile\n')
-
-    #Cleanup
-    QSub.write('rm -rf ${SCRATCH}/\n')
-    QSub.write('rm -rf ${LSCRATCH}/\n')
-    QSub.write('qstat -f $PBS_JOBID\n')
-
-    QSub.close()
-
-
-def WriteMedivirSubScript(NWJob, settings):
-
-    if not (os.path.exists(NWJob+'.nw')):
-        print("The input file " + NWJob + ".nw does not exist. Exiting...")
-        return
-
-    #Create the submission script
-    QSub = open(NWJob + ".qsub", 'w')
-
-    QSub.write('#PBS -S /bin/tcsh\n')
-    QSub.write('#PBS -l nodes=1:ppn=24\n#\n')
-    QSub.write('#PBS -N ' + NWJob + '\n')
-    QSub.write('#PBS -j oe\n')
-
-    QSub.write('mkdir /scr/' + NWJob + '\n')
-    QSub.write('cd /scr/' + NWJob + '\n')
-
-    #load relevant modules
-    QSub.write('module load nwchem-6.5\n')
-
-    QSub.write('mpiexec nwchem ' + os.getcwd() + '/' + NWJob + '.nw > '
-	 + os.getcwd() + '/' + NWJob + '.nwo\n')
-
-    QSub.write('cd ../\n')
-    QSub.write('rm -r /scr/' + NWJob + '\n')
-
-    QSub.close()
-    
-
-def IsZiggyGComplete(f, folder, settings):
-
-    path = '/home/' + settings.user + '/' + folder + '/'
-    try:
-        outp1 = subprocess.check_output('ssh ziggy ls ' + path, shell=True)
-    except subprocess.CalledProcessError as e:
-        print("ssh ziggy ls failed: " + str(e.output))
+def IsNWChemConverged(f):
+    Nfile = open(f, 'r')
+    outp = Nfile.readlines()
+    Nfile.close()
+    outp = "".join(outp)
+    if 'Optimization converged' in outp:
+        return True
+    else:
         return False
-    if f in outp1:
-        try:
-            outp2 = subprocess.check_output('ssh ziggy cat ' + path + f,
-                                            shell=True)
-        except subprocess.CalledProcessError as e:
-            print("ssh ziggy cat failed: " + str(e.output))
-            return False
-        if "AUTHORS" in outp2:
-            return True
-    return False
 
 
-def IsMedivirComplete(f, settings):
+#Read energy from e, if not present, then o, if not present, then nmr
+def ReadEnergies(Isomers, settings):
+    jobdir = os.getcwd()
 
-    try:
-        outp1 = subprocess.check_output('ls ', shell=True)
-    except subprocess.CalledProcessError as e:
-        print("ls failed: " + str(e.output))
-        return False
-    if f in outp1:
-        try:
-            outp2 = subprocess.check_output('cat ' + f, shell=True)
-        except subprocess.CalledProcessError as e:
-            print("cat failed: " + str(e.output))
-            return False
-        if "AUTHORS" in outp2:
-            return True
-    return False
+    if 'e' in settings.Workflow:
+        os.chdir('e')
+    elif 'o' in settings.Workflow:
+        os.chdir('opt')
+    else:
+        os.chdir('nmr')
+
+    for i, iso in enumerate(Isomers):
+
+        if 'e' in settings.Workflow:
+            NWOutpFiles = iso.EOutputFiles
+        elif 'o' in settings.Workflow:
+            NWOutpFiles = iso.OptOutputFiles
+        else:
+            NWOutpFiles = iso.NMROutputFiles
+
+        DFTEnergies = []
+        for NWOutpFile in NWOutpFiles:
+            nwfile = open(NWOutpFile, 'r')
+            NWOutp = nwfile.readlines()
+            nwfile.close()
+
+            for line in NWOutp:
+                if 'Total DFT energy' in line:
+                    start = line.index('Total')
+                    energy = float(line[start + 19:])
+
+            DFTEnergies.append(energy)
+
+        Isomers[i].DFTEnergies = DFTEnergies
+
+    os.chdir(jobdir)
+    return Isomers
+
+
+def ReadShieldings(Isomers):
+    jobdir = os.getcwd()
+    os.chdir('nmr')
+
+    for iso in Isomers:
+
+        for NWOutpFile in iso.NMROutputFiles:
+            nwfile = open(NWOutpFile, 'r')
+            NWOutp = nwfile.readlines()
+            nwfile.close()
+
+            index = 0
+            shieldings = []
+            labels = []
+
+            # Find the NMR shielding calculation section
+            while not 'Chemical Shielding' in NWOutp[index]:
+                index = index + 1
+
+            # Read shielding constants and labels
+            for line in NWOutp[index:]:
+                if 'isotropic' in line:
+                    start = line.index('isotropic')
+                    shieldings.append(float(line[start + 13:]))
+                if 'Atom' in line:
+                    start = line.index('Atom')
+                    labels.append(line[start + 12] + line[start + 7:start + 10].strip())
+
+            print(NWOutpFile,len(shieldings))
+
+            iso.ConformerShieldings.append(shieldings)
+
+        iso.ShieldingLabels = labels
+
+    os.chdir(jobdir)
+
+    return Isomers
+
+
+def ReadGeometry(NWOutpFile):
+
+    nwfile = open(NWOutpFile, 'r')
+    NWOutp = nwfile.readlines()
+    nwfile.close()
+
+    atoms = []
+    coords = []
+    gindex = -1
+
+    # Find the last geometry section
+    for index in range(len(NWOutp)):
+        if ('Geometry "geometry" -> "geometry"' in NWOutp[index]):
+            gindex = index + 7
+
+    if gindex < 0:
+        print('Error: No geometry found in file ' + NWOutpFile)
+        quit()
+
+    # Read geometry
+    for line in NWOutp[gindex:]:
+        if len(line) < 2:
+            break
+        else:
+            data = [_f for _f in line[:-1].split(' ') if _f]
+            atoms.append(data[1])
+            coords.append(data[3:])
+
+    return atoms, coords
+
+
+def ReadGeometries(Isomers, settings):
+
+    jobdir = os.getcwd()
+    if ('o' in settings.Workflow):
+        os.chdir('opt')
+
+        for iso in Isomers:
+
+            iso.DFTConformers = [[] for x in iso.OptOutputFiles]
+
+            for num, NWOutpFile in enumerate(iso.OptOutputFiles):
+
+                atoms, coords = ReadGeometry(NWOutpFile)
+
+                iso.DFTConformers[num] = coords
+
+            iso.Atoms = atoms
+    else:
+        os.chdir('nmr')
+
+        for iso in Isomers:
+
+            iso.DFTConformers = [[] for x in iso.NMROutputFiles]
+
+            for num, NWOutpFile in enumerate(iso.NMROutputFiles):
+                atoms, coords = ReadGeometry(NWOutpFile)
+
+                iso.DFTConformers[num] = coords
+
+            iso.Atoms = atoms
+    #return atoms, coords, charge
+    os.chdir(jobdir)
+    return Isomers
+

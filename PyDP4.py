@@ -425,6 +425,8 @@ def main(settings):
 
     else:
         print('\nNo DP4 analysis requested.')
+        NMRData = []
+        DP4data = []
 
     print('\nPyDP4 process completed successfully.')
 
