@@ -22,7 +22,8 @@ CONTENTS
 
 RELEASE NOTES
 
-DP4-AI version 1.0 is the successor the PyDP4. As described in our latest paper (DOI) DP4-AI represents a significant increase in
+DP4-AI version 1.0 is the successor the PyDP4. As described in our latest paper
+(https://doi.org/10.26434/chemrxiv.11763255.v1) DP4-AI represents a significant increase in
 functionality over PyDP4.
 
 DP4-AI integrates NMR-AI, software for automatic processing, assignment and visualisation of raw NMR data.
@@ -32,8 +33,8 @@ utilises a fully revised version of PyDP4 updated for Python 3 and with major wo
 Users can now also choose to run DP4-AI within a Graphical user interface for increased ease of use when single DP4
 calculations. This graphical user interface can also be used to explore the spectra processed and assigned by NMR-AI.
 
-More details about the software can be found in the publication DP4-AI Straight from Spectrometer to Structure (DOI) and
-in the accompanying supporting information.
+More details about the software can be found in the publication DP4-AI Straight from Spectrometer to Structure
+(https://doi.org/10.26434/chemrxiv.11763255.v1) and in the accompanying supporting information.
 
 ===============================================================
 
