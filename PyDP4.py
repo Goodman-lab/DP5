@@ -201,11 +201,11 @@ def main(settings):
             print('\nSetting up Tinker files...')
             TinkerInputs = Tinker.SetupTinker(settings)
 
-            print('Tinker support not implemented yet!')
-            quit()
-
             print('\nRunning Tinker...')
             TinkerOutputs = Tinker.RunTinker(TinkerInputs, settings)
+
+            print('Tinker support not implemented yet!')
+            quit()
 
             Isomers = Tinker.ReadConformers(TinkerOutputs, Isomers)
 

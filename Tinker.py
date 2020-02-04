@@ -11,7 +11,9 @@ execution and output interpretation. Called by PyDP4.py.
 import os
 import sys
 import subprocess
+import shutil
 
+TinkerPath = '/home/ke291/TINKER/'
 
 def SetupTinker(settings, *args):
 
@@ -47,9 +49,16 @@ def SetupTinker(settings, *args):
         scriptdir = getScriptPath()
         print(scriptdir)
         convinp = scriptdir + '/sdf2tinkerxyz -k ' + scriptdir + '/default.key <'
-
         outp = subprocess.check_output(convinp + inpf + '.sdf', shell=True)
-        TinkerInputs.append(inpf + '.xyz')
+
+        f = open(inpf + '.key', 'r+')
+        key = f.readlines()
+        key[2] = 'PARAMETERS        ' + TinkerPath + 'params/mmff.prm\n'
+        f.seek(0)
+        f.writelines(key)
+        f.close()
+
+        TinkerInputs.append(inpf)
         print("Tinker input for " + inpf + " prepared.")
 
         if settings.Rot5Cycle is True:
@@ -60,27 +69,34 @@ def SetupTinker(settings, *args):
     return TinkerInputs
 
 
-def RunTinker(numDS, settings, *args):
+def RunTinker(TinkerInputs, settings):
     #Run Tinker scan for all diastereomeric inputs
+    TinkerOutputs = []
+
+    if not os.path.exists(TinkerPath + '/bin/scan'):
+        print("Tinker scan executable not found at " + TinkerPath + "/bin/scan,\nplease change the path in TinkerPath in Tinker.py")
+        quit()
 
     NCompleted = 0
 
-    for ds in args:
-        print(settings.TinkerPath + ds + ' 0 10 20 0.00001 | tee ./' + ds + \
+    for isomer in TinkerInputs:
+        print(TinkerPath + '/bin/scan ' + isomer + ' 0 10 20 0.00001 | tee ./' + isomer + \
             '.tout')
-        outp = subprocess.check_output(settings.TinkerPath + ds +
-            ' 0 10 20 0.00001 | tee ./' + ds + '.tout', shell=True)
+        outp = subprocess.check_output(TinkerPath + '/bin/scan ' + isomer +
+            ' 0 10 20 0.00001 | tee ./' + isomer + '.tout', shell=True)
         NCompleted = NCompleted + 1
-        print("Tinker job " + str(NCompleted) + " of " + str(numDS) + \
+        TinkerOutputs.append(isomer + '.tout')
+        print("Tinker job " + str(NCompleted) + " of " + str(len(TinkerInputs)) + \
             " completed.")
 
         if settings.Rot5Cycle is True:
-            print(settings.TinkerPath + ds + 'rot 0 10 20 0.00001 | tee ./' + \
-                ds + 'rot.tout')
-            outp = subprocess.check_output(settings.TinkerPath + ds +
-                'rot 0 10 20 0.00001 | tee ./' + ds + 'rot.tout', shell=True)
+            print(TinkerPath + '/bin/scan ' + isomer + 'rot 0 10 20 0.00001 | tee ./' + \
+                isomer + 'rot.tout')
+            outp = subprocess.check_output(TinkerPath + '/bin/scan ' + isomer +
+                'rot 0 10 20 0.00001 | tee ./' + isomer + 'rot.tout', shell=True)
             NCompleted = NCompleted + 1
-            print("Tinker job " + str(NCompleted) + " of " + str(numDS*2) + \
+            TinkerOutputs.append(isomer + 'rot.tout')
+            print("Tinker job " + str(NCompleted) + " of " + str(len(TinkerInputs)) + \
                 " completed.")
 
 
