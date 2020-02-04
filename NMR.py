@@ -19,8 +19,8 @@ import os
 import math
 import copy
 import pickle
-from Update_Proton_Processing import process_proton
-from Update_Carbon_Processing import process_carbon
+from Proton_Processing import process_proton
+from Carbon_Processing import process_carbon
 
 gasConstant = 8.3145
 temperature = 298.15
