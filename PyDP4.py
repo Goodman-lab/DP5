@@ -199,10 +199,10 @@ def main(settings):
     if ('m' in settings.Workflow) and not(settings.AssumeDone or settings.UseExistingInputs):
         if settings.MM == 't':
             print('\nSetting up Tinker files...')
+            TinkerInputs = Tinker.SetupTinker(settings)
+
             print('Tinker support not implemented yet!')
             quit()
-
-            TinkerInputs = Tinker.SetupTinker(settings)
 
             print('\nRunning Tinker...')
             TinkerOutputs = Tinker.RunTinker(TinkerInputs, settings)

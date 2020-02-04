@@ -13,47 +13,51 @@ import sys
 import subprocess
 
 
-def SetupTinker(numDS, settings, *args):
+def SetupTinker(settings, *args):
 
     print(args)
-    for ds in args:
+    TinkerInputs = []
+    for inpf in settings.InputFiles:
         if settings.Rot5Cycle is True:
-            if not os.path.exists(ds+'rot.sdf'):
+            if not os.path.exists(inpf+'rot.sdf'):
                 import FiveConf
                 #Generate the flipped fivemembered ring,
                 #result is put in '*rot.sdf' file
-                FiveConf.main(ds + '.sdf', settings)
+                FiveConf.main(inpf + '.sdf', settings)
 
         #Makes sure that the name in the title line matches filename
         #sdf2tinkerxyz uses this as the output file name
-        f = open(ds + '.sdf', 'r+')
+        f = open(inpf + '.sdf', 'r+')
         sdf = f.readlines()
-        sdf[0] = ds + '\n'
+        sdf[0] = inpf + '\n'
         f.seek(0)
         f.writelines(sdf)
         f.close()
 
         if settings.Rot5Cycle is True:
-            f = open(ds + 'rot.sdf', 'r+')
+            f = open(inpf + 'rot.sdf', 'r+')
             sdf = f.readlines()
-            sdf[0] = ds + 'rot\n'
-            if ds in sdf[-3]:
-                sdf[-3] = ds + 'rot.1\n'
+            sdf[0] = inpf + 'rot\n'
+            if inpf in sdf[-3]:
+                sdf[-3] = inpf + 'rot.1\n'
             f.seek(0)
             f.writelines(sdf)
             f.close()
 
         scriptdir = getScriptPath()
-        convinp = 'sdf2tinkerxyz -k ' + scriptdir + '/default.key <'
+        print(scriptdir)
+        convinp = scriptdir + '/sdf2tinkerxyz -k ' + scriptdir + '/default.key <'
 
-        outp = subprocess.check_output(convinp + ds + '.sdf', shell=True)
-
-        print("Tinker input for " + ds + " prepared.")
+        outp = subprocess.check_output(convinp + inpf + '.sdf', shell=True)
+        TinkerInputs.append(inpf + '.xyz')
+        print("Tinker input for " + inpf + " prepared.")
 
         if settings.Rot5Cycle is True:
-            outp = subprocess.check_output(convinp + ds + 'rot.sdf',
+            outp = subprocess.check_output(convinp + inpf + 'rot.sdf',
                                            shell=True)
-            print("Tinker input for " + ds + "rot prepared.")
+            print("Tinker input for " + inpf + "rot prepared.")
+
+    return TinkerInputs
 
 
 def RunTinker(numDS, settings, *args):
