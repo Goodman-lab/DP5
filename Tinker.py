@@ -13,6 +13,8 @@ import sys
 import subprocess
 import shutil
 
+# Please modify the line below to give the path to the TINKER v8.x top level folder
+# This folder should contain bin/scan and params/mmff.prm for the process to work
 TinkerPath = '/home/ke291/TINKER/'
 
 def SetupTinker(settings, *args):
@@ -80,12 +82,17 @@ def RunTinker(TinkerInputs, settings):
     NCompleted = 0
 
     for isomer in TinkerInputs:
+        if os.path.exists(isomer + '.tout') and os.path.exists(isomer + '.arc'):
+            print('Output files for ' + isomer + ' already exist, skipping.')
+            TinkerOutputs.append(isomer)
+            continue
+
         print(TinkerPath + '/bin/scan ' + isomer + ' 0 10 20 0.00001 | tee ./' + isomer + \
             '.tout')
         outp = subprocess.check_output(TinkerPath + '/bin/scan ' + isomer +
             ' 0 10 20 0.00001 | tee ./' + isomer + '.tout', shell=True)
         NCompleted = NCompleted + 1
-        TinkerOutputs.append(isomer + '.tout')
+        TinkerOutputs.append(isomer)
         print("Tinker job " + str(NCompleted) + " of " + str(len(TinkerInputs)) + \
             " completed.")
 
@@ -95,90 +102,105 @@ def RunTinker(TinkerInputs, settings):
             outp = subprocess.check_output(TinkerPath + '/bin/scan ' + isomer +
                 'rot 0 10 20 0.00001 | tee ./' + isomer + 'rot.tout', shell=True)
             NCompleted = NCompleted + 1
-            TinkerOutputs.append(isomer + 'rot.tout')
-            print("Tinker job " + str(NCompleted) + " of " + str(len(TinkerInputs)) + \
-                " completed.")
 
+    return TinkerOutputs
+
+
+def ReadConformers(TinkerOutputs, Isomers, settings):
+    atypes, anums = ExtractAtomTypes()
+
+    for iso in Isomers:
+        for outp in TinkerOutputs:
+            if (outp == iso.BaseName):
+                print(outp + ' is matching conformational search output for ' + iso.BaseName)
+                atoms, conformers, charge, AbsEs = ReadTinker(outp, settings, atypes, anums)
+                iso.Atoms = atoms
+                iso.Conformers = conformers
+                iso.MMCharge = charge
+                iso.MMEnergies = AbsEs
+            else:
+                print(outp + ' ' + iso.BaseName + ' Nope')
+    return Isomers
+
+
+#Reads force field parameter file to understand atom notation in the output
+def ExtractAtomTypes():
+    # open TinkerPath + 'params/mmff.prm
+    paramfile = open(TinkerPath + 'params/mmff.prm', 'r')
+    paramdata = paramfile.readlines()
+    paramfile.close()
+    atomtypes = []
+    atomnums = []
+    for line in paramdata[75:]:
+        data = [_f for _f in line.split('  ') if _f]
+        if len(data) < 3:
+            break
+        atomtypes.append(data[3])
+        atomnums.append(int(data[5]))
+
+    return atomtypes, atomnums
 
 #Reads the relevant tinker geometry files
 #v0.2 - reads seperate rot file as well
-def ReadTinker(TinkerOutput, settings):
+def ReadTinker(TinkerOutput, settings, atypes, anums):
 
+    print('Reading ' + TinkerOutput)
     #Get conformer energies
-    ETable, charge = GetEnergiesCharge(TinkerOutput, settings)
+    energies, charge = GetEnergiesCharge(TinkerOutput, settings)
 
     if settings.Rot5Cycle is True:
         #Get conformer energies for the flipped 5-membered ring
-        ETableRot, charge = GetEnergiesCharge(TinkerOutput + 'rot', settings)
-
+        energiesrot, charge = GetEnergiesCharge(TinkerOutput + 'rot', settings)
+        energies = energies + energiesrot
     #Determine which conformers we want
     MinE = 10000
-    MinE = min([float(x[1]) for x in ETable])
+    MinE = min(energies)
 
     if settings.Rot5Cycle is True:
         MinERot = 10000
-        MinERot = min([float(x[1]) for x in ETableRot])
+        MinERot = min(energiesrot)
         if MinE > MinERot:
             MinE = MinERot
 
-    FileNums = []
-    RotFileNums = []
-
-    AcceptedEs = []
-
-    for conf in ETable:
-        if float(conf[1]) < MinE + settings.MaxCutoffEnergy:
-             #Dealing with special case when nconf>100 000
-            if 'Minimum' in conf[0]:
-                data = conf[0].strip()
-                FileNums.append(data[7:].strip())
-            else:
-                FileNums.append(conf[0].strip())
-            AcceptedEs.append(float(conf[1]))
-
+    atoms, conformers = ReadArc(TinkerOutput, atypes, anums)
     if settings.Rot5Cycle is True:
-        for conf in ETableRot:
-            if float(conf[1]) < MinE + settings.MaxCutoffEnergy:
-                RotFileNums.append(conf[0].strip())
-                AcceptedEs.append(float(conf[1]))
+        # Get conformer energies for the flipped 5-membered ring
+        atoms, conformersrot = ReadArc(TinkerOutput + 'rot', atypes, anums)
+        conformers = conformers + conformersrot
 
-    print("Number of accepted conformers by energies: " + str(len(AcceptedEs)))
+    filtered = []
+    AbsEs = []
 
-    Files = []
-    #Generate conformer filenames
-    for num in FileNums:
-        Files.append(TinkerOutput + '.' + num.zfill(3))
-    if settings.Rot5Cycle is True:
-        for num in RotFileNums:
-            Files.append(TinkerOutput + 'rot.' + num.zfill(3))
+    for energy, conformer in zip(energies, conformers):
+        if energy < MinE + settings.MaxCutoffEnergy:
+            AbsEs.append(energy)
+            filtered.append(conformer)
 
+    print("Number of accepted conformers by energies: " + str(len(filtered)))
+
+    return atoms, filtered, charge, AbsEs
+
+
+# Reads all conformers from the arc file
+def ReadArc(f, atypes, anums):
+    conffile = open(f + '.arc', 'r')
+    confdata = conffile.readlines()
+    conffile.close()
+    #output data: conformers - list of x,y,z lists, atoms - list of atoms
     conformers = []
-    conformer = 0
     atoms = []
 
-    for f in Files:
-        conformers.append([])
+    for line in confdata:
+        data = [_f for _f in line.split('  ') if _f]
+        if len(data) < 3:
+            conformers.append([])
+        else:
+            if len(conformers) == 1:
+                anum = anums[atypes.index(data[1])]
+                atoms.append(GetAtomSymbol(anum))
+            conformers[-1].append([x for x in data[2:5]])
 
-        atom = 0
-        infile = open(f, 'r')
-        inp = infile.readlines()
-
-        for line in inp[1:]:
-            data = line.split(' ')
-            data = [_f for _f in data if _f]
-            if conformer == 0:
-                atoms.append(GetTinkerSymbol(int(data[5])))  # Add atom symbol
-            conformers[conformer].append([])                # Add new atom
-            conformers[conformer][atom].append(data[0])     # add atom number
-            conformers[conformer][atom].append(data[2])     # add X
-            conformers[conformer][atom].append(data[3])     # add Y
-            conformers[conformer][atom].append(data[4])     # add Z
-            atom = atom + 1     # Move to the next atom
-
-        infile.close()
-        conformer = conformer + 1   # Move to the next conformer
-
-    return atoms, conformers, charge
+    return atoms, conformers
 
 
 # Get energies of conformers from tinker output file
@@ -192,55 +214,39 @@ def GetEnergiesCharge(TinkerOutput, settings):
         quit()
 
     #Get the conformer energies from the file
-    ETable = []
+    energies = []
     for line in inp[13:]:
-        data = line.split('  ')
+        data = line[:-1].split('  ')
         data = [_f for _f in data if _f]
         if len(data) >= 3:
             if 'Map' in data[0] and 'Minimum' in data[1]:
-                ETable.append(data[-2:])
+                energies.append(float(data[-1]))
                 #print data
 
     infile.close()
     if settings.charge is None:
         if os.path.exists(TinkerOutput+'.inchi'):
-            return ETable, GetInchiCharge(TinkerOutput)
+            return energies, GetInchiCharge(TinkerOutput)
         else:
-            return ETable, GetSDFCharge(TinkerOutput)
+            return energies, GetSDFCharge(TinkerOutput)
     else:
-        return ETable, settings.charge
+        return energies, settings.charge
 
 
-#translate Tinker atom types to element symbols for NWChem file
-def GetTinkerSymbol(atomType):
+def GetAtomSymbol(AtomNum):
+    Lookup = ['H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne', 'Na', 'Mg', 'Al', \
+              'Si', 'P', 'S', 'Cl', 'Ar', 'K', 'Ca', 'Sc', 'Ti', 'V', 'Cr', 'Mn', 'Fe', 'Co', \
+              'Ni', 'Cu', 'Zn', 'Ga', 'Ge', 'As', 'Se', 'Br', 'Kr', 'Rb', 'Sr', 'Y', 'Zr', \
+              'Nb', 'Mo', 'Tc', 'Ru', 'Rh', 'Pd', 'Ag', 'Cd', 'In', 'Sn', 'Sb', 'Te', 'I', \
+              'Xe', 'Cs', 'Ba', 'La', 'Ce', 'Pr', 'Nd', 'Pm', 'Sm', 'Eu', 'Gd', 'Tb', 'Dy', \
+              'Ho', 'Er', 'Tm', 'Yb', 'Lu', 'Hf', 'Ta', 'W', 'Re', 'Os', 'Ir', 'Pt', 'Au', \
+              'Hg', 'Tl', 'Pb', 'Bi', 'Po', 'At', 'Rn']
 
-    Lookup = ['C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', ' ', 'C',
-              'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C',
-              'C', 'C', 'H', 'H', 'O', 'O', 'O', 'O', 'O', 'O',
-              'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O',
-              'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'N', 'N',
-              'N', 'N', 'N', 'N', 'N', 'F', 'Cl', 'Br', 'I', 'S',
-              'S', 'S', 'S', 'S', 'S', 'S', 'S', 'S', 'S', 'S',
-              'Si', 'C', 'H', 'H', 'H', 'C', 'H', 'H', 'H', 'H',
-              'H', 'H', 'H', 'H', 'P', 'P', 'P', 'P', 'P', 'P',
-              'H', 'H', 'H', 'H', 'H', 'H', 'H', 'H', 'H', 'H',
-              'H', 'H', 'H', 'H', 'C', 'H', 'O', 'O', 'O', 'O',
-              'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O',
-              'O', 'H', 'N', 'O', 'O', 'H', 'H', 'H', 'H', 'H',
-              'H', 'H', 'C', 'N', 'N', 'N', 'N', 'N', 'N', 'C',
-              'C', 'N', 'N', 'N', 'N', 'N', 'N', 'S', 'N', 'N',
-              'N', 'N', 'N', 'O', 'H', 'O', 'H', 'N', 'N', 'N',
-              'N', 'N', 'C', 'C', 'N', 'O', 'C', 'N', 'N', 'C',
-              'C', 'N', 'N', 'N', 'N', 'N', 'O', 'H', 'H', 'H',
-              'S', 'S', 'S', 'S', 'S', 'S', 'S', 'P', 'N', 'Cl',
-              'C', 'N', 'C', 'N', 'N', 'N', 'N', 'N', 'N', 'N',
-              'Fe', 'Fe', 'F', 'Cl', 'Br', 'Li', 'Na', 'K', 'Zn', 'Zn',
-              'Ca', 'Cu', 'Cu', 'Mg']
-
-    if Lookup[atomType-1] == ' ':
-        print('Unknown atom type')
-
-    return Lookup[atomType-1]
+    if AtomNum > 0 and AtomNum < len(Lookup):
+        return Lookup[AtomNum-1]
+    else:
+        print("No such element with atomic number " + str(AtomNum))
+        return 0
 
 
 def GetInchiCharge(inchifile):

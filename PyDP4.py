@@ -46,7 +46,7 @@ import argparse
 import importlib
 import getpass
 
-DFTpackages = [['n', 'w', 'j', 'g', 'z', 'd'],['NWChem', 'NWChemZiggy', 'Jaguar', 'Gaussian', 'GaussianZiggy', 'GaussianDarwin']]
+DFTpackages = [['n', 'w', 'g', 'z', 'd'],['NWChem', 'NWChemZiggy', 'Gaussian', 'GaussianZiggy', 'GaussianDarwin']]
 
 if os.name == 'nt':
     import pyximport
@@ -66,7 +66,7 @@ class Paths:
 class Settings:
     # --- Main options ---
     MM = 'm'        # m for MacroModel, t for Tinker
-    DFT = 'z'       # n, j, g, z or for NWChem, Jaguar or Gaussian
+    DFT = 'z'       # n, g, z or for NWChem or Gaussian
     Workflow = 'gmns' # defines which steps to include in the workflow
                     # g for generate diastereomers
                     # m for molecular mechanics conformational search
@@ -175,7 +175,7 @@ def main(settings):
 
     print("==========================")
     print("PyDP4 script,\nintegrating Tinker/MacroModel,")
-    print("Gaussian/NWChem/Jaguar and DP4\nv1.0")
+    print("Gaussian/NWChem and DP4\nv1.0")
     print("\nCopyright (c) 2015-2019 Kristaps Ermanis, Alexander Howarth, Jonathan M. Goodman")
     print("Distributed under MIT license")
     print("==========================\n\n")
@@ -204,10 +204,7 @@ def main(settings):
             print('\nRunning Tinker...')
             TinkerOutputs = Tinker.RunTinker(TinkerInputs, settings)
 
-            print('Tinker support not implemented yet!')
-            quit()
-
-            Isomers = Tinker.ReadConformers(TinkerOutputs, Isomers)
+            Isomers = Tinker.ReadConformers(TinkerOutputs, Isomers, settings)
 
         elif settings.MM == 'm':
             print('\nSetting up MacroModel files...')
@@ -463,7 +460,7 @@ if __name__ == '__main__':
     parser.add_argument('-m', '--mm', help="Select molecular mechanics program,\
     t for tinker or m for macromodel, default is m", choices=['t', 'm'],
     default='m')
-    parser.add_argument('-d', '--dft', help="Select DFT program, j for Jaguar,\
+    parser.add_argument('-d', '--dft', help="Select DFT program, \
     g for Gaussian, n for NWChem, z for Gaussian on ziggy, d for Gaussian on \
     Darwin, default is g", choices=DFTpackages[0], default='g')
     parser.add_argument('--StepCount', help="Specify\
