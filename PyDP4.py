@@ -57,10 +57,6 @@ else:
     pyximport.install()
     import ConfPrune
 
-class Paths:
-    TinkerPath = '~/tinker7/bin/scan '
-    SCHRODINGER = '/usr/local/shared/schrodinger/current'
-
 #Assigning the config default values
 #Settings are defined roughly in the order they are used in the script
 class Settings:
@@ -93,6 +89,8 @@ class Settings:
     Rot5Cycle = False           # Special dealing with 5-membered saturated rings, see FiveConf.py
     RingAtoms = []              # Define the 5-membered ring, useful if several are present in molecule
     SCHRODINGER = ''            # Define the root folder for Schrodinger software
+    TinkerPath = '/home/ke291/TINKER' # Define the root folder for Tinker software,
+                                # must contain /bin/scan and params/mmff.prm for the process to work
 
     # --- Conformer pruning ---
     HardConfLimit = 10000       # Immediately stop if conformers to run exceed this number

@@ -11,15 +11,14 @@ execution and output interpretation. Called by PyDP4.py.
 import os
 import sys
 import subprocess
-import shutil
+import PyDP4
 
 # Please modify the line below to give the path to the TINKER v8.x top level folder
 # This folder should contain bin/scan and params/mmff.prm for the process to work
-TinkerPath = '/home/ke291/TINKER/'
+TinkerPath = PyDP4.settings.TinkerPath
 
-def SetupTinker(settings, *args):
+def SetupTinker(settings):
 
-    print(args)
     TinkerInputs = []
     for inpf in settings.InputFiles:
         if settings.Rot5Cycle is True:
@@ -49,7 +48,6 @@ def SetupTinker(settings, *args):
             f.close()
 
         scriptdir = getScriptPath()
-        print(scriptdir)
         convinp = scriptdir + '/sdf2tinkerxyz -k ' + scriptdir + '/default.key <'
         outp = subprocess.check_output(convinp + inpf + '.sdf', shell=True)
 
@@ -126,7 +124,7 @@ def ReadConformers(TinkerOutputs, Isomers, settings):
 #Reads force field parameter file to understand atom notation in the output
 def ExtractAtomTypes():
     # open TinkerPath + 'params/mmff.prm
-    paramfile = open(TinkerPath + 'params/mmff.prm', 'r')
+    paramfile = open(TinkerPath + '/params/mmff.prm', 'r')
     paramdata = paramfile.readlines()
     paramfile.close()
     atomtypes = []
@@ -189,6 +187,7 @@ def ReadArc(f, atypes, anums):
     #output data: conformers - list of x,y,z lists, atoms - list of atoms
     conformers = []
     atoms = []
+    atypes = [x[:3] for x in atypes]
 
     for line in confdata:
         data = [_f for _f in line.split('  ') if _f]
@@ -196,7 +195,7 @@ def ReadArc(f, atypes, anums):
             conformers.append([])
         else:
             if len(conformers) == 1:
-                anum = anums[atypes.index(data[1])]
+                anum = anums[atypes.index(data[1][:3])]
                 atoms.append(GetAtomSymbol(anum))
             conformers[-1].append([x for x in data[2:5]])
 

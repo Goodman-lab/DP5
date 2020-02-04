@@ -54,7 +54,7 @@ The beginning PyDP4.py file contains a structure "Settings", where the location
 of the TINKER scan executable or MacroModel bmin executable should be specified.
 
 2) In order to run DP4-AI a python 3.6+ environment the following packages are required:
-numpy scipy Cython matplotlib nmrglue statsmodels lmfit openbabel rdkit
+numpy scipy Cython matplotlib nmrglue statsmodels lmfit openbabel rdkit pathos
 Additionally, the graphical user interface requires PyQT5
 
 3) RDKit and OpenBabel are required for the automatic diastereomer generation and
@@ -89,7 +89,7 @@ the GUI is then simply called by:
 python PyDP4_GUI.py
 
 This will open the main DP4-AI GUI window, the user can then select the required input files and the settings for MM and
-DFT calculations.
+DFT calculations. The expected structure file format is *.sdf
 
 Once the DP4-AI has finished all calculations the GUI will open a number of new tabs. These tabs display interactive
 carbon and proton NMR spectra as processed and assigned by NMR-AI as well as interactive plots of the NMR prediction
