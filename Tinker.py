@@ -15,9 +15,12 @@ import PyDP4
 
 # Please modify the line below to give the path to the TINKER v8.x top level folder
 # This folder should contain bin/scan and params/mmff.prm for the process to work
-TinkerPath = PyDP4.settings.TinkerPath
+
+TinkerPath = "/home/ah809/Downloads/tinker/"
 
 def SetupTinker(settings):
+
+
 
     TinkerInputs = []
     for inpf in settings.InputFiles:

@@ -515,6 +515,23 @@ class CalculationTab(QtWidgets.QWidget):
 
         self.Output_add.setText("Output Folder")
 
+        self.MM_rb = QtWidgets.QRadioButton(self)
+        self.MM_rb.setGeometry(QtCore.QRect(250, 240, 101, 31))
+        self.MM_rb.setObjectName("MM_rb")
+        self.label_12 = QtWidgets.QLabel(self)
+        self.label_12.setGeometry(QtCore.QRect(270, 240, 101, 31))
+        self.label_12.setText("MacroModel")
+
+
+        self.Tinker_rb = QtWidgets.QRadioButton(self)
+        self.Tinker_rb.setGeometry(QtCore.QRect(250, 300, 101, 31))
+        self.Tinker_rb.setObjectName("Tinker_rb")
+        self.label_13 = QtWidgets.QLabel(self)
+        self.label_13.setGeometry(QtCore.QRect(270, 300, 101, 31))
+        self.label_13.setText("Tinker")
+
+
+
         #################################################################################################buttons methods
 
         # adding structures to the gui
@@ -532,6 +549,10 @@ class CalculationTab(QtWidgets.QWidget):
         self.Solvent_yn.stateChanged.connect(self.solventtoggle)
 
         self.MM_yn.stateChanged.connect(self.MMtoggle)
+
+        self.MM_rb.toggled.connect(self.rb_toggle)
+
+        self.Tinker_rb.toggled.connect(self.rb_toggle)
 
         # selecting DFT geometry opt box
 
@@ -656,8 +677,9 @@ class CalculationTab(QtWidgets.QWidget):
         self.Output_list.addItem(filename)
 
     def get_current_values(self):
-
-        self.settings = Settings()
+        import PyDP4
+        
+        self.settings = PyDP4.Settings()
 
         # add structures
 
@@ -762,6 +784,7 @@ class CalculationTab(QtWidgets.QWidget):
 
         else:
             self.solvent_drop.setEnabled(False)
+            self.MM_yn.setChecked(False)
 
     def MMtoggle(self, state):
 
@@ -773,8 +796,33 @@ class CalculationTab(QtWidgets.QWidget):
             self.solvent_drop.setEnabled(True)
 
 
+            if (self.MM_rb.isDown() == False) & (self.Tinker_rb.isDown() == False):
+                self.MM_rb.toggle()
+
+
         else:
             self.solvent_drop.setEnabled(False)
+            self.Solvent_yn.setChecked(False)
+            self.MM_rb.setChecked(False)
+            self.Tinker_rb.setChecked(False)
+
+    def rb_toggle(self,state):
+
+        if state > 0:
+
+            if state > 0:
+
+                self.MM_yn.setChecked(True)
+                self.Gen_diastereomers_yn.setChecked(True)
+                self.Solvent_yn.setChecked(True)
+                self.solvent_drop.setEnabled(True)
+
+
+            else:
+                self.solvent_drop.setEnabled(False)
+
+
+
 
     def Energytoggle(self, state):
 
