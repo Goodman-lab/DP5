@@ -316,7 +316,7 @@ def main(settings):
         print('\nNo NMR data calculated, quitting...')
         quit()
 
-    if 's' in settings.Workflow:
+    if ('s' in settings.Workflow) or ('a' in settings.Workflow):
 
         print('\nSetting TMS computational NMR shielding constant references')
         settings.TMS_SC_C13, settings.TMS_SC_H1 = NMR.GetTMSConstants(settings)
@@ -327,6 +327,7 @@ def main(settings):
 
         print('\nReading experimental NMR data...')
         NMRData = NMR.NMRData(settings)
+
         """
         print("Conformation data:")
         NMR.PrintConformationData(Isomers)
@@ -402,6 +403,8 @@ def main(settings):
 
         #NMRdata = NMR.ProcessNMRData(Isomers, settings.NMRsource, settings)
 
+    if 's' in settings.Workflow:
+
         print('\nCalculating DP4 probabilities...')
 
         DP4data = DP4.DP4data()
@@ -454,6 +457,7 @@ if __name__ == '__main__':
     parser.add_argument('-w', '--workflow', help="Defines which steps to include in the workflow, " +
     "can contain g for generate diastereomers, m for molecular mechanics conformational search, " +
     "o for DFT optimization, e for DFT single-point energies, n for DFT NMR calculation, " +
+    "a for computational and experimental NMR data extraction " +
     "s for computational and experimental NMR data extraction and stats analysis, default is 'gmns'", default=settings.Workflow)
     parser.add_argument('-m', '--mm', help="Select molecular mechanics program,\
     t for tinker or m for macromodel, default is m", choices=['t', 'm'],

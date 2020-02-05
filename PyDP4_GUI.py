@@ -1,36 +1,22 @@
-
 from PyQt5 import QtWidgets, QtCore, QtGui
-
 import time
-
 import os
-
 import PyDP4
-
 import queue
-
 import sys
-
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import pyqtSlot
-
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
-
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
-
 from matplotlib.figure import Figure
-
 import numpy as np
-
 from scipy.stats import norm
-
 from PyQt5.QtSvg import QSvgWidget, QSvgRenderer
-
 from rdkit.Chem import AllChem as Chem
 from rdkit.Chem import Draw
-
 from rdkit.Chem import rdDepictor
 from rdkit.Chem.Draw import rdMolDraw2D
+import pickle
 
 
 class Window(QtWidgets.QMainWindow):
@@ -78,6 +64,7 @@ class TabWidget(QtWidgets.QWidget):
         self.setLayout(self.layouttabs)
 
     def addplottabs(self):
+
         self.tab2 = QtWidgets.QWidget()
         self.tab3 = QtWidgets.QWidget()
         self.tab4 = QtWidgets.QWidget()
@@ -85,7 +72,14 @@ class TabWidget(QtWidgets.QWidget):
 
         self.tabs.addTab(self.tab2, "Proton Plot")
         self.tabs.addTab(self.tab3, "Carbon Plot")
-        self.tabs.addTab(self.tab4, "Stats")
+
+        if 's' in ui.table_widget.Tab1.settings.Workflow:
+            self.tabs.addTab(self.tab4, "Stats")
+            self.tab4.layout = QtWidgets.QVBoxLayout(self)
+            self.tab4.layout.addWidget(self.Tab4)
+            self.tab4.setLayout(self.tab4.layout)
+
+
         self.tabs.addTab(self.tab5, "Conformers")
 
         self.Tab2 = ProtonPlotTab()
@@ -101,9 +95,7 @@ class TabWidget(QtWidgets.QWidget):
         self.tab3.layout.addWidget(self.Tab3)
         self.tab3.setLayout(self.tab3.layout)
 
-        self.tab4.layout = QtWidgets.QVBoxLayout(self)
-        self.tab4.layout.addWidget(self.Tab4)
-        self.tab4.setLayout(self.tab4.layout)
+
 
         self.tab5.layout = QtWidgets.QVBoxLayout(self)
         self.tab5.layout.addWidget(self.Tab5)
@@ -342,15 +334,11 @@ class plotstats(QtWidgets.QWidget):
 
         # find the cloest point to the click
 
-        print(self.xpos, self.ypos)
+
 
         coords = self.statsfig.transData.transform((self.xpos, self.ypos))
 
         coordinates = np.array(self.statsfig.transData.transform(list(zip(self.errors, self.multipdf(self.errors)))))
-
-        print(coords)
-
-        print(coordinates)
 
         mindis = np.argmin((coordinates[:, 0] - coords[0]) ** 2 + (coordinates[:, 1] - coords[1]) ** 2)
 
@@ -419,13 +407,13 @@ class CalculationTab(QtWidgets.QWidget):
         self.label_11.setGeometry(QtCore.QRect(20, 440, 57, 15))
         self.label_11.setObjectName("label_11")
         self.Stats_list = QtWidgets.QListWidget(self)
-        self.Stats_list.setGeometry(QtCore.QRect(730, 250, 121, 91))
+        self.Stats_list.setGeometry(QtCore.QRect(730, 330, 121, 91))
         self.Stats_list.setObjectName("Stats_list")
         self.Gobutton = QtWidgets.QPushButton(self)
         self.Gobutton.setGeometry(QtCore.QRect(300, 370, 251, 81))
         self.Gobutton.setObjectName("Gobutton")
         self.Add_stats_model = QtWidgets.QPushButton(self)
-        self.Add_stats_model.setGeometry(QtCore.QRect(730, 220, 121, 23))
+        self.Add_stats_model.setGeometry(QtCore.QRect(730, 300, 121, 23))
         self.Add_stats_model.setObjectName("Add_stats_model")
         self.widget = QtWidgets.QWidget(self)
         self.widget.setGeometry(QtCore.QRect(10, 40, 841, 91))
@@ -459,7 +447,7 @@ class CalculationTab(QtWidgets.QWidget):
         self.horizontalLayout_2.addWidget(self.Output_list)
 
         self.widget1 = QtWidgets.QWidget(self)
-        self.widget1.setGeometry(QtCore.QRect(10, 160, 841, 51))
+        self.widget1.setGeometry(QtCore.QRect(10, 160, 710, 51))
         self.widget1.setObjectName("widget1")
         self.horizontalLayout = QtWidgets.QHBoxLayout(self.widget1)
         self.horizontalLayout.setContentsMargins(0, 0, 0, 0)
@@ -482,9 +470,20 @@ class CalculationTab(QtWidgets.QWidget):
         self.NMR_calc_yn = QtWidgets.QCheckBox(self.widget1)
         self.NMR_calc_yn.setObjectName("NMR_calc_yn")
         self.horizontalLayout.addWidget(self.NMR_calc_yn)
-        self.DP4_stat_yn = QtWidgets.QCheckBox(self.widget1)
+
+        self.Assignment_yn = QtWidgets.QCheckBox(self)
+        self.Assignment_yn.setGeometry(QtCore.QRect(730, 170, 101, 31))
+        self.Assignment_yn.setObjectName("Assignment_yn")
+        self.Assignment_yn.setText("NMR\nAssignment")
+
+
+        self.DP4_stat_yn = QtWidgets.QCheckBox(self)
+        self.DP4_stat_yn.setGeometry(QtCore.QRect(730, 240, 101, 31))
         self.DP4_stat_yn.setObjectName("DP4_stat_yn")
-        self.horizontalLayout.addWidget(self.DP4_stat_yn)
+
+
+
+        #self.horizontalLayout.addWidget(self.DP4_stat_yn)
         self.label.setText("PyDP4 GUI")
         self.label_2.setText("Workflow")
         self.label_3.setText("Functional")
@@ -610,6 +609,8 @@ class CalculationTab(QtWidgets.QWidget):
 
         self.NMR_functional_drop.addItems(NMR_functional)
 
+        self.Assignment_yn.stateChanged.connect(self.Assignment_toggle)
+
         # adding a stats model
 
         self.Add_stats_model.setEnabled(False)
@@ -646,7 +647,7 @@ class CalculationTab(QtWidgets.QWidget):
 
         self.worker.finished.connect(self.enabletabs)
 
-        # connect start backgorund signal to bakground job slot
+        # connect start background signal to background job slot
 
         self.Gobutton.clicked.connect(self.start_PyDP4)
 
@@ -702,17 +703,28 @@ class CalculationTab(QtWidgets.QWidget):
 
         # generate diastereomers
 
+        self.settings.Workflow = ''
+
+
         if self.Gen_diastereomers_yn.isChecked() == 1:
             self.settings.Workflow += 'g'
 
         # molecular mechanics
 
         if self.MM_yn.isChecked() == 1:
-            self.settings.Workflow += 'm'
+
+            if self.MM_rb.isChecked() == True:
+
+                self.settings.Workflow += 'm'
+
+            else:
+                self.settings.Workflow += 't'
+            
+        
 
         # DFT Geometry optimisation
 
-        if self.MM_yn.isChecked() == 1:
+        if self.DFTGeom_yn.isChecked() == 1:
             self.settings.Workflow += 'o'
             self.settings.oBasisSet = self.DFT_geom_basis_drop.currentText()
             self.settings.oFunctional = self.DFT_geom_functional_drop.currentText()
@@ -740,8 +752,10 @@ class CalculationTab(QtWidgets.QWidget):
             if self.Stats_list.item(0) != None:
                 self.settings.StatsParamFile = self.Stats_list.item(0).text()
                 self.settings.StatsModel = 'm'
-
-
+                
+        elif self.Assignment_yn.isChecked():
+            
+            self.settings.Workflow += 'a'
 
         self.settings.ScriptDir = os.path.dirname(os.path.realpath(sys.argv[0]))
 
@@ -785,6 +799,7 @@ class CalculationTab(QtWidgets.QWidget):
         else:
             self.solvent_drop.setEnabled(False)
             self.MM_yn.setChecked(False)
+
 
     def MMtoggle(self, state):
 
@@ -867,6 +882,23 @@ class CalculationTab(QtWidgets.QWidget):
             self.NMR_functional_drop.setEnabled(False)
             self.NMR_basis_drop.setEnabled(False)
 
+    def Assignment_toggle(self,state):
+
+        if state > 0:
+
+            self.NMR_calc_yn.setChecked(True)
+            self.NMR_functional_drop.setEnabled(True)
+            self.NMR_basis_drop.setEnabled(True)
+            self.Solvent_yn.setChecked(True)
+            self.solvent_drop.setEnabled(True)
+            self.Gen_diastereomers_yn.setChecked(True)
+            self.MM_yn.setChecked(True)
+
+        else:
+            self.DP4_stat_yn.setChecked(False)
+            self.Add_stats_model.setEnabled(False)
+
+
     def Statstoggle(self, state):
 
         if state > 0:
@@ -878,6 +910,7 @@ class CalculationTab(QtWidgets.QWidget):
             self.solvent_drop.setEnabled(True)
             self.Gen_diastereomers_yn.setChecked(True)
             self.MM_yn.setChecked(True)
+            self.Assignment_yn.setChecked(True)
 
         else:
             self.Add_stats_model.setEnabled(False)
@@ -895,485 +928,6 @@ class CalculationTab(QtWidgets.QWidget):
         else:
 
             self.Gobutton.setEnabled(True)
-
-
-'''
-class ProtonPlotTab(QtWidgets.QWidget):
-
-    def __init__(self):
-
-        super(ProtonPlotTab, self).__init__()
-
-        # create a figure instance
-
-        self.figure = Figure()
-
-        # create the canvas widget thats displays figure
-
-        self.canvas = FigureCanvas(self.figure)
-
-        # make the navigation widget - this takes the canvas widget as the parent
-
-        self.toolbar = NavigationToolbar(self.canvas, self)
-
-        ## make some random push buttons
-
-        self.IsomerSelect = QtWidgets.QComboBox(self)
-
-        self.IsomerSelect.addItems(self.Isomer_number())
-
-        self.IsomerSelect.currentIndexChanged.connect(self.PlotProton)
-
-        layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(self.toolbar)
-        layout.addWidget(self.canvas)
-        layout.addWidget(self.IsomerSelect)
-
-        self.setLayout(layout)
-
-        self.PlotProton()
-
-        self.canvas.mpl_connect('button_press_event', self.selectpoint)
-
-    def Isomer_number(self):
-
-        Isomer_list = []
-
-        for c, i in enumerate(ui.table_widget.Tab1.worker.Isomers):
-            Isomer_list.append("Isomer " + str(c))
-
-        return Isomer_list
-
-    def PlotProton(self):
-
-        # check if pickle and DP4output files are in place
-
-        if ui.table_widget.Tab1.worker.settings.OutputFolder == '':
-
-            pdir = str(os.getcwd()) + "/Pickles/"
-
-        else:
-
-            pdir = ui.table_widget.Tab1.worker.settings.OutputFolder + "/Pickles/"
-
-        if os.path.isfile(pdir + ui.table_widget.Tab1.worker.settings.InputFiles[0] + "protondata"):
-
-            self.figure.clear()
-
-            fig = self.figure.add_subplot(111)
-
-            xdata = ui.table_widget.Tab1.worker.NMRData.protondata["xdata"]
-
-            ydata = ui.table_widget.Tab1.worker.NMRData.protondata["ydata"]
-
-            centres = ui.table_widget.Tab1.worker.NMRData.protondata["centres"]
-
-            exp_peaks = ui.table_widget.Tab1.worker.NMRData.protondata["exppeaks"]
-
-            peak_regions = ui.table_widget.Tab1.worker.NMRData.protondata["peakregions"]
-
-            cummulative_vectors = ui.table_widget.Tab1.worker.NMRData.protondata["cummulativevectors"]
-
-            integral_sum = ui.table_widget.Tab1.worker.NMRData.protondata["integralsum"]
-
-            integrals = ui.table_widget.Tab1.worker.NMRData.protondata["integrals"]
-
-            sim_regions = ui.table_widget.Tab1.worker.NMRData.protondata["sim_regions"]
-
-            NMR_file = str(ui.table_widget.Tab1.settings.NMRsource) + "/Proton"
-
-            gdir = ui.table_widget.Tab1.worker.settings.OutputFolder + "/Graphs/" + \
-                   ui.table_widget.Tab1.worker.settings.InputFiles[0]
-
-            # isomerindex = ui.table_widget.Tab1.worker.DP4Data.DP4probs.index(
-            #   max(ui.table_widget.Tab1.worker.DP4Data.DP4probs))
-
-            isomerindex = int(str(self.IsomerSelect.currentText())[-1])
-
-            isomer = ui.table_widget.Tab1.worker.Isomers[isomerindex]
-
-            assigned_shifts = isomer.Hshifts
-
-            assigned_peaks = []
-
-            for peak in isomer.Hexp:
-
-                if peak != '':
-                    assigned_peaks.append(peak)
-
-            assigned_labels = isomer.Hlabels
-
-            #################################### will probs need to fix sorting here
-
-            fig.set_xlim([10, 0])
-
-            fig.set_xlabel("ppm")
-
-            fig.plot(xdata, ydata, label='data', color='grey')
-
-            set_exp = sorted(list(set(exp_peaks)))[::-1]
-
-            # simulate_spectrum(xdata, assigned_shifts, assigned_peaks, set_exp)
-
-            ##############################
-
-            for ind, shift in enumerate(assigned_shifts):
-                exp_p = assigned_peaks[ind]
-
-                ind2 = set_exp.index(exp_p)
-                y = lorentzian(xdata, 0.001, shift, 0.2)
-
-                fig.plot(xdata, y + 1.05, color='C' + str(ind2 % 10))
-
-            ##############################
-
-            fig.axhline(1.05, color='grey')
-
-            # plt integral information
-
-            prev = 15
-
-            count = 0
-
-            for index in range(0, len(peak_regions)):
-
-                if abs(prev - xdata[centres[index]]) < 0.45:
-                    count += 1
-                else:
-                    count = 0
-                    prev = xdata[centres[index]]
-
-                fig.annotate(str(integrals[index]) + ' Hs',
-                             xy=(xdata[centres[index]], -(0.1) - 0.1 * count), color='C' + str(index % 10))
-
-                fig.annotate(str(round(xdata[centres[index]], 3)) + ' ppm',
-                             xy=(xdata[centres[index]], -(0.15) - 0.1 * count), color='C' + str(index % 10))
-
-                fig.plot(xdata[peak_regions[index]], cummulative_vectors[index] + integral_sum[index],
-                         color='C' + str(index % 10),
-                         linewidth=2)
-
-            for index in range(0, len(peak_regions) - 1):
-                fig.plot([xdata[peak_regions[index][-1]], xdata[peak_regions[index + 1][0]]],
-                         [integral_sum[index + 1], integral_sum[index + 1]], color='grey')
-
-            for index, region in enumerate(peak_regions):
-                fig.plot(xdata[region], sim_regions[index], color='C' + str(index % 10))
-
-            # plt.legend()
-
-            ### plotting assignment
-
-            fig.set_yticks([], [])
-
-            fig.set_title(str(ui.table_widget.Tab1.settings.InputFiles[0]) +
-                          "\nProton NMR of Isomer " + str(isomerindex + 1) + "\n Number of Peaks Found = " + str(
-                len(exp_peaks)))
-
-            # plot assignments
-
-            for ind1, peak in enumerate(assigned_peaks):
-                fig.plot([peak, assigned_shifts[ind1]],
-                         [1, 1.05], linewidth=0.5, color='cyan')
-
-            # annotate peak locations
-
-            for x, txt in enumerate(exp_peaks):
-
-                if exp_peaks[x] in assigned_peaks:
-
-                    color = 'C1'
-
-                else:
-
-                    color = 'grey'
-
-                fig.plot(txt, -0.02, 'o', color=color)
-
-            # annotate shift positions
-
-            prev = 0
-
-            count = 0
-
-            s = np.argsort(np.array(assigned_shifts))
-
-            s_assigned_shifts = np.array(assigned_shifts)[s]
-
-            s_assigned_labels = np.array(assigned_labels)[s]
-
-            s_assigned_peaks = np.array(assigned_peaks)[s]
-
-            for x, txt in enumerate(s_assigned_labels[::-1]):
-
-                w = np.where(set_exp == s_assigned_peaks[::-1][x])[0][0]
-
-                color = w % 10
-
-                if abs(prev - s_assigned_shifts[::-1][x]) < 0.2:
-                    count += 1
-
-                else:
-                    count = 0
-                    prev = s_assigned_shifts[::-1][x]
-
-                fig.annotate(txt, (s_assigned_shifts[::-1][x], + 1.25 + 0.05 * count), color='C' + str(color))
-
-            # ax1.plot(picked_peaks_ppm,ydata[picked_peaks],
-            #        'co', label='Picked Peaks')
-
-            fig.set_ylim([-0.5, 2.0])
-
-            # plt.legend()
-
-            #print(gdir + "/Proton_" + str(isomerindex))
-
-            # plt.savefig(gdir + "/Proton_" + str(isomerindex) + '.svg', format="svg", bbox_inches='tight')
-
-            self.canvas.draw()
-
-        else:
-            pass
-
-    def selectpoint(self,event):
-
-        if event.dblclick:
-
-            self.xpos = event.xdata
-
-            self.ypos = event.ydata
-
-            #find the cloest point to the click
-
-            print(self.xpos,self.ypos)
-
-            if self.xpos is None and self.xpos is None:
-
-                self.PlotProton()
-
-            elif self.ypos < 1:
-
-            #find which experimental peak is the closest
-
-                centres = ui.table_widget.Tab1.worker.NMRData.protondata["centres"]
-
-                xdata = ui.table_widget.Tab1.worker.NMRData.protondata["xdata"]
-
-                mindis = np.argmin(abs(xdata[centres] - self.xpos))
-
-                self.PlotProtonSelected(mindis)
-
-            else:
-
-                #workout which experimental peak is the closest to the selected calculated shift
-
-                isomerindex = int(str(self.IsomerSelect.currentText())[-1])
-
-                isomer = ui.table_widget.Tab1.worker.Isomers[isomerindex]
-
-                #get assigned shifts and peaks
-
-                assigned_shifts = isomer.Hshifts
-
-                assigned_peaks = []
-
-                for peak in isomer.Hexp:
-
-                    if peak != '':
-                        assigned_peaks.append(peak)
-
-                #find closest assigned shift
-
-                m = np.argmin(abs(np.array(assigned_shifts) - self.xpos))
-
-                #find which peak this is assigned to
-
-                p = assigned_peaks[m]
-
-                centres = ui.table_widget.Tab1.worker.NMRData.protondata["centres"]
-
-                xdata = ui.table_widget.Tab1.worker.NMRData.protondata["xdata"]
-
-                mindis = np.argmin(abs(p - xdata[centres]))
-
-                self.PlotProtonSelected(mindis)
-
-    def PlotProtonSelected(self,mindis):
-
-        # check if pickle and DP4output files are in place
-
-        if ui.table_widget.Tab1.worker.settings.OutputFolder == '':
-
-            pdir = str(os.getcwd()) + "/Pickles/"
-
-        else:
-
-            pdir = ui.table_widget.Tab1.worker.settings.OutputFolder + "/Pickles/"
-
-        if os.path.isfile(pdir + ui.table_widget.Tab1.worker.settings.InputFiles[0] + "protondata"):
-
-            self.figure.clear()
-
-            fig = self.figure.add_subplot(111)
-
-            xdata = ui.table_widget.Tab1.worker.NMRData.protondata["xdata"]
-
-            ydata = ui.table_widget.Tab1.worker.NMRData.protondata["ydata"]
-
-            centres = ui.table_widget.Tab1.worker.NMRData.protondata["centres"]
-
-            exp_peaks = ui.table_widget.Tab1.worker.NMRData.protondata["exppeaks"]
-
-            peak_regions = ui.table_widget.Tab1.worker.NMRData.protondata["peakregions"]
-
-            cummulative_vectors = ui.table_widget.Tab1.worker.NMRData.protondata["cummulativevectors"]
-
-            integral_sum = ui.table_widget.Tab1.worker.NMRData.protondata["integralsum"]
-
-            integrals = ui.table_widget.Tab1.worker.NMRData.protondata["integrals"]
-
-            sim_regions = ui.table_widget.Tab1.worker.NMRData.protondata["sim_regions"]
-
-            NMR_file = str(ui.table_widget.Tab1.settings.NMRsource) + "/Proton"
-
-            gdir = ui.table_widget.Tab1.worker.settings.OutputFolder + "/Graphs/" + \
-                   ui.table_widget.Tab1.worker.settings.InputFiles[0]
-
-            # isomerindex = ui.table_widget.Tab1.worker.DP4Data.DP4probs.index(
-            #   max(ui.table_widget.Tab1.worker.DP4Data.DP4probs))
-
-            isomerindex = int(str(self.IsomerSelect.currentText())[-1])
-
-            isomer = ui.table_widget.Tab1.worker.Isomers[isomerindex]
-
-            assigned_shifts = isomer.Hshifts
-
-            assigned_peaks = []
-
-            for peak in isomer.Hexp:
-
-                if peak != '':
-                    assigned_peaks.append(peak)
-
-            assigned_labels = isomer.Hlabels
-
-            #################################### will probs need to fix sorting here
-
-            fig.set_xlim([10, 0])
-
-            fig.set_xlabel("ppm")
-
-            fig.plot(xdata, ydata, label='data', color='grey',alpha = 0.5)
-
-            set_exp = sorted(list(set(exp_peaks)))[::-1]
-
-            # simulate_spectrum(xdata, assigned_shifts, assigned_peaks, set_exp)
-
-            ##############################
-
-            for ind, shift in enumerate(assigned_shifts):
-
-
-                exp_p = assigned_peaks[ind]
-
-                ind2 = set_exp.index(exp_p)
-
-                y = lorentzian(xdata, 0.001, shift, 0.2)
-
-                if ind2 == mindis:
-
-                    fig.plot(xdata, y + 1.05, color='C' + str(ind2 % 10))
-
-                else:
-
-                    fig.plot(xdata, y + 1.05, color= 'grey',alpha = 0.5)
-
-
-            ##############################
-
-            fig.axhline(1.05, color='grey')
-
-            # plt integral information
-
-            prev = 15
-
-            count = 0
-
-            for index, region in enumerate(peak_regions):
-                fig.plot(xdata[region], sim_regions[index], color='grey')
-
-            fig.plot(xdata[peak_regions[mindis]], sim_regions[mindis], color='C' +str( mindis))
-
-            fig.annotate(str(integrals[mindis]) + ' Hs',
-                         xy=(xdata[centres[mindis]], -(0.1) - 0.1 * count), color='C' + str(mindis))
-
-            fig.annotate(str(round(xdata[centres[mindis]], 3)) + ' ppm',
-                         xy=(xdata[centres[mindis]], -(0.15) - 0.1 * count), color='C' + str(mindis))
-
-            fig.plot(xdata[peak_regions[mindis]], cummulative_vectors[mindis] + integral_sum[mindis],
-                     color='C' + str(mindis % 10),
-                     linewidth=2)
-
-
-            # plt.legend()
-
-            ### plotting assignment
-
-            fig.set_yticks([], [])
-
-            fig.set_title(str(ui.table_widget.Tab1.settings.InputFiles[0]) +
-                          "\nProton NMR of Isomer " + str(isomerindex + 1) + "\n Number of Peaks Found = " + str(
-                len(exp_peaks)))
-
-            # plot assignments
-
-            # annotate shift positions
-
-            prev = 0
-
-            count = 0
-
-            s = np.argsort(np.array(assigned_shifts))
-
-            s_assigned_shifts = np.array(assigned_shifts)[s]
-
-            s_assigned_labels = np.array(assigned_labels)[s]
-
-            s_assigned_peaks = np.array(assigned_peaks)[s]
-
-            for x, txt in enumerate(s_assigned_labels[::-1]):
-
-                w = np.where(set_exp == s_assigned_peaks[::-1][x])[0][0]
-
-                if w == mindis:
-
-                    color = w % 10
-
-                    if abs(prev - s_assigned_shifts[::-1][x]) < 0.2:
-                        count += 1
-
-                    else:
-                        count = 0
-                        prev = s_assigned_shifts[::-1][x]
-
-                    fig.annotate(txt, (s_assigned_shifts[::-1][x], + 1.25 + 0.05 * count), color='C' + str(color))
-
-            # ax1.plot(picked_peaks_ppm,ydata[picked_peaks],
-            #        'co', label='Picked Peaks')
-
-            fig.set_ylim([-0.5, 2.0])
-
-            # plt.legend()
-
-            #print(gdir + "/Proton_" + str(isomerindex))
-
-            # plt.savefig(gdir + "/Proton_" + str(isomerindex) + '.svg', format="svg", bbox_inches='tight')
-
-            self.canvas.draw()
-
-        else:
-            pass
-'''
 
 
 class ProtonPlotTab(QtWidgets.QWidget):
@@ -1429,23 +983,35 @@ class ProtonPlotTab(QtWidgets.QWidget):
 
         ################################################################################################################
 
-        self.xdata = ui.table_widget.Tab1.worker.NMRData.protondata["xdata"]
+        if ui.table_widget.Tab1.settings.OutputFolder == '':
 
-        self.ydata = ui.table_widget.Tab1.worker.NMRData.protondata["ydata"]
+            pdir = str(os.getcwd()) +  "/Pickles/"
 
-        self.centres = ui.table_widget.Tab1.worker.NMRData.protondata["centres"]
+        else:
+            pdir =  ui.table_widget.Tab1.settings.OutputFolder +  "/Pickles/"
 
-        self.exp_peaks = ui.table_widget.Tab1.worker.NMRData.protondata["exppeaks"]
 
-        self.peak_regions = ui.table_widget.Tab1.worker.NMRData.protondata["peakregions"]
+        if os.path.isfile(pdir + ui.table_widget.Tab1.settings.InputFiles[0] +  "protondata"):
 
-        self.cummulative_vectors = ui.table_widget.Tab1.worker.NMRData.protondata["cummulativevectors"]
+            self.protondata = pickle.load(open(pdir + ui.table_widget.Tab1.settings.InputFiles[0] + "protondata", "rb"))
 
-        self.integral_sum = ui.table_widget.Tab1.worker.NMRData.protondata["integralsum"]
+        self.xdata = self.protondata["xdata"]
 
-        self.integrals = ui.table_widget.Tab1.worker.NMRData.protondata["integrals"]
+        self.ydata = self.protondata["ydata"]
 
-        self.sim_regions = ui.table_widget.Tab1.worker.NMRData.protondata["sim_regions"]
+        self.centres = self.protondata["centres"]
+
+        self.exp_peaks = self.protondata["exppeaks"]
+
+        self.peak_regions = self.protondata["peakregions"]
+
+        self.cummulative_vectors = self.protondata["cummulativevectors"]
+
+        self.integral_sum = self.protondata["integralsum"]
+
+        self.integrals = self.protondata["integrals"]
+
+        self.sim_regions = self.protondata["sim_regions"]
 
         self.NMR_file = str(ui.table_widget.Tab1.settings.NMRsource) + "/Proton"
 
@@ -1458,7 +1024,7 @@ class ProtonPlotTab(QtWidgets.QWidget):
         Isomer_list = []
 
         for c, i in enumerate(ui.table_widget.Tab1.worker.Isomers):
-            Isomer_list.append("Isomer " + str(c))
+            Isomer_list.append("Isomer " + str(c +1))
 
         return Isomer_list
 
@@ -1620,12 +1186,6 @@ class ProtonPlotTab(QtWidgets.QWidget):
             #        'co', label='Picked Peaks')
 
             fig.set_ylim([-0.5, 2.0])
-
-            # plt.legend()
-
-            # print(gdir + "/Proton_" + str(isomerindex))
-
-            # plt.savefig(gdir + "/Proton_" + str(isomerindex) + '.svg', format="svg", bbox_inches='tight')
 
             self.canvas.draw()
 
@@ -1816,12 +1376,6 @@ class ProtonPlotTab(QtWidgets.QWidget):
 
             fig.set_ylim([-0.5, 2.0])
 
-            # plt.legend()
-
-            # print(gdir + "/Proton_" + str(isomerindex))
-
-            # plt.savefig(gdir + "/Proton_" + str(isomerindex) + '.svg', format="svg", bbox_inches='tight')
-
             for x, txt in enumerate(self.exp_peaks):
 
                 if self.exp_peaks[x] in self.assigned_peaks:
@@ -1847,7 +1401,7 @@ class ProtonPlotTab(QtWidgets.QWidget):
         highlight = {}
 
         for i in atom:
-            highlight[i] = colors[color]
+            highlight[i] = colors[color % 10]
 
         m = Chem.MolFromMolFile(str(ui.table_widget.Tab1.worker.settings.InputFiles[0]).split('.sdf')[0] + '.sdf', removeHs=False)
 
@@ -1926,15 +1480,27 @@ class CarbonPlotTab(QtWidgets.QWidget):
 
         #############################
 
-        self.xdata = ui.table_widget.Tab1.worker.NMRData.carbondata["xdata"]
+        if ui.table_widget.Tab1.settings.OutputFolder == '':
 
-        self.ydata = ui.table_widget.Tab1.worker.NMRData.carbondata["ydata"]
+            pdir = str(os.getcwd()) +  "/Pickles/"
 
-        self.exppeaks = ui.table_widget.Tab1.worker.NMRData.carbondata["exppeaks"]
+        else:
+            pdir =  ui.table_widget.Tab1.settings.OutputFolder +  "/Pickles/"
 
-        self.simulated_ydata = ui.table_widget.Tab1.worker.NMRData.carbondata["simulated_ydata"]
 
-        self.removed = ui.table_widget.Tab1.worker.NMRData.carbondata["removed"]
+        if os.path.isfile(pdir + ui.table_widget.Tab1.settings.InputFiles[0] +  "carbondata"):
+
+            self.carbondata = pickle.load(open(pdir + ui.table_widget.Tab1.settings.InputFiles[0] + "carbondata", "rb"))
+
+        self.xdata = self.carbondata["xdata"]
+
+        self.ydata = self.carbondata["ydata"]
+
+        self.exppeaks = self.carbondata["exppeaks"]
+
+        self.simulated_ydata = self.carbondata["simulated_ydata"]
+
+        self.removed = self.carbondata["removed"]
 
         self.PlotCarbon()
 
@@ -1945,7 +1511,7 @@ class CarbonPlotTab(QtWidgets.QWidget):
         Isomer_list = []
 
         for c, i in enumerate(ui.table_widget.Tab1.worker.Isomers):
-            Isomer_list.append("Isomer " + str(c))
+            Isomer_list.append("Isomer " + str(c+ 1))
 
         return Isomer_list
 
@@ -2089,8 +1655,6 @@ class CarbonPlotTab(QtWidgets.QWidget):
 
             # find the cloest point to the click
 
-            print(self.xpos, self.ypos)
-
             if self.xpos is None and self.xpos is None:
 
                 self.PlotCarbon()
@@ -2103,13 +1667,11 @@ class CarbonPlotTab(QtWidgets.QWidget):
 
                 # find which protons this peak has been assigned to
 
-                print(self.isomer.Hlabels)
+
 
                 p = np.where(self.assigned_peaks == self.xdata[self.exppeaks[mindis]])[0]
 
                 la = [int(self.assigned_labels[j][1:]) - 1 for j in p]
-
-                print(la)
 
                 self.RenderImage(la)
 
@@ -2167,23 +1729,17 @@ class CarbonPlotTab(QtWidgets.QWidget):
 
             assigned_peak = exppeaks_ppm[mindis]
 
-            # print("assigned_peak",assigned_peak)
-            # print("assigned peaks",self.assigned_peaks)
 
             s = np.where(np.round(self.assigned_peaks, 8) == np.round(assigned_peak, 8))[0]
 
-            # print("s",s)
-
-            # print("assigned shifts",self.assigned_shifts)
 
             assigned_shift = np.array(self.assigned_shifts)[s]
 
-            # print("assigned_shift",assigned_shift)
 
             assigned_label = np.array(self.assigned_labels)[s]
 
             for i in assigned_shift:
-                # print("i",i)
+
 
                 fig.plot([assigned_peak, i], [self.ydata[self.exppeaks[mindis]], 1.1], color='cyan')
 
@@ -2313,7 +1869,6 @@ class CarbonPlotTab(QtWidgets.QWidget):
 
 
 class ConformerTab(QtWidgets.QWidget):
-
     def __init__(self):
 
         super(ConformerTab, self).__init__()
@@ -2360,15 +1915,9 @@ class ConformerTab(QtWidgets.QWidget):
 
         # find the cloest point to the click
 
-        print(self.xpos, self.ypos)
-
         coords = self.conffig.transData.transform((self.xpos, self.ypos))
 
         coordinates = np.array(self.conffig.transData.transform(list(zip(self.energies, self.populations))))
-
-        print(coords)
-
-        print(coordinates)
 
         mindis = np.argmin((coordinates[:, 0] - coords[0]) ** 2 + (coordinates[:, 1] - coords[1]) ** 2)
 
@@ -2392,8 +1941,6 @@ class ConformerTab(QtWidgets.QWidget):
         self.conformertable.setRowCount(0)
 
         self.conformertable.setRowCount(len(self.Isomers[self.isomerindex].Energies))
-
-        print(self.Isomers[self.isomerindex].Energies, self.Isomers[self.isomerindex].Populations)
 
         for energy, population in zip(self.Isomers[self.isomerindex].Energies,
                                       self.Isomers[self.isomerindex].Populations):
@@ -2477,81 +2024,6 @@ class MyReceiver(QtCore.QObject):
             self.mysignal.emit(text)
 
 
-class Settings:
-    # --- Main options ---
-    MM = 'm'  # m for MacroModel, t for Tinker
-    DFT = 'z'  # n, j, g, z or for NWChem, Jaguar or Gaussian
-    Workflow = ''  # defines which steps to include in the workflow
-    # g for generate diastereomers
-    # m for molecular mechanics conformational search
-    # o for DFT optimization
-    # e for DFT single-point energies
-    # n for DFT NMR calculation
-    # s for computational and experimental NMR data extraction and stats analysis
-    Solvent = ''  # solvent for DFT optimization and NMR calculation
-    ScriptDir = ''  # Script directory, automatically set on launch
-    InputFiles = []  # Structure input files - can be MacroModel *-out.mae or *sdf files
-    NMRsource = ''  # File or folder containing NMR description or data
-    Title = 'DP4molecule'  # Title of the calculation, set to NMR file name by default on launch
-    AssumeDone = False  # Assume all computations done, only read DFT output data and analyze (use for reruns)
-    AssumeConverged = False  # Assume all optimizations have converged, do NMR and/or energy calcs on existing DFT geometries
-    UseExistingInputs = False  # Don't regenerate DFT inputs, use existing ones. Good for restarting a failed calc
-
-    # --- Diastereomer generation ---
-    SelectedStereocentres = []  # which stereocentres to vary for diastereomer generation
-
-    # --- Molecular mechanics ---
-    ForceField = 'mmff'  # ff to use for conformational search
-    MMstepcount = 10000  # Max number of MM steps to do, if less than MMfactor*rotable_bonds
-    MMfactor = 2500  # MMfactor*rotable_bonds gives number of steps to do if less than MMstepcount
-    Rot5Cycle = False  # Special dealing with 5-membered saturated rings, see FiveConf.py
-    RingAtoms = []  # Define the 5-membered ring, useful if several are present in molecule
-    SCHRODINGER = ''  # Define the root folder for Schrodinger software
-
-    # --- Conformer pruning ---
-    HardConfLimit = 10000  # Immediately stop if conformers to run exceed this number
-    ConfPrune = False  # Should we prune conformations?
-    PerStructConfLimit = 100  # Max numbers of conformers allowed per structure for DFT stages
-    InitialRMSDcutoff = 0.75  # Initial RMSD threshold for pruning
-    MaxCutoffEnergy = 10.0  # Max conformer MM energy in kJ/mol to allow
-
-    # --- DFT ---
-    MaxDFTOptCycles = 50  # Max number of DFT geometry optimization cycles to request.
-    CalcFC = False  # Calculate QM force constants before optimization
-    OptStepSize = 30  # Max step Gaussian should take in geometry optimization
-    charge = None  # Manually specify charge for DFT calcs
-    nBasisSet = "6-311g(d)"  # Basis set for NMR calcs
-    nFunctional = "mPW1PW91"  # Functional for NMR calcs
-    oBasisSet = "6-31g(d,p)"  # Basis set for geometry optimizations
-    oFunctional = "b3lyp"  # Functional for geometry optimizations
-    eBasisSet = "def2tzvp"  # Basis set for energy calculations
-    eFunctional = "m062x"  # Functional for energy calculations
-
-    # --- Computational clusters ---
-    """ These should probably be moved to relevant *.py files as Cambridge specific """
-    user = 'ah809'  # Linux user on computational clusters, not used for local calcs
-    TimeLimit = 24  # Queue time limit on comp clusters
-    queue = 'SWAN'  # Which queue to use on Ziggy
-    project = 'GOODMAN-SL3-CPU'  # Which project to use on Darwin
-    DarwinScrDir = '/home/ah809/rds/hpc-work/'  # Which scratch directory to use on Darwin
-    StartTime = ''  # Automatically set on launch, used for folder names
-    nProc = 1  # Cores used per job, must be less than node size on cluster
-    DarwinNodeSize = 32  # Node size on current CSD3
-    MaxConcurrentJobsZiggy = 75  # Max concurrent jobs to submit on ziggy
-    MaxConcurrentJobsDarwin = 320  # Max concurrent jobs to submit on CSD3
-
-    # --- NMR analysis ---
-    TMS_SC_C13 = 191.69255  # Default TMS reference C shielding constant (from B3LYP/6-31g**)
-    TMS_SC_H1 = 31.7518583  # Default TMS reference H shielding constant (from B3LYP/6-31g**)
-
-    # --- Stats ---
-    StatsModel = 'g'            # What statistical model type to use
-    StatsParamFile = 'none'         # Where to find statistical model parameters
-
-    # --- Output folder ---     # DP4 output location
-    OutputFolder = ''
-
-
 def lorentzian(p, w, p0, A):
     x = (p0 - p) / (w / 2)
     L = A / (1 + x ** 2)
@@ -2579,7 +2051,7 @@ def ReadParamFile(f, t):
 
 q = queue.Queue()
 
-#sys.stdout = WriteStream(q)
+sys.stdout = WriteStream(q)
 
 app = QtWidgets.QApplication(sys.argv)
 
@@ -2587,14 +2059,13 @@ ui = Window()
 
 ui.show()
 
-'''
 thread = QtCore.QThread()
 my_receiver = MyReceiver(q)
 my_receiver.mysignal.connect(ui.table_widget.Tab1.append_text)
 my_receiver.moveToThread(thread)
 thread.started.connect(my_receiver.run)
 thread.start()
-'''
+
 sys.exit(app.exec_())
 
 
