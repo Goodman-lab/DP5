@@ -62,7 +62,7 @@ else:
 class Settings:
     # --- Main options ---
     MM = 'm'        # m for MacroModel, t for Tinker
-    DFT = 'z'       # n, g, z or for NWChem or Gaussian
+    DFT = 'g'       # n, g, z or for NWChem or Gaussian
     Workflow = 'gmns' # defines which steps to include in the workflow
                     # g for generate diastereomers
                     # m for molecular mechanics conformational search
@@ -89,11 +89,11 @@ class Settings:
     Rot5Cycle = False           # Special dealing with 5-membered saturated rings, see FiveConf.py
     RingAtoms = []              # Define the 5-membered ring, useful if several are present in molecule
     SCHRODINGER = ''            # Define the root folder for Schrodinger software
-    TinkerPath = '/home/ke291/TINKER' # Define the root folder for Tinker software,
+    TinkerPath = '/home/ah809/Downloads/tinker/' # Define the root folder for Tinker software,
                                 # must contain /bin/scan and params/mmff.prm for the process to work
 
     # --- Conformer pruning ---
-    HardConfLimit = 10000       # Immediately stop if conformers to run exceed this number
+    HardConfLimit = 1000       # Immediately stop if conformers to run exceed this number
     ConfPrune = True        # Should we prune conformations?
     PerStructConfLimit = 100    # Max numbers of conformers allowed per structure for DFT stages
     InitialRMSDcutoff = 0.75    # Initial RMSD threshold for pruning
@@ -194,7 +194,17 @@ def main(settings):
     Isomers = [Isomer(f.split('.sdf')[0]) for f in settings.InputFiles]
 
     # Run conformational search, if requested
-    if ('m' in settings.Workflow) and not(settings.AssumeDone or settings.UseExistingInputs):
+
+    print("assume",settings.AssumeDone )
+
+    print("Use exist",settings.UseExistingInputs)
+
+    if ('m' in settings.Workflow) and not (settings.AssumeDone or settings.UseExistingInputs):
+
+        print("in")
+
+        print(settings.MM)
+
         if settings.MM == 't':
             print('\nSetting up Tinker files...')
             TinkerInputs = Tinker.SetupTinker(settings)

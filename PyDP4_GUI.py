@@ -79,7 +79,6 @@ class TabWidget(QtWidgets.QWidget):
             self.tab4.layout.addWidget(self.Tab4)
             self.tab4.setLayout(self.tab4.layout)
 
-
         self.tabs.addTab(self.tab5, "Conformers")
 
         self.Tab2 = ProtonPlotTab()
@@ -713,14 +712,16 @@ class CalculationTab(QtWidgets.QWidget):
 
         if self.MM_yn.isChecked() == 1:
 
+            self.settings.Workflow += 'm'
+
             if self.MM_rb.isChecked() == True:
 
-                self.settings.Workflow += 'm'
+                self.settings.MM = 'm'
 
             else:
-                self.settings.Workflow += 't'
-            
-        
+                
+                self.settings.MM = 't'
+
 
         # DFT Geometry optimisation
 
@@ -2051,7 +2052,7 @@ def ReadParamFile(f, t):
 
 q = queue.Queue()
 
-sys.stdout = WriteStream(q)
+#sys.stdout = WriteStream(q)
 
 app = QtWidgets.QApplication(sys.argv)
 
@@ -2059,12 +2060,14 @@ ui = Window()
 
 ui.show()
 
+'''
 thread = QtCore.QThread()
 my_receiver = MyReceiver(q)
 my_receiver.mysignal.connect(ui.table_widget.Tab1.append_text)
 my_receiver.moveToThread(thread)
 thread.started.connect(my_receiver.run)
 thread.start()
+'''
 
 sys.exit(app.exec_())
 

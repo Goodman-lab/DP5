@@ -32,6 +32,8 @@ utilises a fully revised version of PyDP4 updated for Python 3 and with major wo
 
 Users can now also choose to run DP4-AI within a Graphical user interface for increased ease of use when single DP4
 calculations. This graphical user interface can also be used to explore the spectra processed and assigned by NMR-AI.
+DP4-AI can also be utilised to perform assignments of NMR spectra for a single isomer of a molecule. These assignments
+can be viewed in the graphical output from DP4-AI or investigated interactively using The included GUI application.
 
 More details about the software can be found in the publication DP4-AI Straight from Spectrometer to Structure
 (https://doi.org/10.26434/chemrxiv.11763255.v1) and in the accompanying supporting information.
@@ -119,7 +121,9 @@ PyDP4.py -w gmns Candidate CandidateNMR
 
 The -w switch specifies the PyDP4 workflow, g specifies diastereomer generation, m molecular mechanics
 conformational searching, o DFT geometry optimisation, n DFT NMR calculation, e M062X single point energy calculations,
-s calculate DP4 statistics. The default workflow is gnms, optimum workflow is gnomes.
+s calculate DP4 statistics. The default workflow is gnms, optimum workflow is gnomes. The letter a can be given in place
+of s, in the instance DP4-AI will analyse and assign the provided NMR spectra but not calculate a DP4 probability. This
+is perticularly useful in cases where only one isomer of a molecule is being passed to DP4-AI.
 
 In addition the -s switch can be used to specify the solvent for use in MM and DFT calculations. Supported solvents are
 listed in the TMSdata file. Other Gaussian/Jaguar/NWChem supported solvents can be used, but only with manually interpreted

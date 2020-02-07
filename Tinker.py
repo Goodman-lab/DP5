@@ -16,14 +16,13 @@ import PyDP4
 # Please modify the line below to give the path to the TINKER v8.x top level folder
 # This folder should contain bin/scan and params/mmff.prm for the process to work
 
-TinkerPath = "/home/ah809/Downloads/tinker/"
-
 def SetupTinker(settings):
 
-
-
     TinkerInputs = []
-    for inpf in settings.InputFiles:
+    for inpfi in settings.InputFiles:
+
+        inpf = inpfi.split('.')[0]
+
         if settings.Rot5Cycle is True:
             if not os.path.exists(inpf+'rot.sdf'):
                 import FiveConf
@@ -56,7 +55,7 @@ def SetupTinker(settings):
 
         f = open(inpf + '.key', 'r+')
         key = f.readlines()
-        key[2] = 'PARAMETERS        ' + TinkerPath + 'params/mmff.prm\n'
+        key[2] = 'PARAMETERS        ' + settings.TinkerPath + 'params/mmff.prm\n'
         f.seek(0)
         f.writelines(key)
         f.close()
@@ -76,8 +75,8 @@ def RunTinker(TinkerInputs, settings):
     #Run Tinker scan for all diastereomeric inputs
     TinkerOutputs = []
 
-    if not os.path.exists(TinkerPath + '/bin/scan'):
-        print("Tinker scan executable not found at " + TinkerPath + "/bin/scan,\nplease change the path in TinkerPath in Tinker.py")
+    if not os.path.exists(settings.TinkerPath + '/bin/scan'):
+        print("Tinker scan executable not found at " + settings.TinkerPath + "/bin/scan,\nplease change the path in settings.TinkerPath in Tinker.py")
         quit()
 
     NCompleted = 0
@@ -88,9 +87,9 @@ def RunTinker(TinkerInputs, settings):
             TinkerOutputs.append(isomer)
             continue
 
-        print(TinkerPath + '/bin/scan ' + isomer + ' 0 10 20 0.00001 | tee ./' + isomer + \
+        print(settings.TinkerPath + '/bin/scan ' + isomer + ' 0 10 20 0.00001 | tee ./' + isomer + \
             '.tout')
-        outp = subprocess.check_output(TinkerPath + '/bin/scan ' + isomer +
+        outp = subprocess.check_output(settings.TinkerPath + '/bin/scan ' + isomer +
             ' 0 10 20 0.00001 | tee ./' + isomer + '.tout', shell=True)
         NCompleted = NCompleted + 1
         TinkerOutputs.append(isomer)
@@ -98,9 +97,9 @@ def RunTinker(TinkerInputs, settings):
             " completed.")
 
         if settings.Rot5Cycle is True:
-            print(TinkerPath + '/bin/scan ' + isomer + 'rot 0 10 20 0.00001 | tee ./' + \
+            print(settings.TinkerPath + '/bin/scan ' + isomer + 'rot 0 10 20 0.00001 | tee ./' + \
                 isomer + 'rot.tout')
-            outp = subprocess.check_output(TinkerPath + '/bin/scan ' + isomer +
+            outp = subprocess.check_output(settings.TinkerPath + '/bin/scan ' + isomer +
                 'rot 0 10 20 0.00001 | tee ./' + isomer + 'rot.tout', shell=True)
             NCompleted = NCompleted + 1
 
@@ -108,7 +107,7 @@ def RunTinker(TinkerInputs, settings):
 
 
 def ReadConformers(TinkerOutputs, Isomers, settings):
-    atypes, anums = ExtractAtomTypes()
+    atypes, anums = ExtractAtomTypes(settings)
 
     for iso in Isomers:
         for outp in TinkerOutputs:
@@ -125,9 +124,9 @@ def ReadConformers(TinkerOutputs, Isomers, settings):
 
 
 #Reads force field parameter file to understand atom notation in the output
-def ExtractAtomTypes():
-    # open TinkerPath + 'params/mmff.prm
-    paramfile = open(TinkerPath + '/params/mmff.prm', 'r')
+def ExtractAtomTypes(settings):
+    # open settings.TinkerPath + 'params/mmff.prm
+    paramfile = open(settings.TinkerPath + '/params/mmff.prm', 'r')
     paramdata = paramfile.readlines()
     paramfile.close()
     atomtypes = []
