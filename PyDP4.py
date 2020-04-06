@@ -84,7 +84,7 @@ class Settings:
 
     # --- Molecular mechanics ---
     ForceField = 'mmff'         # ff tfOPto use for conformational search
-    MMstepcount = 10000         # Max number of MM steps to do, if less than MMfactor*rotable_bonds
+    MMstepcount = 1         # Max number of MM steps to do, if less than MMfactor*rotable_bonds
     MMfactor = 2500             # MMfactor*rotable_bonds gives number of steps to do if less than MMstepcount
     Rot5Cycle = False           # Special dealing with 5-membered saturated rings, see FiveConf.py
     RingAtoms = []              # Define the 5-membered ring, useful if several are present in molecule
@@ -93,9 +93,9 @@ class Settings:
                                 # must contain /bin/scan and params/mmff.prm for the process to work
 
     # --- Conformer pruning ---
-    HardConfLimit = 1000       # Immediately stop if conformers to run exceed this number
+    HardConfLimit = 1       # Immediately stop if conformers to run exceed this number
     ConfPrune = True        # Should we prune conformations?
-    PerStructConfLimit = 100    # Max numbers of conformers allowed per structure for DFT stages
+    PerStructConfLimit = 1    # Max numbers of conformers allowed per structure for DFT stages
     InitialRMSDcutoff = 0.75    # Initial RMSD threshold for pruning
     MaxCutoffEnergy = 10.0      # Max conformer MM energy in kJ/mol to allow
 

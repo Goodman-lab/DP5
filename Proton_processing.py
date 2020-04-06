@@ -1624,7 +1624,9 @@ def integral_score(integrals, structure_protons, proton_guess, l_protons, impuri
 
     diff = abs(proton_guess - structure_protons)
 
-    probs = 4 * (1 - norm.cdf(differences, loc=0, scale=1 / 16))
+    #incease the value of the scale parameter here where large devations from integer values are expected for the integrals.
+
+    probs = 4 * (1 - norm.cdf(differences, loc=0, scale = 1 / 16))
 
     mean = gmean(probs) * (1 - norm.cdf(diff, loc=0, scale=std)) * (1 / 2 ** impurities)
 
