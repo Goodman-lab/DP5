@@ -359,7 +359,7 @@ def main(settings):
 
         elif NMRData.Type == "fid":
 
-            if os.path.exists(str(settings.NMRsource) + "/Proton"):
+            if os.path.exists(os.path.join(str(settings.NMRsource), + "Proton")):
 
                 from Proton_assignment import AssignProton
 
@@ -371,7 +371,7 @@ def main(settings):
                 print('\nPlotting proton spectrum...')
                 PlotProton(NMRData, Isomers, settings)
 
-            if os.path.exists(str(settings.NMRsource) + "/Carbon"):
+            if os.path.exists(os.path.join(str(settings.NMRsource), "Carbon")):
 
                 from Carbon_assignment import AssignCarbon
 
@@ -385,7 +385,7 @@ def main(settings):
 
         elif NMRData.Type == "jcamp":
 
-            if os.path.exists(str(settings.NMRsource) + "/Proton.dx"):
+            if os.path.exists(os.path.join(str(settings.NMRsource), "Proton.dx")):
                 from Proton_assignment import AssignProton
 
                 from Proton_plotting import PlotProton
@@ -396,7 +396,7 @@ def main(settings):
                 print('\nPlotting proton spectrum...')
                 PlotProton(NMRData, Isomers, settings)
 
-            if os.path.exists(str(settings.NMRsource) + "/Carbon.dx"):
+            if os.path.exists(os.path.join(str(settings.NMRsource), "Carbon.dx")):
                 from Carbon_assignment import AssignCarbon
 
                 from Carbon_plotting import PlotCarbon

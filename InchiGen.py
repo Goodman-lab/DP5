@@ -171,7 +171,7 @@ def GetInchi(f):
 
     cwd = os.getcwd()
 
-    m = Chem.MolFromMolFile(cwd + '/' + f ,removeHs = False)
+    m = Chem.MolFromMolFile(os.path.join(cwd, f), removeHs=False)
 
     idata = Chem.MolToInchiAndAuxInfo(m)
 
@@ -182,7 +182,7 @@ def Inchi2Struct(inchi, f, aux):
 
 
     cwd = os.getcwd()
-    fullf = cwd + '/' + f
+    fullf = os.path.join(cwd, f)
     infile = open(f + '.inchi', 'w')
     infile.write(inchi)
     infile.close()
