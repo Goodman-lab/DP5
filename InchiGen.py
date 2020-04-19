@@ -13,7 +13,14 @@ import sys
 #sys.path.append('/home/' + settings.user + '/Tools/openbabel-install/lib/python2.7/site-packages/')
 
 import os
-from openbabel import *
+from distutils.version import LooseVersion
+
+from openbabel import __version__ as OPENBABEL_VERSION
+if LooseVersion(OPENBABEL_VERSION) >= LooseVersion("3.0.0"):
+    from openbabel.openbabel import OBConversion, OBMol, OBAtomAtomIter, OBMolAtomIter
+else:
+    from openbabel import *
+
 import subprocess
 from rdkit import Chem
 from rdkit.Chem import AllChem
