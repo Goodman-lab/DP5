@@ -12,7 +12,7 @@ def FindAllPaths(molgraph, start, end, path=[]):
     if start == end:
         return [path]
     if start not in [x[0] for x in molgraph]:
-        print "No such node in graph"
+        print("No such node in graph")
         return []
     paths = []
     for node in molgraph[start-1][1:]:
@@ -26,7 +26,7 @@ def FindAllPaths(molgraph, start, end, path=[]):
 def FindTerminatingPaths(molgraph, start, trunk, path=[]):
     path = path + [start]
     if start not in [x[0] for x in molgraph]:
-        print "No such node in graph"
+        print("No such node in graph")
         return []
     paths = []
     for node in molgraph[start-1][1:]:
@@ -109,7 +109,7 @@ def TreeRenumSDF(f, ExpNMR):
         if anum == 6:
             NMRmap.append(['C' + str(atom), 'C' + str(i)])
         i += 1
-    print NMRmap
+    print(NMRmap)
     RenumNMR(ExpNMR, NMRmap)
 
 
@@ -118,7 +118,7 @@ def RenumNMR(ExpNMR, NMRmap):
     NMRfile = f.read(1000000)
     f.close()
 
-    print '\nOld NMR file:\n' + NMRfile
+    print('\nOld NMR file:\n' + NMRfile)
 
     #Replace old atom labels with new atom labels
     #tag replacements with '_' to avoid double replacement
@@ -131,7 +131,7 @@ def RenumNMR(ExpNMR, NMRmap):
     #Strip temporary udnerscore tags
     NMRfile = NMRfile.replace('_', '')
 
-    print '\nNew NMR file:\n' + NMRfile
+    print('\nNew NMR file:\n' + NMRfile)
     f = open(ExpNMR + 'r', 'w')
     f.write(NMRfile)
     f.close()

@@ -51,8 +51,8 @@ def Karplus(f, inputformat):
                 DihedralHs.append([atom.GetIdx()] + DihedNeighbours)                
     
     if len(DihedralHs)==0:
-        print "No dihedral protons found, Karplus J value prediction " + \
-            "impossible, quitting."
+        print("No dihedral protons found, Karplus J value prediction " + \
+            "impossible, quitting.")
         quit()
     
     Jmatrix, Jlabels = CalcJMatrix(obmol, DihedralHs)

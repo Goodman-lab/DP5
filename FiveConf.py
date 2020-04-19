@@ -72,8 +72,8 @@ def main(f, settings):
         WasAbove90 = False
         rotangle = 2*(0.5*pi-angle)
     OldAtomCoords = outAtom.GetVector()
-    print "Atom " + str(outAtom.GetAtomicNum()) + " will be rotated by " +\
-        str(rotangle*57.3) + ' degrees'
+    print("Atom " + str(outAtom.GetAtomicNum()) + " will be rotated by " +\
+        str(rotangle*57.3) + ' degrees')
     RotateAtom(outAtom, AxisAtoms[0], AxisAtoms[1], rotangle)
     angle2 = FindRotAngle(AxisAtoms[0], AxisAtoms[1], outAtom, norm)
 
@@ -82,7 +82,7 @@ def main(f, settings):
     if ((angle2 > 0.5*pi) and WasAbove90) or ((angle2 < 0.5*pi) and not WasAbove90):
         #Flip the sign of the rotation angle, restore the coords
         #and rotate the atom in the opposite direction
-        print "Atom was rotated the wrong way, switching the direction"
+        print("Atom was rotated the wrong way, switching the direction")
         rotangle = -rotangle
         outAtom.SetVector(OldAtomCoords)
         RotateAtom(outAtom, AxisAtoms[0], AxisAtoms[1], rotangle)
@@ -93,7 +93,7 @@ def main(f, settings):
             RotateAtom(atom, AxisAtoms[0], AxisAtoms[1], rotangle)
             RotatedAtoms.append(atom)
         else:
-            print "Atom already rotated, skipping"
+            print("Atom already rotated, skipping")
 
     obconversion.SetOutFormat("sdf")
     obconversion.WriteFile(obmol, f[:-4] + 'rot.sdf')
@@ -228,7 +228,7 @@ def LstSqPlane(atom1, atom2, atom3, atom4):
     # Inital guess of the plane
     [a0, b0, c0], d0 = FindPlane(atom1, atom2, atom3)
 
-    f = lambda (a, b, c, d): PlaneError([atom1, atom2, atom3, atom4], a, b, c, d)
+    f = lambda a: PlaneError([atom1, atom2, atom3, atom4], a[0], a[1], a[2], a[3])
     res = sciopt.minimize(f, (a0, b0, c0, d0), method='nelder-mead')
     plane = list(res.x)
 
