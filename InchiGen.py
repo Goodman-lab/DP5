@@ -162,9 +162,10 @@ def GetInchi(f):
 
     print("Get inchi f",f)
 
-    cwd = os.getcwd()
+    if "/" not in f:
+        f = os.getcwd() + '/' + f
 
-    m = Chem.MolFromMolFile(cwd + '/' + f ,removeHs = False)
+    m = Chem.MolFromMolFile(f, removeHs = False)
 
     idata = Chem.MolToInchiAndAuxInfo(m)
 
