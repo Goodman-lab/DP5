@@ -322,6 +322,7 @@ def GenDSInchis(inchi):
     resinchis = []
 
     #get the number of potential diastereomers
+    numds = 0
     layers = inchi.split('/')
     for l in layers:
         if 't' in l:
