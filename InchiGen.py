@@ -163,7 +163,7 @@ def RestoreNumsSDF(f, fold, AuxInfo):
 
 def GetInchi(f):
 
-    print("Get inchi f",f)
+    print("Getting inchi from file ",f)
 
     if os.path.sep not in f:
         f = os.path.join(os.getcwd(), f)
