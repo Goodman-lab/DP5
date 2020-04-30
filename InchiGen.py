@@ -327,11 +327,10 @@ def GenDSInchis(inchi):
     for l in layers:
         if 't' in l:
             numds = 2**(len(l.translate({ord(i): None for i in 't,1234567890'}))-1)
-
-    try:
+    if numds == 0:
+        raise ValueError("No chiral carbon detected in the input molecule!")
+    else:
         print("Number of diastereomers to be generated: " + str(numds))
-    except UnboundLocalError as e:
-        raise ValueError("No chiral carbon present in the input molecule!") from e
 
     #find configuration sites (+ and -)
     bs = ilist.index('t')
