@@ -10,15 +10,11 @@ protomer generation is used.
 """
 from PyDP4 import settings
 import sys
-#sys.path.append('/home/' + settings.user + '/Tools/openbabel-install/lib/python2.7/site-packages/')
-
 import os
-from distutils.version import LooseVersion
 
-from openbabel import __version__ as OPENBABEL_VERSION
-if LooseVersion(OPENBABEL_VERSION) >= LooseVersion("3.0.0"):
+try:
     from openbabel.openbabel import OBConversion, OBMol, OBAtomAtomIter, OBMolAtomIter
-else:
+except ImportError:
     from openbabel import *
 
 import subprocess
