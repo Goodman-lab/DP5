@@ -162,8 +162,8 @@ def GetInchi(f):
 
     print("Get inchi f",f)
 
-    if "/" not in f:
-        f = os.getcwd() + '/' + f
+    if os.path.sep not in f:
+        f = os.path.join(os.getcwd(), f)
 
     m = Chem.MolFromMolFile(f, removeHs = False)
 
