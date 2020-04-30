@@ -13,7 +13,10 @@ import numpy as np
 from math import sqrt, pi, cos, sin, acos, atan2
 import sys
 
-from openbabel import *
+try:
+    from openbabel.openbabel import OBConversion, OBMol, OBAtomAtomIter, OBMolAtomIter
+except ImportError:
+    from openbabel import *
 
 #Parameter sets B-E for generalised Karplus equation from
 #C. A. G. Haasnoot, F. A. A. M. de Leeuw and C. Altona

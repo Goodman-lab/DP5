@@ -6,7 +6,11 @@ from scipy.stats import linregress
 import copy
 import os
 import pickle
-from openbabel import *
+
+try:
+    from openbabel.openbabel import OBConversion, OBMol, OBAtomAtomIter, OBMolAtomIter
+except ImportError:
+    from openbabel import *
 
 def AssignProton(NMRData,Isomers,settings):
 

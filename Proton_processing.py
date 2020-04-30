@@ -5,7 +5,12 @@ from lmfit import Minimizer, Parameters, report_fit
 import nmrglue as ng
 from scipy.stats import norm
 import pickle
-from openbabel import *
+
+try:
+    from openbabel.openbabel import OBConversion, OBMol, OBAtomAtomIter, OBMolAtomIter
+except ImportError:
+    from openbabel import *
+
 from scipy.optimize import linear_sum_assignment as optimise
 import copy
 from scipy.interpolate import InterpolatedUnivariateSpline
@@ -1624,9 +1629,7 @@ def integral_score(integrals, structure_protons, proton_guess, l_protons, impuri
 
     diff = abs(proton_guess - structure_protons)
 
-    #incease the value of the scale parameter here where large devations from integer values are expected for the integrals.
-
-    probs = 4 * (1 - norm.cdf(differences, loc=0, scale = 1 / 16))
+    probs = 4 * (1 - norm.cdf(differences, loc=0, scale=1 / 16))
 
     mean = gmean(probs) * (1 - norm.cdf(diff, loc=0, scale=std)) * (1 / 2 ** impurities)
 

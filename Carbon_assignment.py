@@ -4,7 +4,12 @@ from matplotlib import pyplot as plt
 from scipy.optimize import linear_sum_assignment as optimise
 from scipy.stats import linregress
 import copy
-from openbabel import *
+
+try:
+    from openbabel.openbabel import OBConversion, OBMol, OBAtomAtomIter, OBMolAtomIter
+except ImportError:
+    from openbabel import *
+
 from scipy.stats import gaussian_kde
 
 

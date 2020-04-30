@@ -11,8 +11,10 @@ import numpy as np
 from math import sqrt, pi, cos, sin, acos
 import scipy.optimize as sciopt
 
-from openbabel import *
-
+try:
+    from openbabel.openbabel import OBConversion, OBMol, OBAtomAtomIter, OBMolAtomIter
+except ImportError:
+    from openbabel import *
 
 def main(f, settings):
 
