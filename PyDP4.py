@@ -195,17 +195,16 @@ def main(settings):
 
     # Run conformational search, if requested
 
-    print("assume",settings.AssumeDone )
+    print("Assuming all computations are done? ... ",settings.AssumeDone )
 
-    print("Use exist",settings.UseExistingInputs)
+    print("Using preexisting DFT data? ... ",settings.UseExistingInputs)
 
     if ('m' in settings.Workflow) and not (settings.AssumeDone or settings.UseExistingInputs):
 
-        print("in")
-
-        print(settings.MM)
+        print("Performing conformational search using ", end="")
 
         if settings.MM == 't':
+            print("Tinker")
             print('\nSetting up Tinker files...')
             TinkerInputs = Tinker.SetupTinker(settings)
 
@@ -215,6 +214,7 @@ def main(settings):
             Isomers = Tinker.ReadConformers(TinkerOutputs, Isomers, settings)
 
         elif settings.MM == 'm':
+            print("MacroModel")
             print('\nSetting up MacroModel files...')
             MacroModelInputs = MacroModel.SetupMacroModel(settings)
             print("MacroModel inputs: " + str(MacroModelInputs))
@@ -547,6 +547,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     print(args.StructureFiles)
     print(args.ExpNMR)
+
     settings.Title = args.ExpNMR
     settings.NMRsource = args.ExpNMR
     settings.Workflow = args.workflow
