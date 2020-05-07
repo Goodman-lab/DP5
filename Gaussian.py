@@ -284,6 +284,11 @@ def RunCalcs(GausJobs):
 
     NCompleted = 0
     Completed = []
+
+    if len(GausJobs) == 0:
+        print("There were no jobs to run.")
+        return Completed
+
     gausdir = os.environ['GAUSS_EXEDIR']
     GausPrefix = gausdir + "/g09 < "
 
@@ -302,8 +307,6 @@ def RunCalcs(GausJobs):
 
     if NCompleted > 0:
         print(str(NCompleted) + " Gaussian jobs completed successfully.")
-    elif len(GausJobs) == 0:
-        print("There were no jobs to run.")
 
     return Completed
 
