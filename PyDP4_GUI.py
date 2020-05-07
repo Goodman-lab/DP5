@@ -816,7 +816,6 @@ class CalculationTab(QtWidgets.QWidget):
             if (self.MM_rb.isDown() == False) & (self.Tinker_rb.isDown() == False):
                 self.MM_rb.toggle()
 
-
         else:
             self.solvent_drop.setEnabled(False)
             self.Solvent_yn.setChecked(False)
@@ -837,8 +836,6 @@ class CalculationTab(QtWidgets.QWidget):
 
             else:
                 self.solvent_drop.setEnabled(False)
-
-
 
 
     def Energytoggle(self, state):
@@ -1999,8 +1996,11 @@ class PyDP4WorkerObject(QtCore.QObject):
     finished = QtCore.pyqtSignal()
 
     def runPyDP4(self):
+        launchdir = os.getcwd()
+        print('0:' + ui.table_widget.Tab1.Output_list.item(0).text())
+        os.chdir(ui.table_widget.Tab1.Output_list.item(0).text())
         self.NMRData, self.Isomers, self.settings, self.DP4Data = PyDP4.main(ui.table_widget.Tab1.settings)
-
+        os.chdir(launchdir)
         self.finished.emit()
 
 

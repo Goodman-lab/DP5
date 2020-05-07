@@ -178,6 +178,7 @@ def main(settings):
     print("Distributed under MIT license")
     print("==========================\n\n")
 
+    print("Current working directory: " + os.getcwd())
     print("Initial input files: " + str(settings.InputFiles))
     print("NMR file: " + str(settings.NMRsource))
     print("Workflow: " + str(settings.Workflow))

@@ -60,7 +60,7 @@ def SetupMacroModel(settings):
             MacroModelInputs.append(f + '.mae')
 
         #Copy default com file to directory
-        shutil.copyfile(scriptdir + '/default.com', cwd + '/' + f + '.com')
+        shutil.copyfile(settings.ScriptDir + '/default.com', cwd + '/' + f + '.com')
         #Change input and output file names in com file
         comf = open(f + '.com', 'r+')
         com = comf.readlines()
@@ -100,7 +100,7 @@ def SetupMacroModel(settings):
             MacroModelInputs.append(f + 'rot.mae')
 
             #Copy default com file to directory
-            shutil.copyfile(scriptdir + '/default.com', cwd + '/' + f +
+            shutil.copyfile(settings.ScriptDir + '/default.com', cwd + '/' + f +
                             'rot.com')
             #Change input and output file names in com file
             comf = open(f + 'rot.com', 'r+')
