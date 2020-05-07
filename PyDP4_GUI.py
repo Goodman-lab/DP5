@@ -56,7 +56,7 @@ class TabWidget(QtWidgets.QWidget):
         # Add tabs
         self.tabs.addTab(self.tab1, "Calculation")
 
-        self.tab1.layout = QtWidgets.QVBoxLayout(self)
+        self.tab1.layout = QtWidgets.QVBoxLayout()
         self.tab1.layout.addWidget(self.Tab1)
         self.tab1.setLayout(self.tab1.layout)
 
