@@ -22,6 +22,7 @@ import pickle
 
 from Proton_processing import process_proton
 from Carbon_processing import process_carbon
+from pathlib import Path
 
 gasConstant = 8.3145
 temperature = 298.15
@@ -31,6 +32,8 @@ hartreeEnergy = 2625.499629554010
 
 class NMRData:
     def __init__(self,settings):
+
+        self.cwd = Path(os.getcwd())
         self.InputPath = settings.NMRsource  # Initial structure input file
         self.Type = 'desc'          # desc or fid, depending on whether the description or raw data used
         self.Atoms = []             # Element labels
@@ -45,52 +48,58 @@ class NMRData:
 
         print(self.InputPath)
 
-        print(self.InputPath.split('.'))
+        #print(self.InputPath.split('.'))
 
         #quit()
 
-        if not os.path.exists(self.InputPath):
-
-            print('NMR data path does not exist, quitting...')
+        if len(self.InputPath) == 0:
+            print('No NMR Data Added, quitting...')
             quit()
 
-        if os.path.isdir(self.InputPath):
+        else:
 
-            if os.path.isdir(str(settings.NMRsource) + "/Proton"):
+            for ind1 , p in enumerate(self.InputPath):
 
-                self.Type = 'fid'
+                if p.exists():
 
-                self.ProcessProton(settings)
+                    if p.is_dir():
 
-            if os.path.isdir(str(settings.NMRsource) + "/Carbon"):
+                        self.Type = 'fid'
 
-                self.Type = 'fid'
+                        if p.parts[-1] == "Proton" or p.parts[-1] == "proton":
 
-                self.ProcessCarbon(settings)
+                            self.ProcessProton(settings,ind1)
 
-            if os.path.isfile(str(settings.NMRsource) + "/Proton.dx"):
+                        elif p.parts[-1] == "Carbon" or p.parts[-1] == "carbon":
 
-                self.Type = 'jcamp'
+                            self.ProcessCarbon(settings,ind1)
 
-                self.ProcessProton(settings)
+                    elif p.parts[-1] == "Proton.dx" or p.parts[-1] == "proton.dx":
 
-            if os.path.isfile(str(settings.NMRsource) + "/Carbon.dx"):
+                        self.Type = 'jcamp'
 
-                self.Type = 'jcamp'
+                        self.ProcessProton(settings,ind1)
 
-                self.ProcessCarbon(settings)
+                    elif p.parts[-1] == "Carbon.dx" or p.parts[-1] == "carbon.dx":
 
-        if os.path.isfile(self.InputPath):
+                        self.Type = 'jcamp'
 
-            self.Type = 'desc'
-            self.ExpNMRFromDesc()
+                        self.ProcessCarbon(settings,ind1)
+                    else:
+
+                        self.Type = 'desc'
+                        self.ExpNMRFromDesc()
+
+                else:
+                    print('NMR data path does not exist, quitting...')
+                    quit()
 
     def ExpNMRFromDesc(self):
 
         print('Loading NMR data from ' + self.InputPath)
 
         # Reads the experimental NMR data from the file
-        ExpNMR_file = open(self.InputPath, 'r')
+        ExpNMR_file = open(self.InputPath[0], 'r')
         Cexp = ExpNMR_file.readline()
         ExpNMR_file.readline()
         Hexp = ExpNMR_file.readline()
@@ -133,38 +142,41 @@ class NMRData:
         return expLabels, expShifts
 
 
-    def ProcessProton(self, settings):
+    def ProcessProton(self, settings,ind):
 
         if settings.OutputFolder == '':
 
-            pdir = str(os.getcwd()) +  "/Pickles/"
+            pdir = self.cwd / "Pickles"
 
-            gdir = str(os.getcwd()) +  "/Graphs/"
+            gdir = self.cwd /  "Graphs"
 
         else:
-            pdir =  settings.OutputFolder +  "/Pickles/"
 
-            gdir = settings.OutputFolder +  "/Graphs/"
+            pdir =  settings.OutputFolder  / "Pickles"
 
-        NMR_file = str(settings.NMRsource) + "/Proton"
+            gdir = settings.OutputFolder /  "Graphs"
 
-        if not os.path.exists(gdir):
+        NMR_file = settings.NMRsource[ind]
+
+        if not gdir.exists():
 
             os.mkdir(gdir)
 
-            os.mkdir(gdir  + settings.InputFiles[0] + "/")
+            os.mkdir(gdir  / settings.InputFiles[0] )
 
-        if not os.path.exists(gdir + settings.InputFiles[0] + "/"):
+        if not os.path.exists(gdir / settings.InputFiles[0] ):
 
-            os.mkdir(gdir + settings.InputFiles[0] + "/")
+            os.mkdir(gdir / settings.InputFiles[0] )
 
-        if not os.path.exists(pdir):
+        if not pdir.exists():
 
             os.mkdir(pdir)
 
-        if os.path.isfile(pdir + settings.InputFiles[0] +  "protondata"):
+            os.mkdir(pdir / settings.InputFiles[0])
 
-            self.protondata = pickle.load(open(pdir + settings.InputFiles[0] + "protondata", "rb"))
+        if Path(pdir / settings.InputFiles[0] /  "protondata").exists():
+
+            self.protondata = pickle.load(open(pdir / settings.InputFiles[0] / "protondata", "rb"))
 
             self.Hshifts = self.protondata["exppeaks"]
 
@@ -178,48 +190,46 @@ class NMRData:
                 "params"], protondata["sim_regions"] \
                 = process_proton(NMR_file, settings,self.Type)
 
-            pickle.dump(protondata, open(pdir + settings.InputFiles[0] + "protondata", "wb"))
+            pickle.dump(protondata, Path(pdir / settings.InputFiles[0] / "protondata").open(mode =  "wb+"))
 
             self.Hshifts = protondata["exppeaks"]
 
             self.protondata = protondata
 
-
-    def ProcessCarbon(self, settings):
+    def ProcessCarbon(self, settings,ind):
 
         if settings.OutputFolder == '':
 
-            pdir = str(os.getcwd()) +  "/Pickles/"
+            pdir = self.cwd /  "Pickles"
 
-            gdir = str(os.getcwd()) +  "/Graphs/"
+            gdir = self.cwd / "Graphs"
 
         else:
-            pdir =  settings.OutputFolder +  "/Pickles/"
+            pdir =  settings.OutputFolder /  "Pickles"
 
-            gdir = settings.OutputFolder +  "/Graphs/"
+            gdir = settings.OutputFolder /  "Graphs"
 
+        NMR_file = settings.NMRsource[ind]
 
-        NMR_file = str(settings.NMRsource) + "/Carbon"
-
-        if not os.path.exists(gdir):
+        if not gdir.exists():
 
             os.mkdir(gdir)
 
-            os.mkdir(gdir  + settings.InputFiles[0] + "/")
+            os.mkdir(gdir  / settings.InputFiles[0])
 
-        if not os.path.exists(gdir  + settings.InputFiles[0] + "/"):
+        if not Path(gdir  / settings.InputFiles[0]).exists():
 
-            os.mkdir(gdir + settings.InputFiles[0] + "/")
+            os.mkdir(gdir / settings.InputFiles[0])
 
-        if not os.path.exists(pdir):
+        if not pdir.exists():
 
             os.mkdir(pdir)
 
-        if os.path.isfile(pdir + settings.InputFiles[0] + "carbondata"):
+            os.mkdir(pdir / settings.InputFiles[0])
 
-            self.carbondata = pickle.load(open(pdir + settings.InputFiles[0] + "carbondata", "rb"))
+        if Path(pdir / settings.InputFiles[0] / "carbondata").exists():
 
-            #self.Cshifts = self.carbondata['xdata'][self.carbondata["exppeaks"]]
+            self.carbondata = pickle.load(open(pdir / settings.InputFiles[0] / "carbondata", "rb"))
 
             self.Cshifts = self.carbondata["exppeaks"]
 
@@ -233,10 +243,13 @@ class NMRData:
             carbondata["exppeaks"], carbondata["simulated_ydata"], carbondata["removed"] = process_carbon(
                 NMR_file, settings,self.Type)
 
-            pickle.dump(carbondata, open(pdir + settings.InputFiles[0] + "carbondata", "wb"))
+            pickle.dump(carbondata, Path(pdir / settings.InputFiles[0] / "carbondata").open(mode =  "wb+"))
+
+            #pickle.dump(a, Path("/Users/Maidenhair/Desktop/text.txt").open(mode="wb+"))
 
             self.carbondata = carbondata
             self.Cshifts = carbondata["exppeaks"]
+
 
 def CalcBoltzmannWeightedShieldings(Isomers):
 

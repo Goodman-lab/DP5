@@ -45,6 +45,7 @@ import datetime
 import argparse
 import importlib
 import getpass
+from pathlib import Path
 
 DFTpackages = [['n', 'w', 'g', 'z', 'd'],['NWChem', 'NWChemZiggy', 'Gaussian', 'GaussianZiggy', 'GaussianDarwin']]
 
@@ -62,7 +63,7 @@ else:
 class Settings:
     # --- Main options ---
     MM = 'm'        # m for MacroModel, t for Tinker
-    DFT = 'g'       # n, g, z or for NWChem or Gaussian
+    DFT = 'z'       # n, g, z or for NWChem or Gaussian
     Workflow = 'gmns' # defines which steps to include in the workflow
                     # g for generate diastereomers
                     # m for molecular mechanics conformational search
@@ -73,6 +74,7 @@ class Settings:
     Solvent = ''    # solvent for DFT optimization and NMR calculation
     ScriptDir = ''  # Script directory, automatically set on launch
     InputFiles = [] # Structure input files - can be MacroModel *-out.mae or *sdf files
+    InputFilesPaths = [] # Path object for Structure input files - can be MacroModel *-out.mae or *sdf files
     NMRsource = ''  # File or folder containing NMR description or data
     Title = 'DP4molecule'       # Title of the calculation, set to NMR file name by default on launch
     AssumeDone = False          # Assume all computations done, only read DFT output data and analyze (use for reruns)
@@ -360,53 +362,59 @@ def main(settings):
 
         elif NMRData.Type == "fid":
 
-            if os.path.exists(os.path.join(str(settings.NMRsource), + "Proton")):
+            for f in settings.NMRsource:
 
-                from Proton_assignment import AssignProton
+                if f.name == "Proton" or f.name == "proton":
 
-                from Proton_plotting import PlotProton
+                    from Proton_assignment import AssignProton
 
-                print('\nAssigning proton spectrum...')
-                Isomers = AssignProton(NMRData,Isomers,settings)
+                    from Proton_plotting import PlotProton
 
-                print('\nPlotting proton spectrum...')
-                PlotProton(NMRData, Isomers, settings)
+                    print('\nAssigning proton spectrum...')
+                    Isomers = AssignProton(NMRData,Isomers,settings)
 
-            if os.path.exists(os.path.join(str(settings.NMRsource), "Carbon")):
+                    print('\nPlotting proton spectrum...')
+                    PlotProton(NMRData, Isomers, settings)
 
-                from Carbon_assignment import AssignCarbon
+                elif f.name == "Carbon" or f.name == "carbon":
 
-                from Carbon_plotting import PlotCarbon
+                    from Carbon_assignment import AssignCarbon
 
-                print('\nAssigning carbon spectrum...')
-                Isomers = AssignCarbon(NMRData,Isomers,settings)
+                    from Carbon_plotting import PlotCarbon
 
-                print('\nPlotting carbon spectrum...')
-                PlotCarbon(NMRData, Isomers, settings)
+                    print('\nAssigning carbon spectrum...')
+                    Isomers = AssignCarbon(NMRData,Isomers,settings)
+
+                    print('\nPlotting carbon spectrum...')
+                    PlotCarbon(NMRData, Isomers, settings)
 
         elif NMRData.Type == "jcamp":
 
-            if os.path.exists(os.path.join(str(settings.NMRsource), "Proton.dx")):
-                from Proton_assignment import AssignProton
+            for f in settings.NMRsource:
 
-                from Proton_plotting import PlotProton
+                if f.name == "Proton.dx" or f.name == "proton.dx":
 
-                print('\nAssigning proton spectrum...')
-                Isomers = AssignProton(NMRData, Isomers, settings)
+                    from Proton_assignment import AssignProton
 
-                print('\nPlotting proton spectrum...')
-                PlotProton(NMRData, Isomers, settings)
+                    from Proton_plotting import PlotProton
 
-            if os.path.exists(os.path.join(str(settings.NMRsource), "Carbon.dx")):
-                from Carbon_assignment import AssignCarbon
+                    print('\nAssigning proton spectrum...')
+                    Isomers = AssignProton(NMRData, Isomers, settings)
 
-                from Carbon_plotting import PlotCarbon
+                    print('\nPlotting proton spectrum...')
+                    PlotProton(NMRData, Isomers, settings)
 
-                print('\nAssigning carbon spectrum...')
-                Isomers = AssignCarbon(NMRData, Isomers, settings)
+                elif f.name == "Carbon.dx" or f.name == "carbon.dx":
 
-                print('\nPlotting carbon spectrum...')
-                PlotCarbon(NMRData, Isomers, settings)
+                    from Carbon_assignment import AssignCarbon
+
+                    from Carbon_plotting import PlotCarbon
+
+                    print('\nAssigning carbon spectrum...')
+                    Isomers = AssignCarbon(NMRData, Isomers, settings)
+
+                    print('\nPlotting carbon spectrum...')
+                    PlotCarbon(NMRData, Isomers, settings)
 
             print('Raw FID NMR datafound and read.')
 
@@ -458,6 +466,60 @@ def getScriptPath():
     return os.path.dirname(os.path.realpath(sys.argv[0]))
 
 
+def NMR_files(NMR_args):
+
+    print("NMR_path")
+
+    NMR_path = Path(NMR_args)
+
+    NMR_Data = []
+
+    #check if path is from cwd or elsewhere:
+
+    if len(NMR_path.parts) == 1:
+
+        #if so a folder in the cwd has been passed add the cwd to the path
+
+        NMR_path = Path.cwd() / NMR_path
+
+        print(NMR_path)
+
+    #now check if it is a directory or a file, add proton and carbon data here
+
+    if NMR_path.is_dir():
+
+        p_switch = 0
+
+        c_switch = 0
+
+        for f in NMR_path.iterdir():
+
+            if f.name == "Carbon" or f.name == "carbon" or f.name == "Carbon.dx" or f.name == "carbon.dx":
+                NMR_Data.append(f)
+                c_switch = 1
+
+            elif f.name == "Proton" or f.name == "proton" or f.name == "Proton.dx" or f.name == "proton.dx":
+                NMR_Data.append(f)
+                p_switch = 1
+
+            if p_switch == 1 and c_switch == 1:
+                break
+
+        # self.NMR_list.addItem(str(filename[0].split("/")[-1]))
+
+        if p_switch == 0 and c_switch == 0:
+            NMR_Data.append(f)
+
+    #if its not a directory add the file
+
+    else:
+
+        NMR_Data.append(NMR_path)
+
+    settings.NMRsource = NMR_Data
+
+    return
+
 if __name__ == '__main__':
 
     #Read config file and fill in settings in from that
@@ -481,8 +543,10 @@ if __name__ == '__main__':
     parser.add_argument('StructureFiles', nargs='+', default=['-'], help=
     "One or more SDF file for the structures to be verified by DP4. At least one\
     is required, if automatic diastereomer generation is used.")
+
     parser.add_argument("ExpNMR", help="Experimental NMR description, assigned\
     with the atom numbers from the structure file")
+
     parser.add_argument("-s", "--solvent", help="Specify solvent to use\
     for dft calculations")
     parser.add_argument("-q", "--queue", help="Specify queue for job submission\
@@ -543,7 +607,7 @@ if __name__ == '__main__':
     conformational search, implemented options 'mmff' and 'opls' (2005\
     version)", choices=['mmff', 'opls'], default=settings.ForceField)
 
-    parser.add_argument('-OutputFolder', help="Directory for dp4 ouput default is cwd",default=settings.OutputFolder)
+    parser.add_argument('-OutputFolder', help="Directory for dp4 ouput default is cwd",default= settings.OutputFolder)
 
     args = parser.parse_args()
     print(args.StructureFiles)
@@ -625,8 +689,12 @@ if __name__ == '__main__':
 
     settings.InputFiles = args.StructureFiles
 
-    settings.NMRsource = args.ExpNMR
+    settings.NMRsource =  args.ExpNMR
 
-    settings.OutputFolder = args.OutputFolder
+    NMR_files(settings.NMRsource)
+
+    #check if NMR data has been passed from the cwd or the full path
+
+    settings.OutputFolder = Path(args.OutputFolder)
     
     main(settings)

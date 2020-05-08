@@ -1,6 +1,7 @@
 from matplotlib import pyplot as plt
 import numpy as np
 import os
+from pathlib import Path
 
 def PlotProton(NMRData,Isomers,settings):
     
@@ -22,15 +23,13 @@ def PlotProton(NMRData,Isomers,settings):
     
     sim_regions = NMRData.protondata["sim_regions"]
 
-    NMR_file = str(settings.NMRsource) + "/Proton"
-
     if settings.OutputFolder == '':
 
-        gdir = str(os.getcwd()) + "/Graphs/" + settings.InputFiles[0] + "/"
+        gdir = Path.cwd() / "Graphs" / settings.InputFiles[0]
 
     else:
 
-        gdir = settings.OutputFolder + "/Graphs/" + settings.InputFiles[0] + "/"
+        gdir = settings.OutputFolder / "Graphs" / settings.InputFiles[0]
 
     for isomerindex,isomer in enumerate(Isomers):
 
@@ -155,7 +154,9 @@ def PlotProton(NMRData,Isomers,settings):
 
         plt.ylim([-0.5, 2.0])
 
-        plt.savefig(gdir + "/Proton_" + str(isomerindex + 1) + '.svg',format = "svg", bbox_inches='tight')
+        f_name = "Proton_" + str(isomerindex + 1) + '.svg'
+
+        plt.savefig(gdir /f_name,format = "svg", bbox_inches='tight')
 
         plt.close()
 

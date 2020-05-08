@@ -19,6 +19,8 @@ from rdkit.Chem import rdDepictor
 from rdkit.Chem.Draw import rdMolDraw2D
 import pickle
 
+from pathlib import Path
+
 
 class Window(QtWidgets.QMainWindow):
     # create signal to start background job
@@ -31,7 +33,6 @@ class Window(QtWidgets.QMainWindow):
         super(Window, self).__init__()
 
         self.table_widget = TabWidget(self)
-
         self.setCentralWidget(self.table_widget)
 
         # self.tabs.currentChanged.connect(self.onChange)  # changed!
@@ -332,9 +333,7 @@ class plotstats(QtWidgets.QWidget):
 
         self.ypos = event.ydata
 
-        # find the cloest point to the click
-
-
+        # find the closest point to the click
 
         coords = self.statsfig.transData.transform((self.xpos, self.ypos))
 
@@ -351,6 +350,8 @@ class CalculationTab(QtWidgets.QWidget):
     def __init__(self):
 
         super(CalculationTab, self).__init__()
+        self.cwd = Path(os.getcwd())
+        #self.log_file = open(self.cwd / "DP4_log.log" , "w+")
         self.setFixedSize(876, 875)
         self.label = QtWidgets.QLabel(self)
         self.label.setGeometry(QtCore.QRect(10, 10, 121, 16))
@@ -422,17 +423,45 @@ class CalculationTab(QtWidgets.QWidget):
         self.horizontalLayout_2.setContentsMargins(0, 0, 0, 0)
         self.horizontalLayout_2.setObjectName("horizontalLayout_2")
 
+        self.structure_widget = QtWidgets.QWidget(self)
+        self.structure_layout = QtWidgets.QVBoxLayout(self)
+
         self.Add_structure = QtWidgets.QPushButton(self.widget)
         self.Add_structure.setObjectName("Add_structure")
-        self.horizontalLayout_2.addWidget(self.Add_structure)
+        self.Add_structure.setText("Add structure")
+
+        self.remove_structure = QtWidgets.QPushButton(self.widget)
+        self.remove_structure.setObjectName("remove_structure")
+        self.remove_structure.setText("Remove selected")
+
+        self.structure_layout.addWidget(self.Add_structure)
+        self.structure_layout.addWidget(self.remove_structure)
+
+        self.structure_widget.setLayout(self.structure_layout)
+
+        self.horizontalLayout_2.addWidget(self.structure_widget)
 
         self.Structure_list = QtWidgets.QListWidget(self.widget)
         self.Structure_list.setObjectName("Structure_list")
         self.horizontalLayout_2.addWidget(self.Structure_list)
 
+        self.NMR_widget = QtWidgets.QWidget(self)
+        self.NMR_layout = QtWidgets.QVBoxLayout(self)
+
         self.Add_NMR = QtWidgets.QPushButton(self.widget)
         self.Add_NMR.setObjectName("Add_NMR")
-        self.horizontalLayout_2.addWidget(self.Add_NMR)
+        self.Add_NMR.setText("Add NMR")
+
+        self.remove_NMR = QtWidgets.QPushButton(self.widget)
+        self.remove_NMR.setObjectName("remove_NMR")
+        self.remove_NMR.setText("Remove selected")
+
+        self.NMR_layout.addWidget(self.Add_NMR)
+        self.NMR_layout.addWidget(self.remove_NMR)
+
+        self.NMR_widget.setLayout(self.NMR_layout)
+
+        self.horizontalLayout_2.addWidget(self.NMR_widget)
 
         self.NMR_list = QtWidgets.QListWidget(self.widget)
         self.NMR_list.setObjectName("NMR_list")
@@ -496,8 +525,6 @@ class CalculationTab(QtWidgets.QWidget):
         self.label_11.setText("Output")
         self.Gobutton.setText("Calculate")
         self.Add_stats_model.setText("Add stats model")
-        self.Add_structure.setText("Add structure")
-        self.Add_NMR.setText("Add NMR")
         self.Solvent_yn.setText("Solvent")
         self.Gen_diastereomers_yn.setText("Generate\n"
                                           "diastereomers")
@@ -529,15 +556,24 @@ class CalculationTab(QtWidgets.QWidget):
         self.label_13.setGeometry(QtCore.QRect(270, 300, 101, 31))
         self.label_13.setText("Tinker")
 
-
-
         #################################################################################################buttons methods
 
         # adding structures to the gui
 
+        self.NMR_paths = []
+
+        self.Structure_paths = []
+
+        self.Output_folder = Path.cwd()
+
         self.Add_structure.clicked.connect(self.addstructure)
 
+        self.remove_structure.clicked.connect(self.removestructure)
+
+
         self.Add_NMR.clicked.connect(self.addNMR)
+
+        self.remove_NMR.clicked.connect(self.removeNMR)
 
         self.Output_add.clicked.connect(self.addoutputfolder)
 
@@ -675,12 +711,21 @@ class CalculationTab(QtWidgets.QWidget):
         filename = QtWidgets.QFileDialog.getExistingDirectory()
 
         # self.NMR_list.addItem(str(filename[0].split("/")[-1]))
+        self.Output_list.clear()
         self.Output_list.addItem(filename)
+        self.Output_folder = Path(filename)
 
     def get_current_values(self):
+
         import PyDP4
         
         self.settings = PyDP4.Settings()
+
+        #add output folder
+
+        self.settings.OutputFolder = self.Output_folder
+
+        self.settings.InputFilesPaths = self.Structure_paths
 
         # add structures
 
@@ -690,9 +735,17 @@ class CalculationTab(QtWidgets.QWidget):
 
                 self.settings.InputFiles.append(self.Structure_list.item(index).text())
 
+        # copy structures to output folder
+
+        for f in self.Structure_paths:
+
+            if not Path(self.Output_folder / f.name).exists():
+
+                os.path.copy(f,self.settings.OutputFolder)
+
         # add NMR
 
-        self.settings.NMRsource = self.NMR_list.item(0).text()
+        self.settings.NMRsource = self.NMR_paths
 
         # get workflow information
 
@@ -704,7 +757,6 @@ class CalculationTab(QtWidgets.QWidget):
         # generate diastereomers
 
         self.settings.Workflow = ''
-
 
         if self.Gen_diastereomers_yn.isChecked() == 1:
             self.settings.Workflow += 'g'
@@ -722,7 +774,6 @@ class CalculationTab(QtWidgets.QWidget):
             else:
                 
                 self.settings.MM = 't'
-
 
         # DFT Geometry optimisation
 
@@ -778,15 +829,68 @@ class CalculationTab(QtWidgets.QWidget):
         self.thread.disconnect()
 
     def addstructure(self):
-        filename = QtWidgets.QFileDialog.getOpenFileName()
-        self.Structure_list.addItem(str(filename[0].split("/")[-1]))
+
+        f = QtWidgets.QFileDialog.getOpenFileName()[0]
+
+        if f:
+
+            filename = Path(f)
+
+            self.Structure_list.addItem(filename.name)
+            self.Structure_paths.append(filename)
+
+    def removestructure(self):
+
+        item = self.Structure_list.selectedItems()
+        if not item:
+            return
+        for i in item:
+            self.Structure_list.takeItem(self.Structure_list.row(i))
+            self.Structure_paths.pop(self.Structure_list.row(i))
 
     def addNMR(self):
+        
         # filename = QtWidgets.QFileDialog.getOpenFileName()
-        filename = QtWidgets.QFileDialog.getExistingDirectory()
 
-        # self.NMR_list.addItem(str(filename[0].split("/")[-1]))
-        self.NMR_list.addItem(str(filename.split("/")[-1]))
+        i = QtWidgets.QFileDialog.getExistingDirectory()
+
+        if i:
+
+            filename = Path(i)
+
+            p_switch = 0
+
+            c_switch = 0
+
+            for f in filename.iterdir():
+
+                if f.name == "Carbon" or f.name == "carbon" or f.name == "Carbon.dx" or f.name == "carbon.dx":
+                    self.NMR_list.addItem(f.name)
+                    self.NMR_paths.append(f)
+                    c_switch = 1
+
+                elif f.name == "Proton" or f.name== "proton" or f.name == "Proton.dx" or f.name== "proton.dx":
+                    self.NMR_list.addItem(f.name)
+                    self.NMR_paths.append(f)
+                    p_switch = 1
+
+                if p_switch == 1 and c_switch == 1:
+                    break
+
+            # self.NMR_list.addItem(str(filename[0].split("/")[-1]))
+
+            if p_switch == 0 and c_switch == 0:
+                self.NMR_list.addItem(filename.name)
+                self.NMR_paths.append(f)
+
+    def removeNMR(self):
+
+        item = self.NMR_list.selectedItems()
+        if not item:
+            return
+        for i in item:
+            self.NMR_list.takeItem(self.NMR_list.row(i))
+            self.NMR_paths.pop(self.NMR_list.row(i))
 
     def addstats(self):
         filename = QtWidgets.QFileDialog.getOpenFileName()
@@ -801,7 +905,6 @@ class CalculationTab(QtWidgets.QWidget):
         else:
             self.solvent_drop.setEnabled(False)
             self.MM_yn.setChecked(False)
-
 
     def MMtoggle(self, state):
 
@@ -836,7 +939,6 @@ class CalculationTab(QtWidgets.QWidget):
 
             else:
                 self.solvent_drop.setEnabled(False)
-
 
     def Energytoggle(self, state):
 
@@ -897,7 +999,6 @@ class CalculationTab(QtWidgets.QWidget):
             self.DP4_stat_yn.setChecked(False)
             self.Add_stats_model.setEnabled(False)
 
-
     def Statstoggle(self, state):
 
         if state > 0:
@@ -917,6 +1018,9 @@ class CalculationTab(QtWidgets.QWidget):
     def append_text(self, text):
         self.Output_box.moveCursor(QtGui.QTextCursor.End)
         self.Output_box.insertPlainText(text)
+        #self.log_file.write(text)
+
+        self.worker.log_file.write(text)
 
     def Gotoggle(self):
 
@@ -934,6 +1038,8 @@ class ProtonPlotTab(QtWidgets.QWidget):
     def __init__(self):
 
         super(ProtonPlotTab, self).__init__()
+
+        self.cwd = Path(os.getcwd())
 
         # create a figure instance
 
@@ -984,15 +1090,15 @@ class ProtonPlotTab(QtWidgets.QWidget):
 
         if ui.table_widget.Tab1.settings.OutputFolder == '':
 
-            pdir = str(os.getcwd()) +  "/Pickles/"
+            pdir = self.cwd  /  "Pickles"
 
         else:
-            pdir =  ui.table_widget.Tab1.settings.OutputFolder +  "/Pickles/"
+            pdir =  ui.table_widget.Tab1.settings.OutputFolder /  "Pickles"
 
 
-        if os.path.isfile(pdir + ui.table_widget.Tab1.settings.InputFiles[0] +  "protondata"):
+        if os.path.isfile(pdir / ui.table_widget.Tab1.settings.InputFiles[0] /  "protondata"):
 
-            self.protondata = pickle.load(open(pdir + ui.table_widget.Tab1.settings.InputFiles[0] + "protondata", "rb"))
+            self.protondata = pickle.load( Path(pdir / ui.table_widget.Tab1.settings.InputFiles[0] / "protondata").open(mode = "rb"))
 
         self.xdata = self.protondata["xdata"]
 
@@ -1011,8 +1117,6 @@ class ProtonPlotTab(QtWidgets.QWidget):
         self.integrals = self.protondata["integrals"]
 
         self.sim_regions = self.protondata["sim_regions"]
-
-        self.NMR_file = str(ui.table_widget.Tab1.settings.NMRsource) + "/Proton"
 
         self.PlotProton()
 
@@ -1050,13 +1154,13 @@ class ProtonPlotTab(QtWidgets.QWidget):
 
         if ui.table_widget.Tab1.worker.settings.OutputFolder == '':
 
-            pdir = str(os.getcwd()) + "/Pickles/"
+            pdir = Path.cwd() / "Pickles"
 
         else:
 
-            pdir = ui.table_widget.Tab1.worker.settings.OutputFolder + "/Pickles/"
+            pdir = ui.table_widget.Tab1.worker.settings.OutputFolder / "Pickles"
 
-        if os.path.isfile(pdir + ui.table_widget.Tab1.worker.settings.InputFiles[0] + "protondata"):
+        if Path(pdir / ui.table_widget.Tab1.worker.settings.InputFiles[0] / "protondata").exists():
 
             self.figure.clear()
 
@@ -1247,13 +1351,13 @@ class ProtonPlotTab(QtWidgets.QWidget):
 
         if ui.table_widget.Tab1.worker.settings.OutputFolder == '':
 
-            pdir = str(os.getcwd()) + "/Pickles/"
+            pdir = Path.cwd() / "Pickles"
 
         else:
 
-            pdir = ui.table_widget.Tab1.worker.settings.OutputFolder + "/Pickles/"
+            pdir = ui.table_widget.Tab1.worker.settings.OutputFolder / "Pickles"
 
-        if os.path.isfile(pdir + ui.table_widget.Tab1.worker.settings.InputFiles[0] + "protondata"):
+        if Path(pdir / ui.table_widget.Tab1.worker.settings.InputFiles[0] / "protondata").exists():
 
             self.figure.clear()
 
@@ -1402,9 +1506,9 @@ class ProtonPlotTab(QtWidgets.QWidget):
         for i in atom:
             highlight[i] = colors[color % 10]
 
-        m = Chem.MolFromMolFile(str(ui.table_widget.Tab1.worker.settings.InputFiles[0]).split('.sdf')[0] + '.sdf', removeHs=False)
+        #m = Chem.MolFromMolFile(str(ui.table_widget.Tab1.worker.settings.InputFiles[0]).split('.sdf')[0] + '.sdf', removeHs=False)
 
-        # m = Chem.AddHs(m)
+        m = Chem.MolFromMolFile(str(ui.table_widget.Tab1.worker.settings.InputFilesPaths[0]), removeHs=False)
 
         Chem.Compute2DCoords(m)
 
@@ -1481,15 +1585,15 @@ class CarbonPlotTab(QtWidgets.QWidget):
 
         if ui.table_widget.Tab1.settings.OutputFolder == '':
 
-            pdir = str(os.getcwd()) +  "/Pickles/"
+            pdir = Path.cwd() /  "Pickles"
 
         else:
-            pdir =  ui.table_widget.Tab1.settings.OutputFolder +  "/Pickles/"
+            pdir =  ui.table_widget.Tab1.settings.OutputFolder /  "Pickles"
 
 
-        if os.path.isfile(pdir + ui.table_widget.Tab1.settings.InputFiles[0] +  "carbondata"):
+        if Path(pdir / ui.table_widget.Tab1.settings.InputFiles[0] /  "carbondata").exists():
 
-            self.carbondata = pickle.load(open(pdir + ui.table_widget.Tab1.settings.InputFiles[0] + "carbondata", "rb"))
+            self.carbondata = pickle.load(Path(pdir / ui.table_widget.Tab1.settings.InputFiles[0] / "carbondata").open(mode= "rb"))
 
         self.xdata = self.carbondata["xdata"]
 
@@ -1520,13 +1624,13 @@ class CarbonPlotTab(QtWidgets.QWidget):
 
         if ui.table_widget.Tab1.worker.settings.OutputFolder == '':
 
-            pdir = str(os.getcwd()) + "/Pickles/"
+            pdir = Path.cwd() / "Pickles"
 
         else:
 
-            pdir = ui.table_widget.Tab1.worker.settings.OutputFolder + "/Pickles/"
+            pdir = ui.table_widget.Tab1.worker.settings.OutputFolder / "Pickles"
 
-        if os.path.isfile(pdir + ui.table_widget.Tab1.worker.settings.InputFiles[0] + "carbondata"):
+        if Path(pdir / ui.table_widget.Tab1.worker.settings.InputFiles[0] / "carbondata").exists():
 
             self.figure.clear()
 
@@ -1698,13 +1802,13 @@ class CarbonPlotTab(QtWidgets.QWidget):
 
         if ui.table_widget.Tab1.worker.settings.OutputFolder == '':
 
-            pdir = str(os.getcwd()) + "/Pickles/"
+            pdir = Path.cwd() / "Pickles"
 
         else:
 
-            pdir = ui.table_widget.Tab1.worker.settings.OutputFolder + "/Pickles/"
+            pdir = ui.table_widget.Tab1.worker.settings.OutputFolder / "Pickles"
 
-        if os.path.isfile(pdir + ui.table_widget.Tab1.worker.settings.InputFiles[0] + "carbondata"):
+        if Path(pdir / ui.table_widget.Tab1.worker.settings.InputFiles[0] / "carbondata").exists():
 
             self.figure.clear()
 
@@ -1777,32 +1881,6 @@ class CarbonPlotTab(QtWidgets.QWidget):
                 fig.plot(self.xdata[self.removed],
                          self.simulated_ydata[self.removed], "ro")
 
-            '''
-
-            # annotate shift positions
-
-            count = 0
-
-            ####some quick sorting
-
-            argss = np.argsort(self.assigned_shifts)
-            sortshifts = np.sort(self.assigned_shifts)[::-1]
-            slabels = np.array(self.assigned_labels)[argss][::-1]
-
-            prev = sortshifts[0]
-
-            for x, txt in enumerate(slabels):
-
-                if abs(prev - sortshifts[x]) < 4:
-                    count += 1
-                else:
-                    count = 0
-                    prev = sortshifts[x]
-
-                fig.annotate(txt, (sortshifts[x], + 2.05 + 0.05 * count))
-
-            '''
-
             for l, s in zip(assigned_label, assigned_shift):
                 fig.annotate(l, (s, 2.05), color="cyan")
 
@@ -1840,7 +1918,9 @@ class CarbonPlotTab(QtWidgets.QWidget):
         for i in atom:
             highlight[i] = (0, 1, 1)
 
-        m = Chem.MolFromMolFile(str(ui.table_widget.Tab1.worker.settings.InputFiles[0]).split('.sdf')[0] + '.sdf', removeHs=False)
+        #m = Chem.MolFromMolFile(str(ui.table_widget.Tab1.worker.settings.InputFiles[0]).split('.sdf')[0] + '.sdf', removeHs=False)
+        m = Chem.MolFromMolFile(str(ui.table_widget.Tab1.worker.settings.InputFilesPaths[0]), removeHs=False)
+        #m = Chem.MolFromMolFile(ui.table_widget.Tab1.worker.settings.InputFilesPaths[0], removeHs=False)
 
         # m = Chem.AddHs(m)
 
@@ -1996,9 +2076,13 @@ class PyDP4WorkerObject(QtCore.QObject):
     finished = QtCore.pyqtSignal()
 
     def runPyDP4(self):
-        launchdir = os.getcwd()
-        print('0:' + ui.table_widget.Tab1.Output_list.item(0).text())
-        os.chdir(ui.table_widget.Tab1.Output_list.item(0).text())
+        launchdir = Path.cwd()
+
+        print(ui.table_widget.Tab1.settings.OutputFolder)
+        os.chdir(ui.table_widget.Tab1.settings.OutputFolder)
+
+        self.log_file = open(ui.table_widget.Tab1.settings.OutputFolder/ "DP4_log.log" , "w+")
+
         self.NMRData, self.Isomers, self.settings, self.DP4Data = PyDP4.main(ui.table_widget.Tab1.settings)
         os.chdir(launchdir)
         self.finished.emit()
@@ -2061,14 +2145,12 @@ ui = Window()
 
 ui.show()
 
-'''
 thread = QtCore.QThread()
 my_receiver = MyReceiver(q)
 my_receiver.mysignal.connect(ui.table_widget.Tab1.append_text)
 my_receiver.moveToThread(thread)
 thread.started.connect(my_receiver.run)
 thread.start()
-'''
 
 sys.exit(app.exec_())
 

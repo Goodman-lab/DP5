@@ -1,6 +1,7 @@
 from matplotlib import pyplot as plt
 import numpy as np
 import os
+from pathlib import Path
 
 def PlotCarbon(NMRData,Isomers,settings):
     
@@ -10,19 +11,17 @@ def PlotCarbon(NMRData,Isomers,settings):
     
     exppeaks = NMRData.carbondata["exppeaks"]
 
-    NMR_file = str(settings.NMRsource) + "/Carbon"
-
     simulated_ydata = NMRData.carbondata["simulated_ydata"]
     
     removed = NMRData.carbondata["removed"]
 
     if settings.OutputFolder == '':
 
-        gdir = str(os.getcwd()) + "/Graphs/" + settings.InputFiles[0] + "/"
+        gdir = Path.cwd() / "Graphs" / settings.InputFiles[0] 
 
     else:
 
-        gdir = settings.OutputFolder + "/Graphs/" + settings.InputFiles[0] + "/"
+        gdir = settings.OutputFolder / "Graphs" / settings.InputFiles[0]
 
     for isomerindex,isomer in enumerate(Isomers):
 
@@ -128,10 +127,11 @@ def PlotCarbon(NMRData,Isomers,settings):
     
         plt.plot(xdata, simulated_calc_ydata + 1.1, label='calculated spectrum')
 
-
         plt.legend()
 
-        plt.savefig(gdir + "/Carbon_" + str(isomerindex +1 ) + '.svg',format = "svg", bbox_inches='tight')
+        f_name = "Carbon_" + str(isomerindex + 1 ) + '.svg'
+
+        plt.savefig(gdir / f_name,format = "svg", bbox_inches='tight')
 
         plt.close()
 
