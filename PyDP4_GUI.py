@@ -1526,6 +1526,7 @@ class ProtonPlotTab(QtWidgets.QWidget):
 
         self.image.setGeometry(QtCore.QRect(0, 50, 300, 300))
 
+
         ui.update()
 
         # f = open("f.svg", "w+")
@@ -2137,7 +2138,7 @@ def ReadParamFile(f, t):
 
 q = queue.Queue()
 
-#sys.stdout = WriteStream(q)
+sys.stdout = WriteStream(q)
 
 app = QtWidgets.QApplication(sys.argv)
 
