@@ -75,6 +75,11 @@ class TabWidget(QtWidgets.QWidget):
         self.tabs.addTab(self.tab2, "Proton Plot")
         self.tabs.addTab(self.tab3, "Carbon Plot")
 
+        self.Tab2 = ProtonPlotTab()
+        self.Tab3 = CarbonPlotTab()
+        self.Tab4 = StatsTab()
+        self.Tab5 = ConformerTab()
+        
         if 's' in ui.table_widget.Tab1.settings.Workflow:
             self.tabs.addTab(self.tab4, "Stats")
             self.tab4.layout = QtWidgets.QVBoxLayout(self)
@@ -82,11 +87,6 @@ class TabWidget(QtWidgets.QWidget):
             self.tab4.setLayout(self.tab4.layout)
 
         self.tabs.addTab(self.tab5, "Conformers")
-
-        self.Tab2 = ProtonPlotTab()
-        self.Tab3 = CarbonPlotTab()
-        self.Tab4 = StatsTab()
-        self.Tab5 = ConformerTab()
 
         self.tab2.layout = QtWidgets.QVBoxLayout(self)
         self.tab2.layout.addWidget(self.Tab2)
