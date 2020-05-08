@@ -96,7 +96,7 @@ class NMRData:
 
     def ExpNMRFromDesc(self):
 
-        print('Loading NMR data from ' + self.InputPath)
+        print('Loading NMR data from ' + str(self.InputPath))
 
         # Reads the experimental NMR data from the file
         ExpNMR_file = open(self.InputPath[0], 'r')
