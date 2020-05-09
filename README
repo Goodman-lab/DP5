@@ -52,21 +52,22 @@ Gaussian for DFT and it runs Gaussian on ziggy by default. NWChem and TINKER is 
 This setup has several requirements.
 
 1) One should have MacroModel or TINKER and NWChem or Gaussian.
-The beginning PyDP4.py file contains a structure "Settings", where the location
-of the TINKER scan executable or MacroModel bmin executable should be specified.
+The DP4-AI folder contains settings.cfg, where the locations for the installed software packages
+can be given, so that DP4-AI can launch them and use in the workflow. Examples on how to do
+this are provided in the included settings.cfg.
 
 2) In order to run DP4-AI a python 3.6+ environment the following packages are required:
 numpy scipy Cython matplotlib nmrglue statsmodels lmfit openbabel rdkit pathos
 Additionally, the graphical user interface requires PyQT5
 
 3) RDKit and OpenBabel are required for the automatic diastereomer generation and
-other manipulations of sdf files (renumbering, ring corner flipping). For OpenBabel
-this includes Python bindings. The following links provide instructions for building
-OpenBabel with Python bindings:
+other manipulations of sdf files (renumbering, ring corner flipping), as well as molecule
+graphical plotting. For OpenBabel this requirement includes Python bindings.
+The following links provide instructions for building OpenBabel with Python bindings:
 http://openbabel.org/docs/dev/UseTheLibrary/PythonInstall.html
 http://openbabel.org/docs/dev/Installation/install.html#compile-bindings
 Alternatively, the OpenBabel package in conda repository has also lately become
-more reliable, and is much easier to install.
+more reliable, and is much easier to install. Both OpenBabel 2.4.1 and 3.x are supported.
 
 4) Finally, to run calculations on a computational cluster, a passwordless
 ssh connection should be set up in both directions -
@@ -75,8 +76,8 @@ of the relevant functions in Gaussian.py or NWChem.py will be required
 to fit your situation.
 
 5) All development and testing was done on Linux. However, both the scripts
-and all the backend software should work equally well on windows with little
-modification.
+and all the backend software should work equally well on MacOS with minor adjustments.
+Windows will require more modification, and is currently not supported.
 
 ===================
 
