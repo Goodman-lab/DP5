@@ -509,9 +509,10 @@ def NMR_files(NMR_args):
 
 if __name__ == '__main__':
 
-    #Read config file and fill in settings in from that
-    #These are then overridden by any explicit parameters given through the command line
+    # Read config file and fill in settings in from that
 
+
+    # These are then overridden by any explicit parameters given through the command line
     parser = argparse.ArgumentParser(description='PyDP4 script to setup\
     and run Tinker, Gaussian (on ziggy) and DP4')
     parser.add_argument('-w', '--workflow', help="Defines which steps to include in the workflow, " +
