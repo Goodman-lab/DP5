@@ -501,11 +501,12 @@ def NMR_files(NMR_args):
 # Read the config file and fill in the corresponding attributes in settings class
 def ReadConfig(settings):
 
-    if not os.path.exists('settings.cfg'):
+    cfgpath = os.path.join(getScriptPath(), 'settings.cfg')
+    if not os.path.exists(cfgpath):
         print('settings.cfg is missing!')
         return settings
 
-    configfile = open('settings.cfg', 'r')
+    configfile = open(cfgpath, 'r')
     config = configfile.readlines()
     configfile.close()
 

@@ -289,9 +289,12 @@ def RunCalcs(GausJobs, settings):
         print("There were no jobs to run.")
         return Completed
 
-    if ('GAUS_EXEDIR' in os.environ) and (settings.GausPath == ''):
+    if ('GAUS_EXEDIR' in os.environ):
         gausdir = os.environ['GAUSS_EXEDIR']
-        GausPrefix = gausdir + "/g09"
+        if shutil.which(os.path.join(gausdir, 'g09')) is None:
+            GausPrefix = os.path.join(gausdir, "g16")
+        else:
+            GausPrefix = os.path.join(gausdir, "g09")
     else:
         GausPrefix = settings.GausPath
 
