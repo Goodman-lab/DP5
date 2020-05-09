@@ -176,13 +176,6 @@ class Isomer:
 
 def main(settings):
 
-    print("==========================")
-    print("PyDP4 script,\nintegrating Tinker/MacroModel,")
-    print("Gaussian/NWChem and DP4\nv1.0")
-    print("\nCopyright (c) 2015-2019 Kristaps Ermanis, Alexander Howarth, Jonathan M. Goodman")
-    print("Distributed under MIT license")
-    print("==========================\n\n")
-
     print("Current working directory: " + os.getcwd())
     print("Initial input files: " + str(settings.InputFiles))
     print("NMR file: " + str(settings.NMRsource))
@@ -508,6 +501,10 @@ def NMR_files(NMR_args):
 # Read the config file and fill in the corresponding attributes in settings class
 def ReadConfig(settings):
 
+    if not os.path.exists('settings.cfg'):
+        print('settings.cfg is missing!')
+        return settings
+
     configfile = open('settings.cfg', 'r')
     config = configfile.readlines()
     configfile.close()
@@ -522,17 +519,24 @@ def ReadConfig(settings):
         if len(newsettings[-1]) < 2:
             newsettings[-1].append('')
 
-    print('\n'.join([x[0] + ': ' + x[1] for x in newsettings]))
-
     # Set the attributes in the settings class
+    print('Settings read from settings.cfg:')
     for setting in newsettings:
         if hasattr(settings, setting[0]):
             setattr(settings, setting[0], setting[1])
+            print('  ' + setting[0] + ': ' + setting[1])
 
     return settings
 
 
 if __name__ == '__main__':
+
+    print("==========================")
+    print("PyDP4 script,\nintegrating Tinker/MacroModel,")
+    print("Gaussian/NWChem and DP4\nv1.0")
+    print("\nCopyright (c) 2015-2019 Kristaps Ermanis, Alexander Howarth, Jonathan M. Goodman")
+    print("Distributed under MIT license")
+    print("==========================\n\n")
 
     # Read config file and fill in settings in from that
     settings = ReadConfig(settings)

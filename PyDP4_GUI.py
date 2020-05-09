@@ -721,6 +721,9 @@ class CalculationTab(QtWidgets.QWidget):
         
         self.settings = PyDP4.Settings()
 
+        # Read config file and fill in settings in from that
+        self.settings = PyDP4.ReadConfig(self.settings)
+
         #add output folder
 
         self.settings.OutputFolder = self.Output_folder
