@@ -199,12 +199,10 @@ def main(settings):
     # Create isomer data structures
     Isomers = [Isomer(f.split('.sdf')[0]) for f in settings.InputFiles]
 
-    # Run conformational search, if requested
-
     print("Assuming all computations are done? ... ",settings.AssumeDone )
-
     print("Using preexisting DFT data? ... ",settings.UseExistingInputs)
 
+    # Run conformational search, if requested
     if ('m' in settings.Workflow) and not (settings.AssumeDone or settings.UseExistingInputs):
 
         print("Performing conformational search using ", end="")
@@ -507,10 +505,37 @@ def NMR_files(NMR_args):
     return
 
 
+# Read the config file and fill in the corresponding attributes in settings class
+def ReadConfig(settings):
+
+    configfile = open('settings.cfg', 'r')
+    config = configfile.readlines()
+    configfile.close()
+
+    # Read in the new settings values from config
+    newsettings = []
+    for line in config:
+        if ('#' in line) or (len(line)<3) or ('=' not in line):
+            continue
+
+        newsettings.append([x.strip() for x in line[:-1].split('=')])
+        if len(newsettings[-1]) < 2:
+            newsettings[-1].append('')
+
+    print('\n'.join([x[0] + ': ' + x[1] for x in newsettings]))
+
+    # Set the attributes in the settings class
+    for setting in newsettings:
+        if hasattr(settings, setting[0]):
+            setattr(settings, setting[0], setting[1])
+
+    return settings
+
+
 if __name__ == '__main__':
 
     # Read config file and fill in settings in from that
-
+    settings = ReadConfig(settings)
 
     # These are then overridden by any explicit parameters given through the command line
     parser = argparse.ArgumentParser(description='PyDP4 script to setup\
