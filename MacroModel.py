@@ -131,9 +131,9 @@ def RunMacroModel(MacroModelInputs, settings):
     MacroModelOutputs = []
     NCompleted = 0
 
-    if shutil.which(os.path.join(settings.SCHRODINGER,bmin)) is None:
+    if shutil.which(os.path.join(settings.SCHRODINGER,'bmin')) is None:
         print('MacroModel.py, RunMacroModel:\n  Could not find MacroModel executable at ' +
-              os.path.join(settings.SCHRODINGER,bmin))
+              os.path.join(settings.SCHRODINGER,'bmin'))
         quit()
 
     if os.name == 'nt':

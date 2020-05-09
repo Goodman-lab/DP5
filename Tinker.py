@@ -77,7 +77,7 @@ def RunTinker(TinkerInputs, settings):
     TinkerOutputs = []
     TinkerPrefix = os.path.join(settings.TinkerPath, 'bin', 'scan')
     if shutil.which(TinkerPrefix) is None:
-        print('Tinker.py, RunTinker:\n  Could not find Tinker bmin executable at ' + TinkerPrefix)
+        print('Tinker.py, RunTinker:\n  Could not find Tinker scan executable at ' + TinkerPrefix)
         quit()
 
     NCompleted = 0
