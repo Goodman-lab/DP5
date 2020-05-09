@@ -11,7 +11,7 @@ execution. Called by PyDP4.py.
 import glob
 import os
 import subprocess
-
+import shutil
 
 def SetupNMRCalcs(Isomers, settings):
     jobdir = os.getcwd()
@@ -151,7 +151,7 @@ def RunNMRCalcs(Isomers, settings):
         print(iso.NMRInputFiles)
         NWJobs.extend([x for x in iso.NMRInputFiles if (x[:-3] + '.nwo') not in iso.NMROutputFiles])
 
-    Completed = RunCalcs(NWJobs)
+    Completed = RunCalcs(NWJobs, settings)
 
     for iso in Isomers:
         iso.NMROutputFiles.extend([x[:-3] + '.nwo' for x in iso.NMRInputFiles if (x[:-3] + '.nwo') in Completed])
@@ -193,7 +193,7 @@ def RunECalcs(Isomers, settings):
         NWJobs.extend([x for x in iso.EInputFiles if (x[:-3] + '.nwo') not in iso.EOutputFiles])
 
     print('To run: ' + str(NWJobs))
-    Completed = RunCalcs(NWJobs)
+    Completed = RunCalcs(NWJobs, settings)
 
     for iso in Isomers:
         iso.EOutputFiles.extend([x[:-3] + '.nwo' for x in iso.EInputFiles if (x[:-3] + '.nwo') in Completed])
@@ -236,7 +236,7 @@ def RunOptCalcs(Isomers, settings):
         print(iso.NMRInputFiles)
         NWJobs.extend([x for x in iso.OptInputFiles if (x[:-3] + '.nwo') not in iso.OptOutputFiles])
 
-    Completed = RunCalcs(NWJobs)
+    Completed = RunCalcs(NWJobs, settings)
 
     for iso in Isomers:
         iso.NMROutputFiles.extend([x[:-3] + '.nwo' for x in iso.OptInputFiles if (x[:-3] + '.nwo') in Completed])
@@ -265,15 +265,19 @@ def GetPrerunOptCalcs(Isomers):
     return Isomers
 
 
-def RunCalcs(NWJobs):
+def RunCalcs(NWJobs, settings):
 
     NCompleted = 0
     Completed = []
-    NWChemPrefix = "nwchem "
+    NWChemPrefix = settings.NWChemPath
+
+    if shutil.which(NWChemPrefix) is None:
+        print('NWChem.py, RunCalcs:\n  Could not find NWChem executable at ' + NWChemPrefix)
+        quit()
 
     for f in NWJobs:
-        print(NWChemPrefix + f + ' > ' + f[:-2] + 'nwo')
-        outp = subprocess.check_output(NWChemPrefix + f + ' > ' + f[:-2] +
+        print(NWChemPrefix + ' ' + f + ' > ' + f[:-2] + 'nwo')
+        outp = subprocess.check_output(NWChemPrefix + ' ' + f + ' > ' + f[:-2] +
                                        'nwo', shell=True)
         NCompleted += 1
         print("NWChem job " + str(NCompleted) + " of " + str(len(NWJobs)) + \

@@ -15,7 +15,7 @@ import subprocess
 import os
 import time
 import glob
-
+import shutil
 
 def SetupNMRCalcs(Isomers, settings):
 
@@ -169,7 +169,7 @@ def RunNMRCalcs(Isomers, settings):
     for iso in Isomers:
         GausJobs.extend([x for x in iso.NMRInputFiles if (x[:-4] + '.out') not in iso.NMROutputFiles])
 
-    Completed = RunCalcs(GausJobs)
+    Completed = RunCalcs(GausJobs, settings)
 
     for iso in Isomers:
         iso.NMROutputFiles.extend([x[:-4] + '.out' for x in iso.NMRInputFiles if (x[:-4] + '.out') in Completed])
@@ -210,7 +210,7 @@ def RunECalcs(Isomers, settings):
     for iso in Isomers:
         GausJobs.extend([x for x in iso.EInputFiles if (x[:-4] + '.out') not in iso.EOutputFiles])
 
-    Completed = RunCalcs(GausJobs)
+    Completed = RunCalcs(GausJobs, settings)
 
     for iso in Isomers:
         iso.EOutputFiles.extend([x[:-4] + '.out' for x in iso.EInputFiles if (x[:-4] + '.out') in Completed])
@@ -251,7 +251,7 @@ def RunOptCalcs(Isomers, settings):
     for iso in Isomers:
         GausJobs.extend([x for x in iso.OptInputFiles if (x[:-4] + '.out') not in iso.OptOutputFiles])
 
-    Completed = RunCalcs(GausJobs)
+    Completed = RunCalcs(GausJobs, settings)
 
     for iso in Isomers:
         iso.OptOutputFiles.extend([x[:-4] + '.out' for x in iso.OptInputFiles if (x[:-4] + '.out') in Completed])
@@ -280,7 +280,7 @@ def GetPrerunOptCalcs(Isomers):
     return Isomers
 
 
-def RunCalcs(GausJobs):
+def RunCalcs(GausJobs, settings):
 
     NCompleted = 0
     Completed = []
@@ -289,13 +289,20 @@ def RunCalcs(GausJobs):
         print("There were no jobs to run.")
         return Completed
 
-    gausdir = os.environ['GAUSS_EXEDIR']
-    GausPrefix = gausdir + "/g09 < "
+    if ('GAUS_EXEDIR' in os.environ) and (settings.GausPath == ''):
+        gausdir = os.environ['GAUSS_EXEDIR']
+        GausPrefix = gausdir + "/g09"
+    else:
+        GausPrefix = settings.GausPath
+
+    if shutil.which(GausPrefix) is None:
+        print('Gaussian.py, RunCalcs:\n  Could not find Gaussian executable at ' + GausPrefix)
+        quit()
 
     for f in GausJobs:
         time.sleep(3)
-        print(GausPrefix + f + ' > ' + f[:-3] + 'out')
-        outp = subprocess.check_output(GausPrefix + f + ' > ' + f[:-3] + 'out', shell=True)
+        print(GausPrefix + " < " + f + ' > ' + f[:-3] + 'out')
+        outp = subprocess.check_output(GausPrefix + " < "  + f + ' > ' + f[:-3] + 'out', shell=True)
 
         NCompleted += 1
         if IsGausCompleted(f[:-4] + '.out'):

@@ -9,6 +9,7 @@ execution and output interpretation. Called by PyDP4.py.
 """
 
 import os
+import shutil
 import sys
 import subprocess
 import shutil
@@ -129,7 +130,12 @@ def RunMacroModel(MacroModelInputs, settings):
     MacroModelBaseNames = [x[:-4] for x in MacroModelInputs]
     MacroModelOutputs = []
     NCompleted = 0
-    
+
+    if shutil.which(os.path.join(settings.SCHRODINGER,bmin)) is None:
+        print('MacroModel.py, RunMacroModel:\n  Could not find MacroModel executable at ' +
+              os.path.join(settings.SCHRODINGER,bmin))
+        quit()
+
     if os.name == 'nt':
         MMPrefix = '"' + settings.SCHRODINGER + '\\bmin" '
     else:

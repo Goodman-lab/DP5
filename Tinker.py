@@ -9,6 +9,7 @@ execution and output interpretation. Called by PyDP4.py.
 """
 
 import os
+import shutil
 import sys
 import subprocess
 import PyDP4
@@ -74,9 +75,9 @@ def SetupTinker(settings):
 def RunTinker(TinkerInputs, settings):
     #Run Tinker scan for all diastereomeric inputs
     TinkerOutputs = []
-
-    if not os.path.exists(settings.TinkerPath + '/bin/scan'):
-        print("Tinker scan executable not found at " + settings.TinkerPath + "/bin/scan,\nplease change the path in settings.TinkerPath in Tinker.py")
+    TinkerPrefix = os.path.join(settings.TinkerPath, 'bin', 'scan')
+    if shutil.which(TinkerPrefix) is None:
+        print('Tinker.py, RunTinker:\n  Could not find Tinker bmin executable at ' + TinkerPrefix)
         quit()
 
     NCompleted = 0

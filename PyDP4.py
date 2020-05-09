@@ -92,7 +92,7 @@ class Settings:
     RingAtoms = []              # Define the 5-membered ring, useful if several are present in molecule
     SCHRODINGER = ''            # Define the root folder for Schrodinger software
     TinkerPath = '/home/ah809/Downloads/tinker/' # Define the root folder for Tinker software,
-                                # must contain /bin/scan and params/mmff.prm for the process to work
+                                # must contain bin/scan and params/mmff.prm for the process to work
 
     # --- Conformer pruning ---
     HardConfLimit = 1000       # Immediately stop if conformers to run exceed this number
@@ -102,6 +102,9 @@ class Settings:
     MaxCutoffEnergy = 10.0      # Max conformer MM energy in kJ/mol to allow
 
     # --- DFT ---
+    NWChemPath = "nwchem"     # Path to nwchem executable. If it's in the path, can be just 'nwchem'
+    GausPath = ""               # Path to Gaussian executable. If it's in the path, can be just 'g09' or 'g16'
+                                # If left empty, it will attempt to use g09 in GAUS_EXEDIR environment variable
     MaxDFTOptCycles = 50        # Max number of DFT geometry optimization cycles to request.
     CalcFC = False              # Calculate QM force constants before optimization
     OptStepSize = 30            # Max step Gaussian should take in geometry optimization
@@ -351,7 +354,6 @@ def main(settings):
             print('Experimental NMR description found and read.')
 
             # performs a pairwise assignment
-
             Isomers = NMR.PairwiseAssignment(Isomers,NMRData)
 
             print('Cshifts: ' + str(NMRData.Cshifts))
@@ -367,7 +369,6 @@ def main(settings):
                 if f.name == "Proton" or f.name == "proton":
 
                     from Proton_assignment import AssignProton
-
                     from Proton_plotting import PlotProton
 
                     print('\nAssigning proton spectrum...')
@@ -379,7 +380,6 @@ def main(settings):
                 elif f.name == "Carbon" or f.name == "carbon":
 
                     from Carbon_assignment import AssignCarbon
-
                     from Carbon_plotting import PlotCarbon
 
                     print('\nAssigning carbon spectrum...')
@@ -395,7 +395,6 @@ def main(settings):
                 if f.name == "Proton.dx" or f.name == "proton.dx":
 
                     from Proton_assignment import AssignProton
-
                     from Proton_plotting import PlotProton
 
                     print('\nAssigning proton spectrum...')
@@ -407,7 +406,6 @@ def main(settings):
                 elif f.name == "Carbon.dx" or f.name == "carbon.dx":
 
                     from Carbon_assignment import AssignCarbon
-
                     from Carbon_plotting import PlotCarbon
 
                     print('\nAssigning carbon spectrum...')
@@ -425,17 +423,11 @@ def main(settings):
     if 's' in settings.Workflow:
 
         print('\nCalculating DP4 probabilities...')
-
         DP4data = DP4.DP4data()
-
         DP4data = DP4.ProcessIsomers(DP4data,Isomers)
-
         DP4data = DP4.InternalScaling(DP4data)
-
         DP4data = DP4.CalcProbs(DP4data,settings)
-
         DP4data = DP4.CalcDP4(DP4data)
-
         DP4data = DP4.MakeOutput(DP4data,Isomers,settings)
 
         #print(DP4.FormatData(DP4data))
@@ -471,25 +463,19 @@ def NMR_files(NMR_args):
     print("NMR_path")
 
     NMR_path = Path(NMR_args)
-
     NMR_Data = []
 
     #check if path is from cwd or elsewhere:
-
     if len(NMR_path.parts) == 1:
 
         #if so a folder in the cwd has been passed add the cwd to the path
-
         NMR_path = Path.cwd() / NMR_path
-
         print(NMR_path)
 
     #now check if it is a directory or a file, add proton and carbon data here
-
     if NMR_path.is_dir():
 
         p_switch = 0
-
         c_switch = 0
 
         for f in NMR_path.iterdir():
@@ -519,6 +505,7 @@ def NMR_files(NMR_args):
     settings.NMRsource = NMR_Data
 
     return
+
 
 if __name__ == '__main__':
 
