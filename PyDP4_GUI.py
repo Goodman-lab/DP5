@@ -35,8 +35,8 @@ class Window(QtWidgets.QMainWindow):
         self.table_widget = TabWidget(self)
         self.setCentralWidget(self.table_widget)
 
-        # self.tabs.currentChanged.connect(self.onChange)  # changed!
-
+        self.resize(self.table_widget.Tab1.Overall_widget.sizeHint())
+        #self.resize(self.table_widget.sizeHint())
         self.show()
 
         # check if DP4outfile is there
@@ -378,6 +378,8 @@ class CalculationTab(QtWidgets.QWidget):
         self.input_layout.addWidget(self.structure_widget)
 
         self.Structure_list = QtWidgets.QListWidget(self)
+        self.Structure_list.setMaximumHeight(self.Add_structure.sizeHint().height() * 2)
+
         self.Structure_list.setObjectName("Structure_list")
         self.input_layout.addWidget(self.Structure_list)
 
@@ -400,6 +402,7 @@ class CalculationTab(QtWidgets.QWidget):
 
         self.NMR_list = QtWidgets.QListWidget(self)
         self.NMR_list.setObjectName("NMR_list")
+        self.NMR_list.setMaximumHeight(self.Add_structure.sizeHint().height() * 2)
         self.input_layout.addWidget(self.NMR_list)
 
         self.Output_add = QtWidgets.QPushButton(self)
@@ -409,6 +412,7 @@ class CalculationTab(QtWidgets.QWidget):
 
         self.Output_list = QtWidgets.QListWidget(self)
         self.Output_list.setObjectName("Out list")
+        self.Output_list.setMaximumHeight(self.Add_structure.sizeHint().height() * 2)
         self.input_layout.addWidget(self.Output_list)
 
         self.input_widget.setLayout(self.input_layout)
@@ -490,9 +494,10 @@ class CalculationTab(QtWidgets.QWidget):
         self.workflow_layout.addWidget(self.Add_stats_model, 2, 5)
 
         self.Stats_list = QtWidgets.QListWidget(self)
+        self.Stats_list.setMaximumHeight(self.Add_structure.sizeHint().height())
         self.Stats_list.setObjectName("Stats_list")
-        self.workflow_layout.addWidget(self.Stats_list, 3, 5)
 
+        self.workflow_layout.addWidget(self.Stats_list, 3, 5)
         self.workflow_widget.setLayout(self.workflow_layout)
         self.Overall_verticallayout.addWidget(self.workflow_widget)
 
