@@ -66,7 +66,6 @@ class TabWidget(QtWidgets.QWidget):
         self.setLayout(self.layouttabs)
 
     def addplottabs(self):
-
         self.tab2 = QtWidgets.QWidget()
         self.tab3 = QtWidgets.QWidget()
         self.tab4 = QtWidgets.QWidget()
@@ -79,7 +78,7 @@ class TabWidget(QtWidgets.QWidget):
         self.Tab3 = CarbonPlotTab()
         self.Tab4 = StatsTab()
         self.Tab5 = ConformerTab()
-        
+
         if 's' in ui.table_widget.Tab1.settings.Workflow:
             self.tabs.addTab(self.tab4, "Stats")
             self.tab4.layout = QtWidgets.QVBoxLayout(self)
@@ -96,8 +95,6 @@ class TabWidget(QtWidgets.QWidget):
         self.tab3.layout.addWidget(self.Tab3)
         self.tab3.setLayout(self.tab3.layout)
 
-
-
         self.tab5.layout = QtWidgets.QVBoxLayout(self)
         self.tab5.layout.addWidget(self.Tab5)
         self.tab5.setLayout(self.tab5.layout)
@@ -111,7 +108,6 @@ class TabWidget(QtWidgets.QWidget):
 class StatsTab(QtWidgets.QWidget):
 
     def __init__(self):
-
         super(StatsTab, self).__init__()
 
         self.setFixedSize(876, 875)
@@ -138,25 +134,24 @@ class StatsTab(QtWidgets.QWidget):
 
         self.IsomerSelect.currentIndexChanged.connect(self.Hplot.populatetable)
 
-        self.layout.addWidget(self.Hplot.errortable ,0 ,0)
+        self.layout.addWidget(self.Hplot.errortable, 0, 0)
 
-        self.layout.addWidget(self.Hplot.statscanvas ,0 ,1)
+        self.layout.addWidget(self.Hplot.statscanvas, 0, 1)
 
         self.Cplot = plotstats('C')
 
         self.IsomerSelect.currentIndexChanged.connect(self.Cplot.populatetable)
 
-        self.layout.addWidget(self.Cplot.errortable ,2 ,0)
+        self.layout.addWidget(self.Cplot.errortable, 2, 0)
 
-        self.layout.addWidget(self.Cplot.statscanvas ,2 ,1)
+        self.layout.addWidget(self.Cplot.statscanvas, 2, 1)
 
-        self.layout.setColumnStretch(0 ,4)
+        self.layout.setColumnStretch(0, 4)
         self.layout.setColumnStretch(1, 5)
 
         self.layout.setContentsMargins(0, 50, 0, 0)
 
     def Isomer_number(self):
-
         Isomer_list = []
 
         for c, i in enumerate(self.Isomers):
@@ -167,7 +162,7 @@ class StatsTab(QtWidgets.QWidget):
 
 class plotstats(QtWidgets.QWidget):
 
-    def __init__(self ,Atom):
+    def __init__(self, Atom):
 
         super(plotstats, self).__init__()
 
@@ -187,7 +182,7 @@ class plotstats(QtWidgets.QWidget):
 
         self.errortable.setColumnCount(5)
 
-        self.errortable.setHorizontalHeaderLabels(["Atom Label" ,"Calc Shift" ,"Scaled" ,"Exp" ,"Error"])
+        self.errortable.setHorizontalHeaderLabels(["Atom Label", "Calc Shift", "Scaled", "Exp", "Error"])
 
         self.errortable.setColumnWidth(0, 70)
         self.errortable.setColumnWidth(1, 70)
@@ -219,22 +214,21 @@ class plotstats(QtWidgets.QWidget):
 
             self.statsfig = self.statsfigure.add_subplot(111)
 
-            if self.atom =='H':
+            if self.atom == 'H':
 
-                m = abs(max([item for sublist in self.dp4data.Herrors for item in sublist] ,key= abs))
+                m = abs(max([item for sublist in self.dp4data.Herrors for item in sublist], key=abs))
 
-            elif self.atom =='C':
+            elif self.atom == 'C':
                 m = abs(max([item for sublist in self.dp4data.Cerrors for item in sublist], key=abs))
 
             # plot all errors at low transparency
 
             for e in self.errors:
+                self.statsfig.plot([e, e], [0, self.multipdf([float(e)])], color='C1', alpha=0.5)
 
-                self.statsfig.plot([e, e], [0, self.multipdf([float(e)])], color='C1' ,alpha = 0.5)
+                self.statsfig.plot(e, self.multipdf([float(e)]), 'o', color='C1', alpha=0.5)
 
-                self.statsfig.plot(e, self.multipdf([float(e)]), 'o', color='C1' ,alpha = 0.5)
-
-            x = np.linspace(- 2* m, 2 * m, 1000)
+            x = np.linspace(- 2 * m, 2 * m, 1000)
 
             self.statsfig.plot(x, self.multipdf(x))
 
@@ -267,7 +261,6 @@ class plotstats(QtWidgets.QWidget):
         return y
 
     def findmeans(self):
-
 
         if ui.table_widget.Tab1.worker.settings.StatsParamFile == 'none':
 
@@ -345,92 +338,35 @@ class plotstats(QtWidgets.QWidget):
 
 
 class CalculationTab(QtWidgets.QWidget):
+
     signal_start_PyDP4 = QtCore.pyqtSignal()
 
     def __init__(self):
-
+        self.log_file = ''
         super(CalculationTab, self).__init__()
         self.cwd = Path(os.getcwd())
-        #self.log_file = open(self.cwd / "DP4_log.log" , "w+")
-        self.setFixedSize(876, 875)
-        self.label = QtWidgets.QLabel(self)
-        self.label.setGeometry(QtCore.QRect(10, 10, 121, 16))
-        self.label.setObjectName("label")
-        self.label_2 = QtWidgets.QLabel(self)
-        self.label_2.setGeometry(QtCore.QRect(10, 140, 57, 15))
-        self.label_2.setObjectName("label_2")
-        self.solvent_drop = QtWidgets.QComboBox(self)
-        self.solvent_drop.setGeometry(QtCore.QRect(120, 240, 101, 31))
-        self.solvent_drop.setObjectName("solvent_drop")
-        self.DFT_geom_functional_drop = QtWidgets.QComboBox(self)
-        self.DFT_geom_functional_drop.setGeometry(QtCore.QRect(370, 240, 101, 31))
-        self.DFT_geom_functional_drop.setObjectName("DFT_geom_functional_drop")
-        self.DFT_geom_basis_drop = QtWidgets.QComboBox(self)
-        self.DFT_geom_basis_drop.setGeometry(QtCore.QRect(370, 300, 101, 31))
-        self.DFT_geom_basis_drop.setObjectName("DFT_geom_basis_drop")
-        self.label_3 = QtWidgets.QLabel(self)
-        self.label_3.setGeometry(QtCore.QRect(370, 220, 81, 16))
-        self.label_3.setObjectName("label_3")
-        self.label_4 = QtWidgets.QLabel(self)
-        self.label_4.setGeometry(QtCore.QRect(370, 280, 81, 16))
-        self.label_4.setObjectName("label_4")
-        self.Energy_functional_drop = QtWidgets.QComboBox(self)
-        self.Energy_functional_drop.setGeometry(QtCore.QRect(490, 240, 101, 31))
-        self.Energy_functional_drop.setObjectName("Energy_functional_drop")
-        self.label_5 = QtWidgets.QLabel(self)
-        self.label_5.setGeometry(QtCore.QRect(490, 280, 81, 16))
-        self.label_5.setObjectName("label_5")
-        self.Energy_basis_drop = QtWidgets.QComboBox(self)
-        self.Energy_basis_drop.setGeometry(QtCore.QRect(490, 300, 101, 31))
-        self.Energy_basis_drop.setObjectName("Energy_basis_drop")
-        self.label_6 = QtWidgets.QLabel(self)
-        self.label_6.setGeometry(QtCore.QRect(490, 220, 81, 16))
-        self.label_6.setObjectName("label_6")
-        self.label_7 = QtWidgets.QLabel(self)
-        self.label_7.setGeometry(QtCore.QRect(610, 280, 81, 16))
-        self.label_7.setObjectName("label_7")
-        self.NMR_basis_drop = QtWidgets.QComboBox(self)
-        self.NMR_basis_drop.setGeometry(QtCore.QRect(610, 300, 101, 31))
-        self.NMR_basis_drop.setObjectName("NMR_basis_drop")
-        self.label_8 = QtWidgets.QLabel(self)
-        self.label_8.setGeometry(QtCore.QRect(610, 220, 81, 16))
-        self.label_8.setObjectName("label_8")
-        self.NMR_functional_drop = QtWidgets.QComboBox(self)
-        self.NMR_functional_drop.setGeometry(QtCore.QRect(610, 240, 101, 31))
-        self.NMR_functional_drop.setObjectName("NMR_functional_drop")
-        self.label_9 = QtWidgets.QLabel(self)
-        self.label_9.setGeometry(QtCore.QRect(120, 220, 81, 16))
-        self.label_9.setObjectName("label_9")
-        self.Output_box = QtWidgets.QTextEdit(self)
-        self.Output_box.setGeometry(QtCore.QRect(0, 460, 875, 415))
-        self.Output_box.setObjectName("Output_box")
-        self.label_11 = QtWidgets.QLabel(self)
-        self.label_11.setGeometry(QtCore.QRect(20, 440, 57, 15))
-        self.label_11.setObjectName("label_11")
-        self.Stats_list = QtWidgets.QListWidget(self)
-        self.Stats_list.setGeometry(QtCore.QRect(730, 330, 121, 91))
-        self.Stats_list.setObjectName("Stats_list")
-        self.Gobutton = QtWidgets.QPushButton(self)
-        self.Gobutton.setGeometry(QtCore.QRect(300, 370, 251, 81))
-        self.Gobutton.setObjectName("Gobutton")
-        self.Add_stats_model = QtWidgets.QPushButton(self)
-        self.Add_stats_model.setGeometry(QtCore.QRect(730, 300, 121, 23))
-        self.Add_stats_model.setObjectName("Add_stats_model")
-        self.widget = QtWidgets.QWidget(self)
-        self.widget.setGeometry(QtCore.QRect(10, 40, 841, 91))
-        self.widget.setObjectName("widget")
-        self.horizontalLayout_2 = QtWidgets.QHBoxLayout(self.widget)
-        self.horizontalLayout_2.setContentsMargins(0, 0, 0, 0)
-        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
+
+        self.Overall_verticallayout =QtWidgets.QVBoxLayout(self)
+        self.Overall_widget = QtWidgets.QWidget(self)
+
+        self.title = QtWidgets.QLabel(self)
+        self.title.setText("PyDP4 GUI")
+        self.title.setObjectName("Title")
+        self.Overall_verticallayout.addWidget(self.title)
+
+        ########### input
+
+        self.input_widget = QtWidgets.QWidget(self)
+        self.input_layout = QtWidgets.QHBoxLayout(self)
 
         self.structure_widget = QtWidgets.QWidget(self)
         self.structure_layout = QtWidgets.QVBoxLayout(self)
 
-        self.Add_structure = QtWidgets.QPushButton(self.widget)
+        self.Add_structure = QtWidgets.QPushButton(self)
         self.Add_structure.setObjectName("Add_structure")
         self.Add_structure.setText("Add structure")
 
-        self.remove_structure = QtWidgets.QPushButton(self.widget)
+        self.remove_structure = QtWidgets.QPushButton(self)
         self.remove_structure.setObjectName("remove_structure")
         self.remove_structure.setText("Remove selected")
 
@@ -439,20 +375,20 @@ class CalculationTab(QtWidgets.QWidget):
 
         self.structure_widget.setLayout(self.structure_layout)
 
-        self.horizontalLayout_2.addWidget(self.structure_widget)
+        self.input_layout.addWidget(self.structure_widget)
 
-        self.Structure_list = QtWidgets.QListWidget(self.widget)
+        self.Structure_list = QtWidgets.QListWidget(self)
         self.Structure_list.setObjectName("Structure_list")
-        self.horizontalLayout_2.addWidget(self.Structure_list)
+        self.input_layout.addWidget(self.Structure_list)
 
         self.NMR_widget = QtWidgets.QWidget(self)
         self.NMR_layout = QtWidgets.QVBoxLayout(self)
 
-        self.Add_NMR = QtWidgets.QPushButton(self.widget)
+        self.Add_NMR = QtWidgets.QPushButton(self)
         self.Add_NMR.setObjectName("Add_NMR")
         self.Add_NMR.setText("Add NMR")
 
-        self.remove_NMR = QtWidgets.QPushButton(self.widget)
+        self.remove_NMR = QtWidgets.QPushButton(self)
         self.remove_NMR.setObjectName("remove_NMR")
         self.remove_NMR.setText("Remove selected")
 
@@ -460,101 +396,118 @@ class CalculationTab(QtWidgets.QWidget):
         self.NMR_layout.addWidget(self.remove_NMR)
 
         self.NMR_widget.setLayout(self.NMR_layout)
+        self.input_layout.addWidget(self.NMR_widget)
 
-        self.horizontalLayout_2.addWidget(self.NMR_widget)
-
-        self.NMR_list = QtWidgets.QListWidget(self.widget)
+        self.NMR_list = QtWidgets.QListWidget(self)
         self.NMR_list.setObjectName("NMR_list")
-        self.horizontalLayout_2.addWidget(self.NMR_list)
+        self.input_layout.addWidget(self.NMR_list)
 
-        self.Output_add = QtWidgets.QPushButton(self.widget)
+        self.Output_add = QtWidgets.QPushButton(self)
         self.Output_add.setObjectName("Out add")
-        self.horizontalLayout_2.addWidget(self.Output_add)
+        self.Output_add.setText("Output Folder")
+        self.input_layout.addWidget(self.Output_add)
 
-        self.Output_list = QtWidgets.QListWidget(self.widget)
+        self.Output_list = QtWidgets.QListWidget(self)
         self.Output_list.setObjectName("Out list")
-        self.horizontalLayout_2.addWidget(self.Output_list)
+        self.input_layout.addWidget(self.Output_list)
 
-        self.widget1 = QtWidgets.QWidget(self)
-        self.widget1.setGeometry(QtCore.QRect(10, 160, 710, 51))
-        self.widget1.setObjectName("widget1")
-        self.horizontalLayout = QtWidgets.QHBoxLayout(self.widget1)
-        self.horizontalLayout.setContentsMargins(0, 0, 0, 0)
-        self.horizontalLayout.setObjectName("horizontalLayout")
-        self.Gen_diastereomers_yn = QtWidgets.QCheckBox(self.widget1)
+        self.input_widget.setLayout(self.input_layout)
+        self.Overall_verticallayout.addWidget(self.input_widget)
+
+        ############ workflow
+
+        self.workflow_layout = QtWidgets.QGridLayout(self)
+        self.workflow_widget = QtWidgets.QWidget(self)
+
+        self.workflow_title = QtWidgets.QLabel(self)
+        self.workflow_title.setObjectName("workflow_title")
+        self.workflow_title.setText("Workflow")
+        self.workflow_layout.addWidget(self.workflow_title, 0, 0)
+
+
+        self.Gen_diastereomers_yn = QtWidgets.QCheckBox(self)
         self.Gen_diastereomers_yn.setObjectName("Gen_diastereomers_yn")
-        self.horizontalLayout.addWidget(self.Gen_diastereomers_yn)
-        self.Solvent_yn = QtWidgets.QCheckBox(self.widget1)
+        self.Gen_diastereomers_yn.setText("Generate\n"
+                                          "Diastereomers")
+
+        self.workflow_layout.addWidget(self.Gen_diastereomers_yn,1,0)
+
+        self.Solvent_yn = QtWidgets.QCheckBox(self)
         self.Solvent_yn.setObjectName("Solvent_yn")
-        self.horizontalLayout.addWidget(self.Solvent_yn)
-        self.MM_yn = QtWidgets.QCheckBox(self.widget1)
+        self.Solvent_yn.setText("Solvent")
+        self.workflow_layout.addWidget(self.Solvent_yn,1,1)
+
+        self.solvent_drop = QtWidgets.QComboBox(self)
+        self.solvent_drop.setObjectName("solvent_drop")
+        solvents = ['chloroform', 'dimethylsulfoxide', 'benzene', 'methanol', 'pyridine', 'acetone']
+        self.solvent_drop.addItems(solvents)
+
+        self.workflow_layout.addWidget(self.solvent_drop,2,1)
+
+        self.MM_yn = QtWidgets.QCheckBox(self)
         self.MM_yn.setObjectName("MM_yn")
-        self.horizontalLayout.addWidget(self.MM_yn)
-        self.DFTGeom_yn = QtWidgets.QCheckBox(self.widget1)
-        self.DFTGeom_yn.setObjectName("DFTGeom_yn")
-        self.horizontalLayout.addWidget(self.DFTGeom_yn)
-        self.Energy_yn = QtWidgets.QCheckBox(self.widget1)
-        self.Energy_yn.setObjectName("Energy_yn")
-        self.horizontalLayout.addWidget(self.Energy_yn)
-        self.NMR_calc_yn = QtWidgets.QCheckBox(self.widget1)
-        self.NMR_calc_yn.setObjectName("NMR_calc_yn")
-        self.horizontalLayout.addWidget(self.NMR_calc_yn)
+        self.MM_yn.setText("Molecular\nMechanics")
+        self.workflow_layout.addWidget(self.MM_yn,1,2)
+
+        self.MM_drop = QtWidgets.QComboBox(self)
+        self.MM_drop.setObjectName("MM_drop")
+        MM = ["MacroModel","Tinker"]
+        self.MM_drop.addItems(MM)
+        self.workflow_layout.addWidget(self.MM_drop,2,2)
+
+        self.MM_advanced = QtWidgets.QPushButton(self)
+        self.MM_advanced.setText("Advanced Settings")
+        self.workflow_layout.addWidget(self.MM_advanced,3,2)
+
+        self.DFT_yn = QtWidgets.QCheckBox(self)
+        self.DFT_yn.setObjectName("DFT_yn")
+        self.DFT_yn.setText("DFT\nCalculations")
+        self.workflow_layout.addWidget(self.DFT_yn, 1, 3)
+
+        self.DFT_drop = QtWidgets.QComboBox(self)
+        self.DFT_drop.setObjectName("DFT_drop")
+        DFT = ["Gaussian", "NWChem"]
+        self.DFT_drop.addItems(DFT)
+        self.workflow_layout.addWidget(self.DFT_drop, 2, 3)
+
+        self.DFT_advanced = QtWidgets.QPushButton(self)
+        self.DFT_advanced.setText("Advanced Settings")
+        self.workflow_layout.addWidget(self.DFT_advanced,3,3)
 
         self.Assignment_yn = QtWidgets.QCheckBox(self)
-        self.Assignment_yn.setGeometry(QtCore.QRect(730, 170, 101, 31))
         self.Assignment_yn.setObjectName("Assignment_yn")
         self.Assignment_yn.setText("NMR\nAssignment")
-
+        self.workflow_layout.addWidget(self.Assignment_yn, 1, 4)
 
         self.DP4_stat_yn = QtWidgets.QCheckBox(self)
-        self.DP4_stat_yn.setGeometry(QtCore.QRect(730, 240, 101, 31))
         self.DP4_stat_yn.setObjectName("DP4_stat_yn")
-
-
-
-        #self.horizontalLayout.addWidget(self.DP4_stat_yn)
-        self.label.setText("PyDP4 GUI")
-        self.label_2.setText("Workflow")
-        self.label_3.setText("Functional")
-        self.label_4.setText("Basis set")
-        self.label_5.setText("Basis set")
-        self.label_6.setText("Functional")
-        self.label_7.setText("Basis set")
-        self.label_8.setText("Functional")
-        self.label_9.setText("Solvent")
-        self.label_11.setText("Output")
-        self.Gobutton.setText("Calculate")
-        self.Add_stats_model.setText("Add stats model")
-        self.Solvent_yn.setText("Solvent")
-        self.Gen_diastereomers_yn.setText("Generate\n"
-                                          "diastereomers")
-        self.MM_yn.setText("Molecular\n"
-                           "mechanics")
-        self.DFTGeom_yn.setText("DFT\n"
-                                "Geometry\n"
-                                "optimisation")
-        self.Energy_yn.setText("Split single\n"
-                               "point energy")
-        self.NMR_calc_yn.setText("NMR\n"
-                                 "calculations")
         self.DP4_stat_yn.setText("DP4 Statistics")
+        self.workflow_layout.addWidget(self.DP4_stat_yn, 1, 5)
 
-        self.Output_add.setText("Output Folder")
+        self.Add_stats_model = QtWidgets.QPushButton(self)
+        self.Add_stats_model.setObjectName("Add_stats_model")
+        self.Add_stats_model.setText("Add stats model")
+        self.workflow_layout.addWidget(self.Add_stats_model, 2, 5)
 
-        self.MM_rb = QtWidgets.QRadioButton(self)
-        self.MM_rb.setGeometry(QtCore.QRect(250, 240, 101, 31))
-        self.MM_rb.setObjectName("MM_rb")
-        self.label_12 = QtWidgets.QLabel(self)
-        self.label_12.setGeometry(QtCore.QRect(270, 240, 101, 31))
-        self.label_12.setText("MacroModel")
+        self.Stats_list = QtWidgets.QListWidget(self)
+        self.Stats_list.setObjectName("Stats_list")
+        self.workflow_layout.addWidget(self.Stats_list, 3, 5)
 
+        self.workflow_widget.setLayout(self.workflow_layout)
+        self.Overall_verticallayout.addWidget(self.workflow_widget)
 
-        self.Tinker_rb = QtWidgets.QRadioButton(self)
-        self.Tinker_rb.setGeometry(QtCore.QRect(250, 300, 101, 31))
-        self.Tinker_rb.setObjectName("Tinker_rb")
-        self.label_13 = QtWidgets.QLabel(self)
-        self.label_13.setGeometry(QtCore.QRect(270, 300, 101, 31))
-        self.label_13.setText("Tinker")
+        ############ calc
+
+        self.Gobutton = QtWidgets.QPushButton(self)
+        self.Gobutton.setObjectName("Gobutton")
+        self.Gobutton.setText("Calculate")
+        self.Overall_verticallayout.addWidget(self.Gobutton)
+
+        self.Output_box = QtWidgets.QTextEdit(self)
+        self.Output_box.setObjectName("Output_box")
+        self.Overall_verticallayout.addWidget(self.Output_box)
+
+        self.Overall_widget.setLayout(self.Overall_verticallayout)
 
         #################################################################################################buttons methods
 
@@ -570,7 +523,6 @@ class CalculationTab(QtWidgets.QWidget):
 
         self.remove_structure.clicked.connect(self.removestructure)
 
-
         self.Add_NMR.clicked.connect(self.addNMR)
 
         self.remove_NMR.clicked.connect(self.removeNMR)
@@ -583,67 +535,15 @@ class CalculationTab(QtWidgets.QWidget):
 
         self.Solvent_yn.stateChanged.connect(self.solventtoggle)
 
+        self.MM_drop.setEnabled(False)
+        self.MM_advanced.setEnabled(False)
+
         self.MM_yn.stateChanged.connect(self.MMtoggle)
 
-        self.MM_rb.toggled.connect(self.rb_toggle)
+        self.DFT_drop.setEnabled(False)
+        self.DFT_advanced.setEnabled(False)
 
-        self.Tinker_rb.toggled.connect(self.rb_toggle)
-
-        # selecting DFT geometry opt box
-
-        self.DFT_geom_functional_drop.setEnabled(False)
-
-        self.DFT_geom_basis_drop.setEnabled(False)
-
-        self.DFTGeom_yn.stateChanged.connect(self.DFTopttoggle)
-
-        # selecting Split Single point box
-
-        self.Energy_functional_drop.setEnabled(False)
-
-        self.Energy_basis_drop.setEnabled(False)
-
-        self.Energy_yn.stateChanged.connect(self.Energytoggle)
-
-        # selecting NMR box
-
-        self.NMR_functional_drop.setEnabled(False)
-
-        self.NMR_basis_drop.setEnabled(False)
-
-        self.NMR_calc_yn.stateChanged.connect(self.NMRtoggle)
-
-        # add solvents to solvent box
-
-        solvents = ['chloroform', 'dimethylsulfoxide', 'benzene', 'methanol', 'pyridine', 'acetone']
-
-        self.solvent_drop.addItems(solvents)
-
-        # add functionals and basis sets to DFTopt, Energy and NMR
-
-        DFTopt_basis = ['6-31g(d)', '6-311g(d)', 'def2svp', 'def2tzvp']
-
-        DFTopt_functional = ['B3LYP', 'm062x', 'mPW1PW91']
-
-        Energy_basis = ['6-31g(d)', '6-311g(d)', 'def2svp', 'def2tzvp']
-
-        Energy_functional = ['m062x', 'mPW1PW91', 'B3LYP']
-
-        NMR_basis = ['6-311g(d)', '6-31g(d)', 'def2svp', 'def2tzvp']
-
-        NMR_functional = ['mPW1PW91', 'B3LYP', 'M062X']
-
-        self.DFT_geom_functional_drop.addItems(DFTopt_functional)
-
-        self.DFT_geom_basis_drop.addItems(DFTopt_basis)
-
-        self.Energy_functional_drop.addItems(Energy_functional)
-
-        self.Energy_basis_drop.addItems(Energy_basis)
-
-        self.NMR_basis_drop.addItems(NMR_basis)
-
-        self.NMR_functional_drop.addItems(NMR_functional)
+        self.DFT_yn.stateChanged.connect(self.DFTtoggle)
 
         self.Assignment_yn.stateChanged.connect(self.Assignment_toggle)
 
@@ -697,9 +597,22 @@ class CalculationTab(QtWidgets.QWidget):
 
         self.signal_start_PyDP4.connect(self.worker.runPyDP4)
 
-        ##############################################################################getting current values of boxs etc
+        self.DFT_settings = DFT_advanced_settings()
 
-        ###################################################################################
+        self.DFT_advanced.clicked.connect(self.DFT_pop)
+
+        self.MM_settings = MM_advanced_settings()
+
+        self.MM_advanced.clicked.connect(self.MM_pop)
+
+    def DFT_pop(self):
+
+        self.DFT_settings.show()
+
+
+    def MM_pop(self):
+
+        self.MM_settings.show()
 
     def enabletabs(self):
 
@@ -718,15 +631,17 @@ class CalculationTab(QtWidgets.QWidget):
     def get_current_values(self):
 
         import PyDP4
-        
+
         self.settings = PyDP4.Settings()
 
         # Read config file and fill in settings in from that
         self.settings = PyDP4.ReadConfig(self.settings)
 
-        #add output folder
+        # add output folder
 
         self.settings.OutputFolder = self.Output_folder
+
+        self.log_file = open(self.Output_folder / "DP4_log.log", "w+")
 
         self.settings.InputFilesPaths = self.Structure_paths
 
@@ -735,7 +650,6 @@ class CalculationTab(QtWidgets.QWidget):
         for index in range(self.Structure_list.count()):
 
             if self.Structure_list.item(index).text() != '':
-
                 self.settings.InputFiles.append(self.Structure_list.item(index).text())
 
         # copy structures to output folder
@@ -743,8 +657,7 @@ class CalculationTab(QtWidgets.QWidget):
         for f in self.Structure_paths:
 
             if not Path(self.Output_folder / f.name).exists():
-
-                os.path.copy(f,self.settings.OutputFolder)
+                os.copy(f, self.settings.OutputFolder)
 
         # add NMR
 
@@ -770,36 +683,38 @@ class CalculationTab(QtWidgets.QWidget):
 
             self.settings.Workflow += 'm'
 
-            if self.MM_rb.isChecked() == True:
+            if self.MM_drop.currentText() == "MacroModel":
 
                 self.settings.MM = 'm'
 
             else:
-                
+
                 self.settings.MM = 't'
 
-        # DFT Geometry optimisation
+        if self.DFT_yn.isChecked() == 1:
 
-        if self.DFTGeom_yn.isChecked() == 1:
-            self.settings.Workflow += 'o'
-            self.settings.oBasisSet = self.DFT_geom_basis_drop.currentText()
-            self.settings.oFunctional = self.DFT_geom_functional_drop.currentText()
+            if self.DFT_drop.currentText() == "Gaussian":
+                self.settings.DFT == 'g'
 
-        # Split single point
+            else:
+                self.settings.DFT == 'n'
 
-        if self.Energy_yn.isChecked() == 1:
-            self.settings.Workflow += 'e'
-            self.settings.eBasisSet = self.Energy_basis_drop.currentText()
-            self.settings.eFunctional = self.Energy_functional_drop.currentText()
+            # Split single point
 
-        # NMR
+            if self.DFT_settings.Energy_yn.isChecked() == 1:
+                self.settings.Workflow += 'e'
+                self.settings.eBasisSet = self.DFT_settings.Energy_basis_drop.currentText()
+                self.settings.eFunctional = self.DFT_settings.Energy_functional_drop.currentText()
 
-        # Split single point
+            if self.DFT_settings.DFTGeom_yn.isChecked() == 1:
+                self.settings.Workflow += 'o'
+                self.settings.oBasisSet = self.DFT_settings.DFT_geom_basis_drop.currentText()
+                self.settings.oFunctional = self.DFT_settings.DFT_geom_functional_drop.currentText()
 
-        if self.NMR_calc_yn.isChecked() == 1:
-            self.settings.Workflow += 'n'
-            self.settings.nBasisSet = self.NMR_basis_drop.currentText()
-            self.settings.nFunctional = self.NMR_functional_drop.currentText()
+            if self.DFT_settings.NMR_calc_yn.isChecked() == 1:
+                self.settings.Workflow += 'n'
+                self.settings.nBasisSet = self.DFT_settings.NMR_basis_drop.currentText()
+                self.settings.nFunctional = self.DFT_settings.NMR_functional_drop.currentText()
 
         if self.DP4_stat_yn.isChecked():
 
@@ -808,9 +723,9 @@ class CalculationTab(QtWidgets.QWidget):
             if self.Stats_list.item(0) != None:
                 self.settings.StatsParamFile = self.Stats_list.item(0).text()
                 self.settings.StatsModel = 'm'
-                
+
         elif self.Assignment_yn.isChecked():
-            
+
             self.settings.Workflow += 'a'
 
         self.settings.ScriptDir = os.path.dirname(os.path.realpath(sys.argv[0]))
@@ -836,7 +751,6 @@ class CalculationTab(QtWidgets.QWidget):
         f = QtWidgets.QFileDialog.getOpenFileName()[0]
 
         if f:
-
             filename = Path(f)
 
             self.Structure_list.addItem(filename.name)
@@ -852,7 +766,7 @@ class CalculationTab(QtWidgets.QWidget):
             self.Structure_paths.pop(self.Structure_list.row(i))
 
     def addNMR(self):
-        
+
         # filename = QtWidgets.QFileDialog.getOpenFileName()
 
         i = QtWidgets.QFileDialog.getExistingDirectory()
@@ -872,7 +786,7 @@ class CalculationTab(QtWidgets.QWidget):
                     self.NMR_paths.append(f)
                     c_switch = 1
 
-                elif f.name == "Proton" or f.name== "proton" or f.name == "Proton.dx" or f.name== "proton.dx":
+                elif f.name == "Proton" or f.name == "proton" or f.name == "Proton.dx" or f.name == "proton.dx":
                     self.NMR_list.addItem(f.name)
                     self.NMR_paths.append(f)
                     p_switch = 1
@@ -903,7 +817,7 @@ class CalculationTab(QtWidgets.QWidget):
 
         if state > 0:
             self.solvent_drop.setEnabled(True)
-            self.Gen_diastereomers_yn.setChecked(True)
+            #self.Gen_diastereomers_yn.setChecked(True)
 
         else:
             self.solvent_drop.setEnabled(False)
@@ -913,45 +827,222 @@ class CalculationTab(QtWidgets.QWidget):
 
         if state > 0:
 
-            self.Gen_diastereomers_yn.setChecked(True)
+            #self.Gen_diastereomers_yn.setChecked(True)
 
             self.Solvent_yn.setChecked(True)
             self.solvent_drop.setEnabled(True)
+            self.MM_drop.setEnabled(True)
+            self.MM_advanced.setEnabled(True)
 
-
-            if (self.MM_rb.isDown() == False) & (self.Tinker_rb.isDown() == False):
-                self.MM_rb.toggle()
 
         else:
             self.solvent_drop.setEnabled(False)
             self.Solvent_yn.setChecked(False)
-            self.MM_rb.setChecked(False)
-            self.Tinker_rb.setChecked(False)
+            self.MM_drop.setEnabled(False)
+            self.MM_advanced.setEnabled(False)
+            self.DFT_yn.setChecked(False)
 
-    def rb_toggle(self,state):
+    def DFTtoggle(self,state):
 
         if state > 0:
 
-            if state > 0:
+            # self.Gen_diastereomers_yn.setChecked(True)
 
-                self.MM_yn.setChecked(True)
-                self.Gen_diastereomers_yn.setChecked(True)
-                self.Solvent_yn.setChecked(True)
-                self.solvent_drop.setEnabled(True)
+            self.Solvent_yn.setChecked(True)
+            self.solvent_drop.setEnabled(True)
+            self.MM_yn.setChecked(True)
+            self.MM_drop.setEnabled(True)
+            self.DFT_drop.setEnabled(True)
+            self.DFT_advanced.setEnabled(True)
+            self.DFT_settings.NMR_calc_yn.setChecked(True)
+
+        else:
+            self.DFT_advanced.setEnabled(False)
+            self.DFT_drop.setEnabled(False)
+            self.solvent_drop.setEnabled(False)
+            self.Solvent_yn.setChecked(False)
+            self.MM_yn.setChecked(False)
+            self.MM_drop.setEnabled(False)
+            self.Assignment_yn.setChecked(False)
+            self.DP4_stat_yn.setChecked(False)
+
+            self.DFT_settings.DFTGeom_yn.setChecked(False)
+            self.DFT_settings.Energy_yn.setChecked(False)
+            self.DFT_settings.NMR_calc_yn.setChecked(False)
+
+    def Assignment_toggle(self, state):
+
+        if state > 0:
+
+            self.DFT_yn.setChecked(True)
+            self.Solvent_yn.setChecked(True)
+            self.solvent_drop.setEnabled(True)
+            #self.Gen_diastereomers_yn.setChecked(True)
+            self.MM_yn.setChecked(True)
+
+        else:
+            self.DP4_stat_yn.setChecked(False)
+            self.Add_stats_model.setEnabled(False)
+
+            self.DFT_yn.setChecked(False)
+            self.Solvent_yn.setChecked(False)
+            self.solvent_drop.setEnabled(False)
+            #self.Gen_diastereomers_yn.setChecked(True)
+            self.MM_yn.setChecked(False)
+
+    def Statstoggle(self, state):
+
+        if state > 0:
+            self.Add_stats_model.setEnabled(True)
+
+            self.DFT_yn.setChecked(True)
+            self.Solvent_yn.setChecked(True)
+            self.solvent_drop.setEnabled(True)
+            #self.Gen_diastereomers_yn.setChecked(True)
+            self.MM_yn.setChecked(True)
+            self.Assignment_yn.setChecked(True)
+
+        else:
+            self.Add_stats_model.setEnabled(False)
+            self.DFT_yn.setChecked(False)
+            self.Solvent_yn.setChecked(False)
+            self.solvent_drop.setEnabled(False)
+            #self.Gen_diastereomers_yn.setChecked(True)
+            self.MM_yn.setChecked(False)
+            self.Assignment_yn.setChecked(False)
+
+    def append_text(self, text):
+        self.Output_box.moveCursor(QtGui.QTextCursor.End)
+        self.Output_box.insertPlainText(text)
+        # self.log_file.write(text)
+
+        self.log_file.write(text)
+
+    def Gotoggle(self):
+
+        if self.Gobutton.isEnabled() == True:
+
+            self.Gobutton.setEnabled(False)
+
+        else:
+
+            self.Gobutton.setEnabled(True)
 
 
-            else:
-                self.solvent_drop.setEnabled(False)
+class DFT_advanced_settings(QtWidgets.QWidget):
+
+    def __init__(self):
+        super(DFT_advanced_settings, self).__init__()
+        self.layout = QtWidgets.QVBoxLayout(self)
+
+        self.title = QtWidgets.QLabel(self)
+        self.title.setText("DFT Advanced Options")
+        self.layout.addWidget(self.title)
+
+        ##################################### DFT Geom Optimisation
+
+        self.DFTGeom_yn = QtWidgets.QCheckBox(self)
+        self.DFTGeom_yn.setText("DFT Geometry Optimisation")
+        self.layout.addWidget(self.DFTGeom_yn)
+
+        self.DFT_geom_functional_drop_label = QtWidgets.QLabel(self)
+        self.DFT_geom_functional_drop_label.setText("Functional")
+        self.layout.addWidget(self.DFT_geom_functional_drop_label)
+
+        self.DFT_geom_functional_drop = QtWidgets.QComboBox(self)
+        DFTopt_functional = ['B3LYP', 'm062x', 'mPW1PW91']
+        self.DFT_geom_functional_drop.addItems(DFTopt_functional)
+        self.layout.addWidget(self.DFT_geom_functional_drop)
+
+        self.DFT_geom_basis_drop_label = QtWidgets.QLabel(self)
+        self.DFT_geom_basis_drop_label.setText("Basis Set")
+        self.layout.addWidget(self.DFT_geom_basis_drop_label)
+
+        self.DFT_geom_basis_drop = QtWidgets.QComboBox(self)
+        DFTopt_basis = ['6-31g(d)', '6-311g(d)', 'def2svp', 'def2tzvp']
+        self.DFT_geom_basis_drop.addItems(DFTopt_basis)
+        self.layout.addWidget(self.DFT_geom_basis_drop)
+
+        ##################################### DFT Energy
+
+        self.Energy_yn = QtWidgets.QCheckBox(self)
+        self.Energy_yn.setText("Split Single Point DFT")
+        self.layout.addWidget(self.Energy_yn)
+
+        self.Energy_functional_drop_label = QtWidgets.QLabel(self)
+        self.Energy_functional_drop_label.setText("Functional")
+        self.layout.addWidget(self.Energy_functional_drop_label)
+
+        self.Energy_functional_drop = QtWidgets.QComboBox(self)
+        Energy_functional = ['m062x', 'mPW1PW91', 'B3LYP']
+        self.Energy_functional_drop.addItems(Energy_functional)
+        self.layout.addWidget(self.Energy_functional_drop)
+
+        self.Energy_basis_drop_label = QtWidgets.QLabel(self)
+        self.Energy_basis_drop_label.setText("Basis Set")
+        self.layout.addWidget(self.Energy_basis_drop_label)
+
+        self.Energy_basis_drop = QtWidgets.QComboBox(self)
+        Energy_basis = ['6-31g(d)', '6-311g(d)', 'def2svp', 'def2tzvp']
+        self.Energy_basis_drop.addItems(Energy_basis)
+        self.layout.addWidget(self.Energy_basis_drop)
+
+        ##################################### DFT NMR
+
+        self.NMR_calc_yn = QtWidgets.QCheckBox(self)
+        self.NMR_calc_yn.setText("NMR Calculations")
+        self.layout.addWidget(self.NMR_calc_yn)
+
+        self.NMR_functional_drop_label = QtWidgets.QLabel(self)
+        self.NMR_functional_drop_label.setText("Functional")
+        self.layout.addWidget(self.NMR_functional_drop_label)
+
+        self.NMR_functional_drop = QtWidgets.QComboBox(self)
+        NMR_functional = ['mPW1PW91', 'B3LYP', 'M062X']
+        self.NMR_functional_drop.addItems(NMR_functional)
+        self.layout.addWidget(self.NMR_functional_drop)
+
+        self.NMR_basis_drop_label = QtWidgets.QLabel(self)
+        self.NMR_basis_drop_label.setText("Basis Set")
+        self.layout.addWidget(self.NMR_basis_drop_label)
+
+        self.NMR_basis_drop = QtWidgets.QComboBox(self)
+        NMR_basis = ['6-311g(d)', '6-31g(d)', 'def2svp', 'def2tzvp']
+        self.NMR_basis_drop.addItems(NMR_basis)
+        self.layout.addWidget(self.NMR_basis_drop)
+
+        ###################################### methods
+
+        # selecting DFT geometry opt box
+
+        self.DFT_geom_functional_drop.setEnabled(False)
+
+        self.DFT_geom_basis_drop.setEnabled(False)
+
+        self.DFTGeom_yn.stateChanged.connect(self.DFTopttoggle)
+
+        # selecting Split Single point box
+
+        self.Energy_functional_drop.setEnabled(False)
+
+        self.Energy_basis_drop.setEnabled(False)
+
+        self.Energy_yn.stateChanged.connect(self.Energytoggle)
+
+        # selecting NMR box
+
+        self.NMR_functional_drop.setEnabled(False)
+
+        self.NMR_basis_drop.setEnabled(False)
+
+        self.NMR_calc_yn.stateChanged.connect(self.NMRtoggle)
+
 
     def Energytoggle(self, state):
 
         if state > 0:
             self.Energy_functional_drop.setEnabled(True)
             self.Energy_basis_drop.setEnabled(True)
-            self.Solvent_yn.setChecked(True)
-            self.solvent_drop.setEnabled(True)
-            self.Gen_diastereomers_yn.setChecked(True)
-            self.MM_yn.setChecked(True)
 
         else:
             self.Energy_functional_drop.setEnabled(False)
@@ -963,11 +1054,6 @@ class CalculationTab(QtWidgets.QWidget):
             self.DFT_geom_functional_drop.setEnabled(True)
             self.DFT_geom_basis_drop.setEnabled(True)
 
-            self.Solvent_yn.setChecked(True)
-            self.solvent_drop.setEnabled(True)
-            self.Gen_diastereomers_yn.setChecked(True)
-            self.MM_yn.setChecked(True)
-
         else:
             self.DFT_geom_functional_drop.setEnabled(False)
             self.DFT_geom_basis_drop.setEnabled(False)
@@ -977,63 +1063,22 @@ class CalculationTab(QtWidgets.QWidget):
         if state > 0:
             self.NMR_functional_drop.setEnabled(True)
             self.NMR_basis_drop.setEnabled(True)
-            self.Solvent_yn.setChecked(True)
-            self.solvent_drop.setEnabled(True)
-            self.Gen_diastereomers_yn.setChecked(True)
-            self.MM_yn.setChecked(True)
 
         else:
             self.NMR_functional_drop.setEnabled(False)
             self.NMR_basis_drop.setEnabled(False)
 
-    def Assignment_toggle(self,state):
 
-        if state > 0:
+class MM_advanced_settings(QtWidgets.QWidget):
 
-            self.NMR_calc_yn.setChecked(True)
-            self.NMR_functional_drop.setEnabled(True)
-            self.NMR_basis_drop.setEnabled(True)
-            self.Solvent_yn.setChecked(True)
-            self.solvent_drop.setEnabled(True)
-            self.Gen_diastereomers_yn.setChecked(True)
-            self.MM_yn.setChecked(True)
+    def __init__(self):
+        super(MM_advanced_settings, self).__init__()
 
-        else:
-            self.DP4_stat_yn.setChecked(False)
-            self.Add_stats_model.setEnabled(False)
+        self.layout = QtWidgets.QVBoxLayout(self)
 
-    def Statstoggle(self, state):
-
-        if state > 0:
-            self.Add_stats_model.setEnabled(True)
-            self.NMR_calc_yn.setChecked(True)
-            self.NMR_functional_drop.setEnabled(True)
-            self.NMR_basis_drop.setEnabled(True)
-            self.Solvent_yn.setChecked(True)
-            self.solvent_drop.setEnabled(True)
-            self.Gen_diastereomers_yn.setChecked(True)
-            self.MM_yn.setChecked(True)
-            self.Assignment_yn.setChecked(True)
-
-        else:
-            self.Add_stats_model.setEnabled(False)
-
-    def append_text(self, text):
-        self.Output_box.moveCursor(QtGui.QTextCursor.End)
-        self.Output_box.insertPlainText(text)
-        #self.log_file.write(text)
-
-        self.worker.log_file.write(text)
-
-    def Gotoggle(self):
-
-        if self.Gobutton.isEnabled() == True:
-
-            self.Gobutton.setEnabled(False)
-
-        else:
-
-            self.Gobutton.setEnabled(True)
+        self.title = QtWidgets.QLabel(self)
+        self.title.setText("MM Advanced Options")
+        self.layout.addWidget(self.title)
 
 
 class ProtonPlotTab(QtWidgets.QWidget):
@@ -1093,15 +1138,14 @@ class ProtonPlotTab(QtWidgets.QWidget):
 
         if ui.table_widget.Tab1.settings.OutputFolder == '':
 
-            pdir = self.cwd  /  "Pickles"
+            pdir = self.cwd / "Pickles"
 
         else:
-            pdir =  ui.table_widget.Tab1.settings.OutputFolder /  "Pickles"
+            pdir = ui.table_widget.Tab1.settings.OutputFolder / "Pickles"
 
-
-        if os.path.isfile(pdir / ui.table_widget.Tab1.settings.InputFiles[0] /  "protondata"):
-
-            self.protondata = pickle.load( Path(pdir / ui.table_widget.Tab1.settings.InputFiles[0] / "protondata").open(mode = "rb"))
+        if os.path.isfile(pdir / ui.table_widget.Tab1.settings.InputFiles[0] / "protondata"):
+            self.protondata = pickle.load(
+                Path(pdir / ui.table_widget.Tab1.settings.InputFiles[0] / "protondata").open(mode="rb"))
 
         self.xdata = self.protondata["xdata"]
 
@@ -1130,7 +1174,7 @@ class ProtonPlotTab(QtWidgets.QWidget):
         Isomer_list = []
 
         for c, i in enumerate(ui.table_widget.Tab1.worker.Isomers):
-            Isomer_list.append("Isomer " + str(c +1))
+            Isomer_list.append("Isomer " + str(c + 1))
 
         return Isomer_list
 
@@ -1308,7 +1352,6 @@ class ProtonPlotTab(QtWidgets.QWidget):
 
             # find the cloest point to the click
 
-
             if self.xpos is None and self.xpos is None:
 
                 self.PlotProton()
@@ -1321,10 +1364,10 @@ class ProtonPlotTab(QtWidgets.QWidget):
 
                 # find which protons this peak has been assigned to
 
-                p = np.where([round(i,4) for i in self.assigned_peaks] == round(self.xdata[self.centres[mindis]],4))[0]
+                p = np.where([round(i, 4) for i in self.assigned_peaks] == round(self.xdata[self.centres[mindis]], 4))[
+                    0]
 
-                la = [int(self.assigned_labels[j][1:]) - 1  for j in p]
-
+                la = [int(self.assigned_labels[j][1:]) - 1 for j in p]
 
                 self.RenderImage(la, mindis)
 
@@ -1509,7 +1552,7 @@ class ProtonPlotTab(QtWidgets.QWidget):
         for i in atom:
             highlight[i] = colors[color % 10]
 
-        #m = Chem.MolFromMolFile(str(ui.table_widget.Tab1.worker.settings.InputFiles[0]).split('.sdf')[0] + '.sdf', removeHs=False)
+        # m = Chem.MolFromMolFile(str(ui.table_widget.Tab1.worker.settings.InputFiles[0]).split('.sdf')[0] + '.sdf', removeHs=False)
 
         m = Chem.MolFromMolFile(str(ui.table_widget.Tab1.worker.settings.InputFilesPaths[0]), removeHs=False)
 
@@ -1528,7 +1571,6 @@ class ProtonPlotTab(QtWidgets.QWidget):
         self.image.renderer().load(svg_bytes)
 
         self.image.setGeometry(QtCore.QRect(0, 50, 300, 300))
-
 
         ui.update()
 
@@ -1589,15 +1631,14 @@ class CarbonPlotTab(QtWidgets.QWidget):
 
         if ui.table_widget.Tab1.settings.OutputFolder == '':
 
-            pdir = Path.cwd() /  "Pickles"
+            pdir = Path.cwd() / "Pickles"
 
         else:
-            pdir =  ui.table_widget.Tab1.settings.OutputFolder /  "Pickles"
+            pdir = ui.table_widget.Tab1.settings.OutputFolder / "Pickles"
 
-
-        if Path(pdir / ui.table_widget.Tab1.settings.InputFiles[0] /  "carbondata").exists():
-
-            self.carbondata = pickle.load(Path(pdir / ui.table_widget.Tab1.settings.InputFiles[0] / "carbondata").open(mode= "rb"))
+        if Path(pdir / ui.table_widget.Tab1.settings.InputFiles[0] / "carbondata").exists():
+            self.carbondata = pickle.load(
+                Path(pdir / ui.table_widget.Tab1.settings.InputFiles[0] / "carbondata").open(mode="rb"))
 
         self.xdata = self.carbondata["xdata"]
 
@@ -1618,7 +1659,7 @@ class CarbonPlotTab(QtWidgets.QWidget):
         Isomer_list = []
 
         for c, i in enumerate(ui.table_widget.Tab1.worker.Isomers):
-            Isomer_list.append("Isomer " + str(c+ 1))
+            Isomer_list.append("Isomer " + str(c + 1))
 
         return Isomer_list
 
@@ -1774,8 +1815,6 @@ class CarbonPlotTab(QtWidgets.QWidget):
 
                 # find which protons this peak has been assigned to
 
-
-
                 p = np.where(self.assigned_peaks == self.xdata[self.exppeaks[mindis]])[0]
 
                 la = [int(self.assigned_labels[j][1:]) - 1 for j in p]
@@ -1836,18 +1875,13 @@ class CarbonPlotTab(QtWidgets.QWidget):
 
             assigned_peak = exppeaks_ppm[mindis]
 
-
             s = np.where(np.round(self.assigned_peaks, 8) == np.round(assigned_peak, 8))[0]
 
-
             assigned_shift = np.array(self.assigned_shifts)[s]
-
 
             assigned_label = np.array(self.assigned_labels)[s]
 
             for i in assigned_shift:
-
-
                 fig.plot([assigned_peak, i], [self.ydata[self.exppeaks[mindis]], 1.1], color='cyan')
 
             # plot assignments
@@ -1922,9 +1956,9 @@ class CarbonPlotTab(QtWidgets.QWidget):
         for i in atom:
             highlight[i] = (0, 1, 1)
 
-        #m = Chem.MolFromMolFile(str(ui.table_widget.Tab1.worker.settings.InputFiles[0]).split('.sdf')[0] + '.sdf', removeHs=False)
+        # m = Chem.MolFromMolFile(str(ui.table_widget.Tab1.worker.settings.InputFiles[0]).split('.sdf')[0] + '.sdf', removeHs=False)
         m = Chem.MolFromMolFile(str(ui.table_widget.Tab1.worker.settings.InputFilesPaths[0]), removeHs=False)
-        #m = Chem.MolFromMolFile(ui.table_widget.Tab1.worker.settings.InputFilesPaths[0], removeHs=False)
+        # m = Chem.MolFromMolFile(ui.table_widget.Tab1.worker.settings.InputFilesPaths[0], removeHs=False)
 
         # m = Chem.AddHs(m)
 
@@ -2077,15 +2111,15 @@ class ConformerTab(QtWidgets.QWidget):
 
 
 class PyDP4WorkerObject(QtCore.QObject):
+
     finished = QtCore.pyqtSignal()
 
     def runPyDP4(self):
+
         launchdir = Path.cwd()
 
         print(ui.table_widget.Tab1.settings.OutputFolder)
         os.chdir(ui.table_widget.Tab1.settings.OutputFolder)
-
-        self.log_file = open(ui.table_widget.Tab1.settings.OutputFolder/ "DP4_log.log" , "w+")
 
         self.NMRData, self.Isomers, self.settings, self.DP4Data = PyDP4.main(ui.table_widget.Tab1.settings)
         os.chdir(launchdir)
