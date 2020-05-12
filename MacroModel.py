@@ -130,11 +130,14 @@ def RunMacroModel(MacroModelInputs, settings):
     MacroModelBaseNames = [x[:-4] for x in MacroModelInputs]
     MacroModelOutputs = []
     NCompleted = 0
+    SchrodingerNotInstalled = False
 
-    if shutil.which(os.path.join(settings.SCHRODINGER,'bmin')) is None & settings.SCHRODINGER != "not-installed":
+    # Check if MacroModel is installed in the provided path, but if it's missing, complain,
+    # but don't quit quite yet, the conformation search data might already be there
+    if shutil.which(os.path.join(settings.SCHRODINGER,'bmin')) is None:
         print('MacroModel.py, RunMacroModel:\n  Could not find MacroModel executable at ' +
               os.path.join(settings.SCHRODINGER,'bmin'))
-        quit()
+        SchrodingerNotInstalled = True
 
     if os.name == 'nt':
         MMPrefix = '"' + settings.SCHRODINGER + '\\bmin" '
@@ -143,6 +146,10 @@ def RunMacroModel(MacroModelInputs, settings):
 
     for isomer in MacroModelBaseNames:
         if not os.path.exists(isomer + '.log'):
+            # if we need to run conformational search AND MacroModel is not installed,
+            # no choice but to quit
+            if SchrodingerNotInstalled is True:
+                quit()
             print(MMPrefix + isomer)
             outp = subprocess.check_output(MMPrefix + isomer, shell=True)
         else:
