@@ -700,10 +700,10 @@ class CalculationTab(QtWidgets.QWidget):
         if self.DFT_yn.isChecked() == 1:
 
             if self.DFT_drop.currentText() == "Gaussian":
-                self.settings.DFT == 'g'
+                self.settings.DFT = 'g'
 
             else:
-                self.settings.DFT == 'n'
+                self.settings.DFT = 'n'
 
             # Split single point
 
