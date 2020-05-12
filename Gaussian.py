@@ -476,6 +476,11 @@ def ReadShieldings(Isomers):
 
     for iso in Isomers:
 
+        if len(iso.NMROutputFiles) < 1:
+            print("Gaussian.py, ReadShieldings: No NMR DFT output" +
+                  " files found, NMR data could not be read. Quitting.")
+            quit()
+
         for GOutpFile in iso.NMROutputFiles:
 
             gausfile = open(GOutpFile, 'r')

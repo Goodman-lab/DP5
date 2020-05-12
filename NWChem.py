@@ -451,6 +451,11 @@ def ReadShieldings(Isomers):
 
     for iso in Isomers:
 
+        if len(iso.NMROutputFiles) < 1:
+            print("NWChem.py, ReadShieldings: No NMR DFT output" +
+                  " files found, NMR data could not be read. Quitting.")
+            quit()
+
         for NWOutpFile in iso.NMROutputFiles:
             nwfile = open(NWOutpFile, 'r')
             NWOutp = nwfile.readlines()
