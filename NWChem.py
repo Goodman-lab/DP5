@@ -525,6 +525,11 @@ def ReadGeometries(Isomers, settings):
 
             iso.DFTConformers = [[] for x in iso.OptOutputFiles]
 
+            if len(iso.OptOutputFiles) < 1:
+                print("NWChem.py, ReadGeometries: No geometry optimisation output" +
+                      " files found, geometries could not be read. Quitting.")
+                quit()
+
             for num, NWOutpFile in enumerate(iso.OptOutputFiles):
 
                 atoms, coords = ReadGeometry(NWOutpFile)
@@ -538,6 +543,11 @@ def ReadGeometries(Isomers, settings):
         for iso in Isomers:
 
             iso.DFTConformers = [[] for x in iso.NMROutputFiles]
+
+            if len(iso.OptOutputFiles) < 1:
+                print("NWChem.py, ReadGeometries: No geometry optimisation output" +
+                      " files found, geometries could not be read. Quitting.")
+                quit()
 
             for num, NWOutpFile in enumerate(iso.NMROutputFiles):
                 atoms, coords = ReadGeometry(NWOutpFile)
