@@ -544,7 +544,7 @@ def ReadGeometries(Isomers, settings):
 
             iso.DFTConformers = [[] for x in iso.NMROutputFiles]
 
-            if len(iso.OptOutputFiles) < 1:
+            if len(iso.NMROutputFiles) < 1:
                 print("NWChem.py, ReadGeometries: No geometry optimisation output" +
                       " files found, geometries could not be read. Quitting.")
                 quit()
