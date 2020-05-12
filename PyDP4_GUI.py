@@ -663,7 +663,7 @@ class CalculationTab(QtWidgets.QWidget):
         for f in self.Structure_paths:
 
             if not Path(self.Output_folder / f.name).exists():
-                shutil.copyfile(f, self.settings.OutputFolder + os.path.sep + f)
+                shutil.copyfile(f, self.Output_folder / f.name)
 
         # add NMR
 
