@@ -327,7 +327,15 @@ def WriteNWChemFile(NWinp, conformer, atoms, charge, settings, type):
 
     f.write('end\n\nbasis\n  * library ' + basis + '\nend\n\n')
     if settings.Solvent != "":
-        f.write('cosmo\n  do_cosmo_smd true\n  solvent ' + settings.Solvent + '\n')
+        GausSolvents = ['chloroform', 'dimethylsulfoxide', 'benzene', 'methanol', 'pyridine', 'acetone']
+        NWSolvents = ['chcl3', 'dmso', 'benzene', 'methanol', 'pyridine', 'acetone']
+
+        if settings.Solvent in GausSolvents:
+            solvent = NWSolvents[GausSolvents.index(settings.Solvent)]
+        else:
+            solvent = settings.Solvent
+
+        f.write('cosmo\n  do_cosmo_smd true\n  solvent ' + solvent + '\n')
         f.write('end\n\n')
 
     if type == 'nmr':
