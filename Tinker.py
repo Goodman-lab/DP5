@@ -9,6 +9,7 @@ execution and output interpretation. Called by PyDP4.py.
 """
 
 import os
+import shlex
 import shutil
 import sys
 import subprocess
@@ -127,18 +128,14 @@ def ReadConformers(TinkerOutputs, Isomers, settings):
 #Reads force field parameter file to understand atom notation in the output
 def ExtractAtomTypes(settings):
     # open settings.TinkerPath + 'params/mmff.prm
-    paramfile = open(settings.TinkerPath + '/params/mmff.prm', 'r')
-    paramdata = paramfile.readlines()
-    paramfile.close()
     atomtypes = []
     atomnums = []
-    for line in paramdata[75:]:
-        data = [_f for _f in line.split('  ') if _f]
-        if len(data) < 3:
-            break
-        atomtypes.append(data[3])
-        atomnums.append(int(data[5]))
-
+    with open(settings.TinkerPath + '/params/mmff.prm', 'r') as f:
+        for line in f:
+            if line.split(' ')[0] == 'atom':
+                data = shlex.split(line, posix=False)
+                atomtypes.append(data[3])
+                atomnums.append(int(data[-3]))
     return atomtypes, atomnums
 
 #Reads the relevant tinker geometry files
