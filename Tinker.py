@@ -13,6 +13,7 @@ import shlex
 import shutil
 import sys
 import subprocess
+import pexpect
 import PyDP4
 
 # Please modify the line below to give the path to the TINKER v8.x top level folder
@@ -74,9 +75,12 @@ def SetupTinker(settings):
 
 
 def RunTinker(TinkerInputs, settings):
-    #Run Tinker scan for all diastereomeric inputs
+    """Run Tinker scan for all diastereomeric inputs."""
     TinkerOutputs = []
     TinkerPrefix = os.path.join(settings.TinkerPath, 'bin', 'scan')
+    TinkerParams = '0 10 20 0.00001'
+    ParamsFile = settings.TinkerPath + '/params/mmff.prm'
+
     if shutil.which(TinkerPrefix) is None:
         print('Tinker.py, RunTinker:\n  Could not find Tinker scan executable at ' + TinkerPrefix)
         quit()
@@ -89,24 +93,34 @@ def RunTinker(TinkerInputs, settings):
             TinkerOutputs.append(isomer)
             continue
 
-        print(settings.TinkerPath + '/bin/scan ' + isomer + ' 0 10 20 0.00001 | tee ./' + isomer + \
-            '.tout')
-        outp = subprocess.check_output(settings.TinkerPath + '/bin/scan ' + isomer +
-            ' 0 10 20 0.00001 | tee ./' + isomer + '.tout', shell=True)
-        NCompleted = NCompleted + 1
+        cmd = TinkerPrefix + ' ' + isomer + ' ' + TinkerParams
+        cmd_rot = TinkerPrefix + ' ' + isomer + 'rot ' + TinkerParams
+
+        print(cmd)
+
+        output = None
+        tinker = pexpect.spawn(cmd)
+        tinker.expect('Enter Potential Parameter File Name')
+        tinker.sendline(ParamsFile)
+        output = tinker.before + tinker.after
+        tinker.expect('Enter RMS Gradient per Atom')
+        tinker.sendline('')
+        output = output + tinker.before + tinker.after
+        with open (isomer + '.tout', "a") as f:
+            print("Storing output in " + f.name)
+            f.write(output.decode('ascii') + tinker.read().decode('ascii'))
+
         TinkerOutputs.append(isomer)
-        print("Tinker job " + str(NCompleted) + " of " + str(len(TinkerInputs)) + \
-            " completed.")
 
         if settings.Rot5Cycle is True:
-            print(settings.TinkerPath + '/bin/scan ' + isomer + 'rot 0 10 20 0.00001 | tee ./' + \
-                isomer + 'rot.tout')
-            outp = subprocess.check_output(settings.TinkerPath + '/bin/scan ' + isomer +
-                'rot 0 10 20 0.00001 | tee ./' + isomer + 'rot.tout', shell=True)
+            print(cmd_rot)
+            subprocess.check_output(cmd_rot, shell=True)
+            # TODO: See if this causes NCompleted to exceed len(TinkerInputs)
             NCompleted = NCompleted + 1
 
-    return TinkerOutputs
+        print("Tinker job " + str(NCompleted) + " of " + str(len(TinkerInputs)) + " completed.")
 
+    return TinkerOutputs
 
 def ReadConformers(TinkerOutputs, Isomers, settings):
     atypes, anums = ExtractAtomTypes(settings)
