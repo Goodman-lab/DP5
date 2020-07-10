@@ -28,16 +28,19 @@ def main(f):
     ds_inchis = GenDiastereomers(inchi)
     ds_inchis = [FixTautProtons(f, i, aux) for i in ds_inchis]
 
-    for ds in range(0, len(ds_inchis)):
+    processInchis(ds_inchis, f, aux, genfiles=False)
 
-        print("Isomer " + str(ds) + " inchi = " + ds_inchis[ds])
-
-        Inchi2Struct(ds_inchis[ds], f[:-4] + str(ds+1), aux)
-        RestoreNumsSDF(f[:-4] + str(ds+1) + '.sdf', f, aux)
-
+def processInchis(ds_inchis, f, aux, genfiles = True):
+    filenames = []
+    for index, inchi in enumerate(ds_inchis):
+        print("Isomer " + str(index) + " inchi = " + inchi)
+        Inchi2Struct(inchi, f[:-4] + str(index+1), aux)
+        RestoreNumsSDF(f[:-4] + str(index+1) + '.sdf', f, aux)
+        filenames.append(f[:-4] + str(index+1))
+    if genfiles:
+        return filenames 
 
 def GetInchiRenumMap(AuxInfo):
-
     for l in AuxInfo.split('/'):
         if 'N:' in l:
             RenumLayer = l
@@ -114,8 +117,8 @@ def RestoreNumsSDF(f, fold, AuxInfo):
     oldHcons = GetHcons(fold)
     #translate the H connected atoms to the new numbering system
     amap = GetInchiRenumMap(AuxInfo)
-    for i in range(0, len(oldHcons)):
-        oldHcons[i][1] = amap.index(oldHcons[i][1])+1
+    for oldHcon in oldHcons:
+        oldHcon[1] = amap.index(oldHcon[1]) + 1
 
     newHcons = []
     temp = []
@@ -130,13 +133,13 @@ def RestoreNumsSDF(f, fold, AuxInfo):
         #Pick the temporary atom
         temp.append(atom)
 
-    for i in range(0, len(newHcons)):
-        conatom = newHcons[i][1]
-        for b in range(0, len(oldHcons)):
-            if conatom == oldHcons[b][1]:
-                amap.append(oldHcons[b][0])
+    for newHcon in newHcons:
+        conatom = newHcon[1]
+        for oldHcon in oldHcons:
+            if conatom == oldHcon[1]:
+                amap.append(oldHcon[0])
                 #remove the number, so that it doesn't get added twice
-                oldHcons[b][1] = 0
+                oldHcon[1] = 0
 
     newmol = OBMol()
     added = []
@@ -149,9 +152,9 @@ def RestoreNumsSDF(f, fold, AuxInfo):
     #Final runthrough to check that all atoms have been added,
     #tautomeric protons can be missed. If tautomeric proton tracking
     #is implemented this can be removed
-    for i in range(0, len(temp)):
-        if not i in added:
-            newmol.AddAtom(temp[i])
+    for index, atom in enumerate(temp):
+        if index not in added:
+            newmol.AddAtom(atom)
 
     #Restore the bonds
     newmol.ConnectTheDots()
@@ -201,9 +204,13 @@ def GetTautProtons(inchi):
     #get the tautomer layer and pickup the data
     layers = inchi.split('/')
 
+    ProtLayer = None
     for l in layers:
         if 'h' in l:
             ProtLayer = l
+            break
+    if ProtLayer is None:
+        raise ValueError("No proton layer in InChI")
     ProtList = list(ProtLayer)
     starts = []
     ends = []
@@ -231,13 +238,7 @@ def GenSelectDiastereomers(structf, atoms):
 
     ds_inchis = GenSelectDSInchis(inchi, translated_atoms)
     ds_inchis = [FixTautProtons(f, i, aux) for i in ds_inchis]
-    filenames = []
-    for ds in range(0, len(ds_inchis)):
-        Inchi2Struct(ds_inchis[ds], f[:-4] + str(ds+1), aux)
-        RestoreNumsSDF(f[:-4] + str(ds+1) + '.sdf', f, aux)
-        filenames.append(f[:-4] + str(ds+1))
-    return filenames
-
+    return processInchis(ds_inchis, f, aux)
 
 def GenSelectDSInchis(inchi, atoms):
     #Inchis of all diastereomers, including the parent structure
@@ -292,28 +293,13 @@ def GenSelectDSInchis(inchi, atoms):
 
 
 def GenDiastereomers(structf, atoms=[]):
-
     if len(atoms) > 0:
         return GenSelectDiastereomers(structf, atoms)
-
     f = structf
     inchi, aux = GetInchi(f)
-
-
-    i,a = GetInchi(f)
-
     ds_inchis = GenDSInchis(inchi)
     ds_inchis = [FixTautProtons(f, i, aux) for i in ds_inchis]
-    filenames = []
-    for ds in range(0, len(ds_inchis)):
-
-        print("Isomer " + str(ds) + " inchi = " + ds_inchis[ds])
-
-        Inchi2Struct(ds_inchis[ds], f[:-4] + str(ds+1), aux)
-        RestoreNumsSDF(f[:-4] + str(ds+1) + '.sdf', f, aux)
-        filenames.append(f[:-4] + str(ds+1))
-    return filenames
-
+    return processInchis(ds_inchis, f, aux)
 
 def GenDSInchis(inchi):
 
