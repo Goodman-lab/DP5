@@ -13,6 +13,7 @@ import shlex
 import shutil
 import sys
 import subprocess
+import platform
 import PyDP4
 
 # Please modify the line below to give the path to the TINKER v8.x top level folder
@@ -52,7 +53,7 @@ def SetupTinker(settings):
             f.close()
 
         scriptdir = getScriptPath()
-        convinp = scriptdir + '/sdf2tinkerxyz -k ' + scriptdir + '/default.key <'
+        convinp = scriptdir + '/sdf2tinkerxyz-' + platform.system() + ' -k ' + scriptdir + '/default.key <'
         outp = subprocess.check_output(convinp + inpf + '.sdf', shell=True)
 
         f = open(inpf + '.key', 'r+')
