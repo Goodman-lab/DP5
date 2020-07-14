@@ -233,7 +233,7 @@ def RunOptCalcs(Isomers, settings):
     NWJobs = []
 
     for iso in Isomers:
-        print(iso.NMRInputFiles)
+        print(iso.OptInputFiles)
         NWJobs.extend([x for x in iso.OptInputFiles if (x[:-3] + '.nwo') not in iso.OptOutputFiles])
 
     Completed = RunCalcs(NWJobs, settings)
