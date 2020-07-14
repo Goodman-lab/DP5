@@ -134,6 +134,7 @@ def ExtractAtomTypes(settings):
     atomnums = []
     for line in paramdata[75:]:
         data = [_f for _f in line.split('  ') if _f]
+        print(data)
         if len(data) < 3:
             break
         atomtypes.append(data[3])

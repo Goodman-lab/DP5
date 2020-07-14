@@ -239,7 +239,7 @@ def RunOptCalcs(Isomers, settings):
     Completed = RunCalcs(NWJobs, settings)
 
     for iso in Isomers:
-        iso.NMROutputFiles.extend([x[:-3] + '.nwo' for x in iso.OptInputFiles if (x[:-3] + '.nwo') in Completed])
+        iso.OptOutputFiles.extend([x[:-3] + '.nwo' for x in iso.OptInputFiles if (x[:-3] + '.nwo') in Completed])
 
     os.chdir(jobdir)
 
