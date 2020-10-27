@@ -38,7 +38,7 @@ Interprets the arguments and takes care of the general workflow logic.
 import NMR
 import Tinker
 import MacroModel
-import DP4 as DP4
+import WF as WF
 import sys
 import os
 import datetime
@@ -414,14 +414,19 @@ def main(settings):
     if 's' in settings.Workflow:
 
         print('\nCalculating DP4 probabilities...')
-        DP4data = DP4.DP4data()
-        DP4data = DP4.ProcessIsomers(DP4data,Isomers)
-        DP4data = DP4.InternalScaling(DP4data)
-        DP4data = DP4.CalcProbs(DP4data,settings)
-        DP4data = DP4.CalcDP4(DP4data)
-        DP4data = DP4.MakeOutput(DP4data,Isomers,settings)
 
-        #print(DP4.FormatData(DP4data))
+
+
+        WFdata = WF.WFdata(settings.ScriptDir)
+        WFdata = WF.ProcessIsomers(WFdata,Isomers,settings)
+        WFdata = WF.InternalScaling(WFdata)
+
+
+
+
+
+
+
 
     else:
         print('\nNo DP4 analysis requested.')
