@@ -125,7 +125,6 @@ class NMRData:
         self.Equivalents = equivalents
         self.Omits = omits
 
-
     def ParseExp(self, exp):
         # Replace all 'or' and 'OR' with ',', remove all spaces and 'any'
         texp = re.sub(r"or|OR", ',', exp, flags=re.DOTALL)
@@ -140,7 +139,6 @@ class NMRData:
         expShifts = [float(x) for x in ShiftData]
 
         return expLabels, expShifts
-
 
     def ProcessProton(self, settings,ind):
 
@@ -295,7 +293,9 @@ def CalcBoltzmannWeightedShieldings(Isomers):
             for population, shieldings in zip(iso.Populations, iso.ConformerShieldings):
 
                 c+=1
+
                 shielding = shielding + shieldings[atom] * population
+
             BoltzmannShieldings.append(shielding)
 
         Isomers[i].BoltzmannShieldings = BoltzmannShieldings
@@ -352,9 +352,9 @@ def CalcNMRShifts(Isomers, settings):
     for i, iso in enumerate(Isomers):
 
         BShieldings = iso.BoltzmannShieldings
+
         Cvalues = []
         Hvalues = []
-
         Clabels = []
         Hlabels = []
 
@@ -381,6 +381,25 @@ def CalcNMRShifts(Isomers, settings):
 
         print('H shifts for isomer ' + str(i) + ": ")
         print(', '.join(['{0:.3f}'.format(x) for x in Isomers[i].Hshifts]))
+
+        for conf in iso.ConformerShieldings:
+
+            Cconfshifts = []
+            Hconfshifts = []
+
+            for a, atom in enumerate(iso.Atoms):
+
+                if atom == 'C':
+
+                    shift = (settings.TMS_SC_C13-conf[a]) / (1-(settings.TMS_SC_C13/10**6))
+                    Cconfshifts.append(shift)
+
+                if atom == 'H':
+                    shift = (settings.TMS_SC_H1 - conf[a]) / (1 - (settings.TMS_SC_H1 / 10 ** 6))
+                    Hconfshifts.append(shift)
+
+            Isomers[i].ConformerCShifts.append(Cconfshifts)
+            Isomers[i].ConformerHShifts.append(Hconfshifts)
 
     return Isomers
 
@@ -516,6 +535,7 @@ def PairwiseAssignment(Isomers,NMRData):
         # Carbon
 
         for exp, shift in zip(sortedCExp, sortedCCalc):
+
             ind = tempCCalcs.index(shift)
 
             assignedCExp[ind] = exp
@@ -525,6 +545,7 @@ def PairwiseAssignment(Isomers,NMRData):
         # Proton
 
         for exp, shift in zip(sortedHExp, sortedHCalc):
+
             ind = tempHCalcs.index(shift)
 
             assignedHExp[ind] = exp

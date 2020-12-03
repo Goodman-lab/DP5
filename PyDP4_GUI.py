@@ -1,27 +1,22 @@
 #!/usr/bin/env python
 from PyQt5 import QtWidgets, QtCore, QtGui
-import time
 import os
 import shutil
 import PyDP4
 import queue
 import sys
-from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import pyqtSlot
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 import numpy as np
 from scipy.stats import norm
-from PyQt5.QtSvg import QSvgWidget, QSvgRenderer
+from PyQt5.QtSvg import QSvgWidget
 from rdkit.Chem import AllChem as Chem
-from rdkit.Chem import Draw
-from rdkit.Chem import rdDepictor
 from rdkit.Chem.Draw import rdMolDraw2D
 import pickle
+from matplotlib import cm
 
 from pathlib import Path
-
 
 class Window(QtWidgets.QMainWindow):
     # create signal to start background job
@@ -67,41 +62,239 @@ class TabWidget(QtWidgets.QWidget):
         self.setLayout(self.layouttabs)
 
     def addplottabs(self):
+
         self.tab2 = QtWidgets.QWidget()
         self.tab3 = QtWidgets.QWidget()
         self.tab4 = QtWidgets.QWidget()
         self.tab5 = QtWidgets.QWidget()
+        self.tab6 = QtWidgets.QWidget()
 
-        self.tabs.addTab(self.tab2, "Proton Plot")
-        self.tabs.addTab(self.tab3, "Carbon Plot")
-
-        self.Tab2 = ProtonPlotTab()
-        self.Tab3 = CarbonPlotTab()
-        self.Tab4 = StatsTab()
         self.Tab5 = ConformerTab()
-
-        if 's' in ui.table_widget.Tab1.settings.Workflow:
-            self.tabs.addTab(self.tab4, "Stats")
-            self.tab4.layout = QtWidgets.QVBoxLayout(self)
-            self.tab4.layout.addWidget(self.Tab4)
-            self.tab4.setLayout(self.tab4.layout)
 
         self.tabs.addTab(self.tab5, "Conformers")
 
-        self.tab2.layout = QtWidgets.QVBoxLayout(self)
-        self.tab2.layout.addWidget(self.Tab2)
-        self.tab2.setLayout(self.tab2.layout)
+        #only add proton/carbon plot tabs if the raw data is there
 
-        self.tab3.layout = QtWidgets.QVBoxLayout(self)
-        self.tab3.layout.addWidget(self.Tab3)
-        self.tab3.setLayout(self.tab3.layout)
+        NMR_list = [str(self.Tab1.NMR_list.item(i).text()) for i in range(self.Tab1.NMR_list.count())]
+
+        if 'Proton' in NMR_list or 'Proton.dx' in NMR_list or 'proton' in NMR_list or 'proton.dx' in NMR_list:
+
+            self.tabs.addTab(self.tab2, "Proton Plot")
+            self.Tab2 = ProtonPlotTab()
+            self.tab2.layout = QtWidgets.QVBoxLayout(self)
+            self.tab2.layout.addWidget(self.Tab2)
+            self.tab2.setLayout(self.tab2.layout)
+
+        if 'Carbon' in NMR_list or 'Carbon.dx' in NMR_list or 'carbon' in NMR_list or 'carbon.dx' in NMR_list:
+
+            self.tabs.addTab(self.tab3, "Carbon Plot")
+            self.Tab3 = CarbonPlotTab()
+            self.tab3.layout = QtWidgets.QVBoxLayout(self)
+            self.tab3.layout.addWidget(self.Tab3)
+            self.tab3.setLayout(self.tab3.layout)
 
         self.tab5.layout = QtWidgets.QVBoxLayout(self)
         self.tab5.layout.addWidget(self.Tab5)
         self.tab5.setLayout(self.tab5.layout)
 
+        self.Tab4 = StatsTab()
+
+        if 's' in ui.table_widget.Tab1.settings.Workflow and len(ui.table_widget.Tab1.settings.InputFiles) > 1:
+            self.tabs.addTab(self.tab4, "DP4")
+            self.tab4.layout = QtWidgets.QVBoxLayout(self)
+            self.tab4.layout.addWidget(self.Tab4)
+            self.tab4.setLayout(self.tab4.layout)
+
+        self.Tab6 = WFTab()
+
+        if 's' in ui.table_widget.Tab1.settings.Workflow:
+            self.tabs.addTab(self.tab6, "WF")
+            self.tab6.layout = QtWidgets.QVBoxLayout(self)
+            self.tab6.layout.addWidget(self.Tab6)
+            self.tab6.setLayout(self.tab6.layout)
+
         self.layouttabs.addWidget(self.tabs)
         self.setLayout(self.layouttabs)
+
+        ui.update()
+
+
+class WFTab(QtWidgets.QWidget):
+
+    def __init__(self):
+        super(WFTab, self).__init__()
+
+        # main horizontal widget
+
+        self.main_layout = QtWidgets.QHBoxLayout()
+        self.setLayout(self.main_layout)
+        self.Isomers = ui.table_widget.Tab1.worker.Isomers
+        self.WFdata = ui.table_widget.Tab1.worker.WFData
+        self.DP4data = ui.table_widget.Tab1.worker.DP4Data
+
+        self.Isomer_WF_table = QtWidgets.QTableWidget(self)
+
+        self.Isomer_WF_table.setColumnCount(4)
+
+        self.Isomer_WF_table.setHorizontalHeaderLabels(["Isomer", "Scaled WF", "Unscaled WF", "DP4"])
+
+        self.Isomer_WF_table.setRowCount(len(self.WFdata.WFscaledprobs))
+
+        c = 0
+
+        for scaled_WF, unscaled_WF, DP4 in zip(self.WFdata.WFscaledprobs, self.WFdata.WFunscaledprobs, self.DP4data.DP4probs):
+
+            self.Isomer_WF_table.setItem(c, 0, QtWidgets.QTableWidgetItem(str(c + 1)))
+
+            self.Isomer_WF_table.setItem(c, 1, QtWidgets.QTableWidgetItem(str(round(scaled_WF, 2))))
+
+            self.Isomer_WF_table.setItem(c, 2, QtWidgets.QTableWidgetItem(str(round(unscaled_WF, 2))))
+
+            self.Isomer_WF_table.setItem(c, 3, QtWidgets.QTableWidgetItem(str(DP4)))
+
+            c += 1
+
+        self.Isomer_WF_table.selectRow(0)
+
+        # add error table
+
+        self.WF_table = QtWidgets.QTableWidget(self)
+
+        self.WF_table.setColumnCount(5)
+
+        self.WF_table.setHorizontalHeaderLabels(
+            ["Atom Label", "Scaled wf", "Unscaled wf", "Scaled error (ppm)", "Unscaled error (ppm)"])
+
+        self.WF_table.setColumnWidth(0, 70)
+        self.WF_table.setColumnWidth(1, 70)
+        self.WF_table.setColumnWidth(2, 70)
+        self.WF_table.setColumnWidth(3, 70)
+        self.WF_table.setColumnWidth(4, 70)
+
+        #########
+
+        # add isomer canvas
+
+        self.table_widget = QtWidgets.QWidget(self)
+
+        self.image = QSvgWidget()
+
+        self.image.setMinimumWidth(self.image.height())
+
+        # organise layouts
+
+
+
+        self.table_layout = QtWidgets.QVBoxLayout()
+
+        self.table_layout.addWidget(self.Isomer_WF_table)
+
+        self.table_layout.addWidget(self.WF_table)
+
+        #self.image_layout.addWidget(self.image)
+
+        self.table_widget.setLayout(self.table_layout)
+
+        self.main_layout.addWidget(self.table_widget)
+
+
+        self.main_layout.addWidget(self.image)
+
+        # connections
+
+        self.Isomer_WF_table.currentCellChanged.connect(self.Mol_drawer)
+
+        self.Isomer_WF_table.currentCellChanged.connect(self.populatetable)
+
+        self.WF_table.currentCellChanged.connect(self.Mol_drawer)
+
+    def populatetable(self):
+
+        isomerindex = self.Isomer_WF_table.currentRow()
+
+        # which isomer is selected
+
+        self.WF_table.setRowCount(0)
+
+        self.labels, self.shifts, self.exps, self.scaleds = self.WFdata.Clabels[isomerindex], \
+                                                            self.WFdata.Cshifts[isomerindex], \
+                                                            self.WFdata.Cexp[isomerindex], \
+                                                            self.WFdata.Cscaled[isomerindex], \
+
+        self.unscaled_probs, self.scaled_probs = self.WFdata.BUnscaledAtomProbs[isomerindex], self.WFdata.BScaledAtomProbs[isomerindex]
+
+        self.WF_table.setRowCount(len(self.labels))
+
+        # set info in rows and columns
+
+        c = 0
+
+        for label, shift, exp, scaled_shift, unscaled_prob, scaled_prob in zip(self.labels, self.shifts, self.exps,
+                                                                               self.scaleds, self.unscaled_probs,
+                                                                               self.scaled_probs):
+            self.WF_table.setItem(c, 0, QtWidgets.QTableWidgetItem(label))
+            self.WF_table.setItem(c, 1, QtWidgets.QTableWidgetItem(str(round(scaled_prob, 2))))
+            self.WF_table.setItem(c, 2, QtWidgets.QTableWidgetItem(str(round(unscaled_prob, 2))))
+            self.WF_table.setItem(c, 3, QtWidgets.QTableWidgetItem(str(round(abs(scaled_shift - exp), 2))))
+            self.WF_table.setItem(c, 4, QtWidgets.QTableWidgetItem(str(round(abs(shift - exp), 2))))
+
+            c += 1
+
+        self.WF_table.selectRow(0)
+
+        # self.plot()
+
+    def Isomer_number(self):
+        Isomer_list = []
+
+        for c, i in enumerate(self.Isomers):
+            Isomer_list.append("Isomer " + str(c + 1))
+
+        return Isomer_list
+
+    def Mol_drawer(self):
+
+        isomerindex = self.Isomer_WF_table.currentRow()
+
+        highlight = {}
+
+        inds = []
+
+        for label in self.WFdata.Clabels[isomerindex]:
+            inds.append(int(label.split("C")[1]) - 1)
+
+        for i, s in zip(inds, self.WFdata.BScaledAtomProbs[isomerindex]):
+            highlight[i] = cm.Oranges(s)
+
+        # pick selected atom
+
+        if self.WF_table.item(self.WF_table.currentRow(), 0):
+            selected = int(self.WF_table.item(self.WF_table.currentRow(), 0).text().split("C")[1]) - 1
+
+            highlight[selected] = (0.12, 0.47, 0.71)
+
+        # m = Chem.MolFromMolFile(str(ui.table_widget.Tab1.worker.settings.InputFiles[0]).split('.sdf')[0] + '.sdf', removeHs=False)
+
+        m = Chem.MolFromMolFile(str(ui.table_widget.Tab1.worker.settings.InputFilesPaths[isomerindex]),
+                                removeHs=False)
+
+        Chem.Compute2DCoords(m)
+
+        drawer = rdMolDraw2D.MolDraw2DSVG(self.image.width(), self.image.height())
+
+        drawer.DrawMolecule(m, highlightAtoms=inds, highlightAtomColors=highlight, highlightBonds=False)
+
+        # ,addStereoAnnotation = True,addAtomIndices = True
+
+        drawer.FinishDrawing()
+
+        svg = drawer.GetDrawingText().replace('svg:', '')
+
+        svg_bytes = bytearray(svg, encoding='utf-8')
+
+        self.image.renderer().load(svg_bytes)
+
+
 
         ui.update()
 
@@ -111,21 +304,29 @@ class StatsTab(QtWidgets.QWidget):
     def __init__(self):
         super(StatsTab, self).__init__()
 
-        self.setFixedSize(876, 875)
+        #main horizontal widget
 
-        self.layout = QtWidgets.QGridLayout()
-
-        self.setLayout(self.layout)
-
-        # add isomer selection
-
-        self.IsomerSelect = QtWidgets.QComboBox(self)
-
+        self.main_layout = QtWidgets.QHBoxLayout()
+        self.setLayout(self.main_layout)
         self.Isomers = ui.table_widget.Tab1.worker.Isomers
-
         self.dp4data = ui.table_widget.Tab1.worker.DP4Data
 
+        # add isomer selection
+        self.IsomerSelect = QtWidgets.QComboBox(self)
         self.IsomerSelect.addItems(self.Isomer_number())
+
+        # add isomer canvas
+
+        self.image = QSvgWidget()
+
+        #make vertical isomer layout
+
+        self.isomer_layout = QtWidgets.QVBoxLayout()
+        self.isomer_layout.addWidget(self.IsomerSelect)
+        self.isomer_layout.addWidget(self.image)
+
+        self.isomer_widget = QtWidgets.QWidget(self)
+        self.isomer_widget.setLayout(self.isomer_layout)
 
         # make error table
 
@@ -133,24 +334,57 @@ class StatsTab(QtWidgets.QWidget):
 
         self.Hplot = plotstats('H')
 
-        self.IsomerSelect.currentIndexChanged.connect(self.Hplot.populatetable)
+        #check if there is a DP4 result for this atomt type:
 
-        self.layout.addWidget(self.Hplot.errortable, 0, 0)
+        if not np.isnan(ui.table_widget.Tab1.worker.DP4Data.HDP4probs).any() :
 
-        self.layout.addWidget(self.Hplot.statscanvas, 0, 1)
+            self.IsomerSelect.currentIndexChanged.connect(self.Hplot.populatetable)
+
+            self.IsomerSelect.currentIndexChanged.connect(self.RenderImage)
+
+            self.Hplot.errortable.itemSelectionChanged.connect(self.RenderImage)
 
         self.Cplot = plotstats('C')
 
-        self.IsomerSelect.currentIndexChanged.connect(self.Cplot.populatetable)
+        if not np.isnan(ui.table_widget.Tab1.worker.DP4Data.CDP4probs).any() :
 
-        self.layout.addWidget(self.Cplot.errortable, 2, 0)
+            self.IsomerSelect.currentIndexChanged.connect(self.Cplot.populatetable)
 
-        self.layout.addWidget(self.Cplot.statscanvas, 2, 1)
+            self.IsomerSelect.currentIndexChanged.connect(self.RenderImage)
 
-        self.layout.setColumnStretch(0, 4)
-        self.layout.setColumnStretch(1, 5)
+            self.Cplot.errortable.itemSelectionChanged.connect(self.RenderImage)
 
-        self.layout.setContentsMargins(0, 50, 0, 0)
+        #make error table layout
+
+        self.error_layout = QtWidgets.QVBoxLayout()
+
+        self.error_layout.addWidget(self.Cplot.errortable)
+        self.error_layout.addWidget(self.Hplot.errortable)
+
+        self.error_widget = QtWidgets.QWidget(self)
+        self.error_widget.setLayout(self.error_layout)
+
+        #make plot layout
+
+        self.plot_layout = QtWidgets.QVBoxLayout()
+
+        self.plot_layout.addWidget(self.Cplot.statscanvas)
+        self.plot_layout.addWidget(self.Hplot.statscanvas)
+
+        self.plot_widget = QtWidgets.QWidget(self)
+        self.plot_widget.setLayout(self.plot_layout)
+
+        # add these widgets to main horizontal layout
+
+        self.isomer_widget.setMinimumWidth(400)
+
+        self.error_widget.setFixedWidth(400)
+
+        self.main_layout.addWidget(self.isomer_widget)
+        self.main_layout.addWidget(self.error_widget)
+        self.main_layout.addWidget(self.plot_widget)
+
+
 
     def Isomer_number(self):
         Isomer_list = []
@@ -159,6 +393,51 @@ class StatsTab(QtWidgets.QWidget):
             Isomer_list.append("Isomer " + str(c + 1))
 
         return Isomer_list
+
+    def RenderImage(self):
+
+        '''colors = [(0.12, 0.47, 0.71), (1.0, 0.5, 0.05), (0.17, 0.63, 0.17), (0.84, 0.15, 0.16), (0.58, 0.4, 0.74),
+                  (0.55, 0.34, 0.29), (0.89, 0.47, 0.76), (0.5, 0.5, 0.5), (0.74, 0.74, 0.13), (0.09, 0.75, 0.81)]'''
+
+        atom = []
+
+        highlight = {}
+
+        if self.Cplot.errortable.item(self.Cplot.errortable.currentRow(), 0):
+
+            C_atom = int(self.Cplot.errortable.item(self.Cplot.errortable.currentRow(), 0).text().split("C")[1])
+
+            atom.append(C_atom - 1 )
+
+            highlight[C_atom - 1] = (0.12, 0.47, 0.71)
+
+        if self.Hplot.errortable.item(self.Hplot.errortable.currentRow(), 0):
+
+            H_atom = int(self.Hplot.errortable.item(self.Hplot.errortable.currentRow(), 0).text().split("H")[1])
+
+            atom.append(H_atom - 1)
+
+            highlight[H_atom - 1] = (0.84, 0.15, 0.16)
+
+        m = Chem.MolFromMolFile(str(ui.table_widget.Tab1.worker.settings.InputFilesPaths[0]), removeHs=False)
+
+        Chem.Compute2DCoords(m)
+
+        drawer = rdMolDraw2D.MolDraw2DSVG(self.image.width(), self.image.height())
+
+        drawer.DrawMolecule(m, highlightAtoms=atom, highlightAtomColors=highlight,highlightBonds = False)
+
+        drawer.FinishDrawing()
+
+        svg = drawer.GetDrawingText().replace('svg:', '')
+
+        svg_bytes = bytearray(svg, encoding='utf-8')
+
+        self.image.renderer().load(svg_bytes)
+
+        #self.image.setGeometry(QtCore.QRect(0, 50, 500, 500))
+
+        ui.update()
 
 
 class plotstats(QtWidgets.QWidget):
@@ -178,8 +457,6 @@ class plotstats(QtWidgets.QWidget):
         self.Isomers = ui.table_widget.Tab1.worker.Isomers
 
         self.errortable = QtWidgets.QTableWidget(self)
-
-        # self.errortable.setGeometry(QtCore.QRect(10, 50,400, 400))
 
         self.errortable.setColumnCount(5)
 
@@ -219,29 +496,39 @@ class plotstats(QtWidgets.QWidget):
 
                 m = abs(max([item for sublist in self.dp4data.Herrors for item in sublist], key=abs))
 
+                p_color = 3
+
             elif self.atom == 'C':
+
                 m = abs(max([item for sublist in self.dp4data.Cerrors for item in sublist], key=abs))
+
+                p_color = 0
 
             # plot all errors at low transparency
 
             for e in self.errors:
-                self.statsfig.plot([e, e], [0, self.multipdf([float(e)])], color='C1', alpha=0.5)
 
-                self.statsfig.plot(e, self.multipdf([float(e)]), 'o', color='C1', alpha=0.5)
+                self.statsfig.plot([e, e], [0, self.multipdf([float(e)])], color='C'+ str(p_color), alpha=0.25)
+
+                self.statsfig.plot(e, self.multipdf([float(e)]), 'o', color='C'+ str(p_color), alpha=0.25)
 
             x = np.linspace(- 2 * m, 2 * m, 1000)
 
-            self.statsfig.plot(x, self.multipdf(x))
+            self.statsfig.plot(x, self.multipdf(x),color = "C1")
 
-            self.statsfig.plot([error, error], [0, self.multipdf([float(error)])], color='red', alpha=0.75)
 
-            self.statsfig.plot(error, self.multipdf([float(error)]), 'o', color='red', alpha=0.75)
+            self.statsfig.plot([error, error], [0, self.multipdf([float(error)])], color='C'+ str(p_color), alpha=1)
+
+            self.statsfig.plot(error, self.multipdf([float(error)]), 'o', color='C'+ str(p_color), alpha= 1)
+
 
             self.statsfig.set_xlim([x[0], x[-1]])
 
             self.statsfig.set_xlabel("error (ppm)")
 
             self.statsfig.set_ylabel("probability density")
+
+            self.statsfig.set_title("")
 
             self.statscanvas.draw()
 
@@ -389,13 +676,18 @@ class CalculationTab(QtWidgets.QWidget):
 
         self.Add_NMR = QtWidgets.QPushButton(self)
         self.Add_NMR.setObjectName("Add_NMR")
-        self.Add_NMR.setText("Add NMR")
+        self.Add_NMR.setText("Add raw NMR")
+
+        self.Add_NMR_desc = QtWidgets.QPushButton(self)
+        self.Add_NMR_desc.setObjectName("Add_NMR")
+        self.Add_NMR_desc.setText("Add NMR desc")
 
         self.remove_NMR = QtWidgets.QPushButton(self)
         self.remove_NMR.setObjectName("remove_NMR")
         self.remove_NMR.setText("Remove selected")
 
         self.NMR_layout.addWidget(self.Add_NMR)
+        self.NMR_layout.addWidget(self.Add_NMR_desc)
         self.NMR_layout.addWidget(self.remove_NMR)
 
         self.NMR_widget.setLayout(self.NMR_layout)
@@ -403,7 +695,7 @@ class CalculationTab(QtWidgets.QWidget):
 
         self.NMR_list = QtWidgets.QListWidget(self)
         self.NMR_list.setObjectName("NMR_list")
-        self.NMR_list.setMaximumHeight(self.Add_structure.sizeHint().height() * 2)
+        self.NMR_list.setMaximumHeight(self.Add_structure.sizeHint().height() * 3)
         self.input_layout.addWidget(self.NMR_list)
 
         self.Output_add = QtWidgets.QPushButton(self)
@@ -531,6 +823,10 @@ class CalculationTab(QtWidgets.QWidget):
 
         self.Add_NMR.clicked.connect(self.addNMR)
 
+        self.Add_NMR_desc.clicked.connect(self.remove_all_NMR)
+
+        self.Add_NMR_desc.clicked.connect(self.addNMRdesc)
+
         self.remove_NMR.clicked.connect(self.removeNMR)
 
         self.Output_add.clicked.connect(self.addoutputfolder)
@@ -614,7 +910,6 @@ class CalculationTab(QtWidgets.QWidget):
     def DFT_pop(self):
 
         self.DFT_settings.show()
-
 
     def MM_pop(self):
 
@@ -760,6 +1055,7 @@ class CalculationTab(QtWidgets.QWidget):
             filename = Path(f)
 
             self.Structure_list.addItem(filename.name)
+
             self.Structure_paths.append(filename)
 
     def removestructure(self):
@@ -804,7 +1100,30 @@ class CalculationTab(QtWidgets.QWidget):
 
             if p_switch == 0 and c_switch == 0:
                 self.NMR_list.addItem(filename.name)
-                self.NMR_paths.append(f)
+                self.NMR_paths.append(filename.name)
+
+            self.Add_NMR_desc.setEnabled(False)
+
+    def addNMRdesc(self):
+
+        f = QtWidgets.QFileDialog.getOpenFileName()[0]
+
+        if f:
+            filename = Path(f)
+
+            self.NMR_list.addItem(filename.name)
+            self.NMR_paths.append(filename)
+
+            self.Add_NMR.setEnabled(False)
+            self.Add_NMR_desc.setEnabled(False)
+
+
+    def remove_all_NMR(self):
+
+        self.NMR_list.clear()
+        self.NMR_paths = []
+        self.Add_NMR.setEnabled(True)
+        self.Add_NMR_desc.setEnabled(True)
 
     def removeNMR(self):
 
@@ -814,6 +1133,11 @@ class CalculationTab(QtWidgets.QWidget):
         for i in item:
             self.NMR_list.takeItem(self.NMR_list.row(i))
             self.NMR_paths.pop(self.NMR_list.row(i))
+
+        if len(self.NMR_paths) == 0:
+            self.Add_NMR.setEnabled(True)
+            self.Add_NMR_desc.setEnabled(True)
+
 
     def addstats(self):
         filename = QtWidgets.QFileDialog.getOpenFileName()
@@ -1043,7 +1367,6 @@ class DFT_advanced_settings(QtWidgets.QWidget):
 
         self.NMR_calc_yn.stateChanged.connect(self.NMRtoggle)
 
-
     def Energytoggle(self, state):
 
         if state > 0:
@@ -1112,6 +1435,7 @@ class ProtonPlotTab(QtWidgets.QWidget):
         self.IsomerSelect.addItems(self.Isomer_number())
 
         self.IsomerSelect.currentIndexChanged.connect(self.PlotProton)
+
         self.image = QSvgWidget()
 
         self.widget1 = QtWidgets.QWidget(self)
@@ -2010,8 +2334,6 @@ class ConformerTab(QtWidgets.QWidget):
 
         self.layout.addWidget(self.conformertable, 0, 0)
 
-        # self.errortable.setGeometry(QtCore.QRect(10, 50,400, 400))
-
         self.conformertable.setColumnCount(3)
 
         self.conformertable.setHorizontalHeaderLabels(["Conformer", "Energy", "Population"])
@@ -2093,9 +2415,9 @@ class ConformerTab(QtWidgets.QWidget):
 
         s = np.argsort(self.energies)
 
-        self.conffig.plot(self.energies[s], self.populations[s])
+        self.conffig.plot(self.energies[s], self.populations[s],color = "C1")
 
-        self.conffig.plot(self.energies, self.populations, 'o', color='C1', alpha=0.5)
+        self.conffig.plot(self.energies, self.populations, 'o', color='C0', alpha=0.5)
 
         self.conffig.set_xlabel("Energy (Kcal)")
 
@@ -2127,7 +2449,7 @@ class PyDP4WorkerObject(QtCore.QObject):
         print(ui.table_widget.Tab1.settings.OutputFolder)
         os.chdir(ui.table_widget.Tab1.settings.OutputFolder)
 
-        self.NMRData, self.Isomers, self.settings, self.DP4Data = PyDP4.main(ui.table_widget.Tab1.settings)
+        self.NMRData, self.Isomers, self.settings, self.DP4Data,self.WFData = PyDP4.main(ui.table_widget.Tab1.settings)
         os.chdir(launchdir)
         self.finished.emit()
 
@@ -2190,6 +2512,7 @@ ui = Window()
 ui.show()
 
 thread = QtCore.QThread()
+
 my_receiver = MyReceiver(q)
 my_receiver.mysignal.connect(ui.table_widget.Tab1.append_text)
 my_receiver.moveToThread(thread)

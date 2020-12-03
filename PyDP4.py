@@ -39,6 +39,7 @@ import NMR
 import Tinker
 import MacroModel
 import WF as WF
+import DP4 as DP4
 import sys
 import os
 import datetime
@@ -166,6 +167,8 @@ class Isomer:
         self.NMROutputFiles = []    # list of DFT NMR output file names
         self.ShieldingLabels = []   # A list of atom labels corresponding to the shielding values
         self.ConformerShieldings = [] # list of calculated NMR shielding constant lists for every conformer
+        self.ConformerCShifts = [] # list of calculated C NMR shifts lists for every conformer
+        self.ConformerHShifts = [] # list of calculated H NMR shifts lists for every conformer
         self.BoltzmannShieldings = []  # Boltzmann weighted NMR shielding constant list for the isomer
         self.Cshifts = []           # Calculated C NMR shifts
         self.Hshifts = []           # Calculated H NMR
@@ -413,20 +416,53 @@ def main(settings):
 
     if 's' in settings.Workflow:
 
+        if "o" not in settings.Workflow:
+
+            print("DFT optimised conformers required for WF calculation")
+
+        else:
+
+            print('\nCalculating WF probabilities...')
+
+            # make folder for WF data to go into
+
+            WFdata = WF.WFdata(Path(settings.ScriptDir),len(Isomers[0].Atoms))
+
+            if not os.path.exists('wf'):
+
+                os.mkdir(Path(settings.OutputFolder) / 'wf')
+
+                WFdata = WF.ProcessIsomers(WFdata, Isomers, settings)
+
+                WFdata = WF.InternalScaling(WFdata)
+
+                WFdata = WF.kde_probs(Isomers, WFdata, 0.025)
+
+                WFdata = WF.BoltzmannWeight_WF(Isomers, WFdata)
+
+                WFdata = WF.Calculate_WF(WFdata)
+
+                WFdata = WF.Pickle_res(WFdata, settings)
+
+            else:
+
+                WFdata = WF.UnPickle_res(WFdata, settings)
+
+                WFdata = WF.Rescale_WF(WFdata, settings)
+
+                WFdata = WF.MakeOutput(WFdata, Isomers, settings)
+
+    if 's' in settings.Workflow:
+
         print('\nCalculating DP4 probabilities...')
 
+        DP4data = DP4.DP4data()
+        DP4data = DP4.ProcessIsomers(DP4data,Isomers)
+        DP4data = DP4.InternalScaling(DP4data)
+        DP4data = DP4.CalcProbs(DP4data,settings)
+        DP4data = DP4.CalcDP4(DP4data)
 
-
-        WFdata = WF.WFdata(settings.ScriptDir)
-        WFdata = WF.ProcessIsomers(WFdata,Isomers,settings)
-        WFdata = WF.InternalScaling(WFdata)
-
-
-
-
-
-
-
+        DP4data = DP4.MakeOutput(DP4data,Isomers,settings)
 
     else:
         print('\nNo DP4 analysis requested.')
@@ -435,7 +471,9 @@ def main(settings):
 
     print('\nPyDP4 process completed successfully.')
 
-    return NMRData, Isomers, settings, DP4data
+    print("workflow" , settings.Workflow)
+
+    return NMRData, Isomers, settings, DP4data,WFdata
 
 
 # Selects which DFT package to import, returns imported module
