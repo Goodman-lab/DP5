@@ -86,6 +86,7 @@ def kde_probs(Isomers,wfData,sigma):
         scaled_errors = [abs(shift - exp) for shift, exp in zip(scaled_shifts, wfData.Cexp[iso])]
 
         for e, s_e, r in zip(errors, scaled_errors, conf_reps):
+
             # calculate similarites between this atom and those in the atomic representation test set
 
             K_sim = get_atomic_kernels(np.array([r]), wfData.atomic_reps, [sigma],
@@ -95,7 +96,14 @@ def kde_probs(Isomers,wfData,sigma):
 
             # calculate kde using K_sim as the weighting function
 
-            kde_estimator = kde(wfData.folded_scaled_errors, weights=K_sim)
+
+            if np.sum(K_sim) == 0:
+
+                kde_estimator = kde(wfData.folded_scaled_errors)
+
+            else:
+
+                kde_estimator = kde(wfData.folded_scaled_errors, weights=K_sim)
 
             e_diff = abs(e - wfData.mean_abs_error)
 
@@ -106,6 +114,7 @@ def kde_probs(Isomers,wfData,sigma):
             s_e_diff = abs(s_e - wfData.mean_abs_error)
 
             s_p = kde_estimator.integrate_box_1d(wfData.mean_abs_error - s_e_diff, wfData.mean_abs_error + s_e_diff)
+
 
             scaled_probs.append(s_p)
 
@@ -135,6 +144,7 @@ def kde_probs(Isomers,wfData,sigma):
             ind1 += 1
 
         for ind1 in range(len(res)):
+
             wfData.UnscaledAtomProbs[iso][ind1], wfData.ScaledAtomProbs[iso][ind1] = res[ind1].get()
 
     return wfData
