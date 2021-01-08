@@ -140,6 +140,7 @@ class Settings:
 
     # --- Output folder ---
     OutputFolder = ''             # folder to print dp4 output to - default is cwd
+    ResFile = ''
 
 settings = Settings()
 
@@ -452,6 +453,10 @@ def main(settings):
 
                 WFdata = WF.MakeOutput(WFdata, Isomers, settings)
 
+        f = open(settings.ResFile,"a")
+
+        f.write("\n" + settings.InputFiles[0] + " " + str(WFdata.WFscaledprobs))
+
     if 's' in settings.Workflow:
 
         print('\nCalculating DP4 probabilities...')
@@ -464,6 +469,10 @@ def main(settings):
 
         DP4data = DP4.MakeOutput(DP4data,Isomers,settings)
 
+        f.write("\n" + settings.InputFiles[0] + " " + str(DP4data.CDP4probs))
+
+        f.close()
+
     else:
         print('\nNo DP4 analysis requested.')
         NMRData = []
@@ -473,7 +482,7 @@ def main(settings):
 
     print("workflow" , settings.Workflow)
 
-    return NMRData, Isomers, settings, DP4data,WFdata
+    return NMRData, Isomers, settings, DP4data, WFdata
 
 
 # Selects which DFT package to import, returns imported module
@@ -670,9 +679,13 @@ if __name__ == '__main__':
 
     parser.add_argument('-OutputFolder', help="Directory for dp4 ouput default is cwd",default= settings.OutputFolder)
 
+    parser.add_argument('-Res_file')
+
     args = parser.parse_args()
     print(args.StructureFiles)
     print(args.ExpNMR)
+
+    settings.ResFile = args.Res_file
 
     settings.Title = args.ExpNMR
     settings.NMRsource = args.ExpNMR
