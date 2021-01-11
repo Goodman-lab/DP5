@@ -131,7 +131,7 @@ def kde_probs(Isomers,wfData,sigma):
         wfData.UnscaledAtomProbs[iso] = [[] for i in wfData.AtomReps[iso]]
         wfData.ScaledAtomProbs[iso] = [[] for i in wfData.AtomReps[iso]]
 
-        maxproc = 10
+        maxproc = 4
 
         pool = mp.Pool(maxproc)
 
