@@ -677,15 +677,15 @@ if __name__ == '__main__':
     conformational search, implemented options 'mmff' and 'opls' (2005\
     version)", choices=['mmff', 'opls'], default=settings.ForceField)
 
-    parser.add_argument('-OutputFolder', help="Directory for dp4 ouput default is cwd",default= settings.OutputFolder)
+    parser.add_argument('-OutputFolder', help="Directory for dp4 output default is cwd",default= settings.OutputFolder)
 
-    parser.add_argument('-Res_file')
+    parser.add_argument('-ResFile')
 
     args = parser.parse_args()
     print(args.StructureFiles)
     print(args.ExpNMR)
 
-    settings.ResFile = args.Res_file
+    settings.ResFile = args.ResFile
 
     settings.Title = args.ExpNMR
     settings.NMRsource = args.ExpNMR
