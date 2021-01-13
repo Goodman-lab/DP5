@@ -455,7 +455,7 @@ def main(settings):
 
             f = open(settings.ResFile,"a")
 
-            f.write("\n" + settings.InputFiles[0] + " " + str(WFdata.WFscaledprobs))
+            f.write("\n" + settings.InputFiles[0].split("_")[0] + " " + str(WFdata.WFscaledprobs))
 
             f.close()
 
