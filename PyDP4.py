@@ -448,10 +448,11 @@ def main(settings):
                 WFdata = WF.Pickle_res(WFdata, settings)
 
             else:
-
                 WFdata = WF.UnPickle_res(WFdata, settings)
 
-            WFdata = WF.MakeOutput(WFdata, Isomers, settings)
+
+            #WFdata = WF.MakeOutput(WFdata, Isomers, settings)
+
 
             f = open(settings.ResFile,"a")
 
@@ -469,11 +470,11 @@ def main(settings):
         DP4data = DP4.CalcProbs(DP4data,settings)
         DP4data = DP4.CalcDP4(DP4data)
 
-        DP4data = DP4.MakeOutput(DP4data,Isomers,settings)
+        #DP4data = DP4.MakeOutput(DP4data,Isomers,settings)
 
-        #f.write("\n" + settings.InputFiles[0] + " " + str(DP4data.CDP4probs))
+        f.write(" " + " " + str(DP4data.CDP4probs))
 
-        #f.close()
+        f.close()
 
     else:
         print('\nNo DP4 analysis requested.')
