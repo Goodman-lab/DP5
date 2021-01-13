@@ -1,14 +1,15 @@
 import numpy as np
+import pickle
+from matplotlib import pyplot as plt
 
+cor = pickle.load(open("/Users/Maidenhair/Desktop/c_w_kde_mean_s_0.025.p","rb"))
 
-a = np.array([1,2,np.nan])
+incor = pickle.load(open("/Users/Maidenhair/Desktop/i_w_kde_mean_s_0.025.p","rb"))
 
-b = np.array([1,2,np.inf])
+x = np.linspace(0,1,100)
 
-print(a)
+plt.plot(x,cor.pdf(x))
 
-print(b)
+plt.plot(x,incor.pdf(x))
 
-print(np.isnan(a).any())
-
-print(np.isinf(b).any())
+plt.show()

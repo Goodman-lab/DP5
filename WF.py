@@ -10,6 +10,7 @@ from scipy import stats
 import os
 import pathos.multiprocessing as mp
 import copy
+from matplotlib import pyplot as plt
 
 try:
     from openbabel.openbabel import OBConversion, OBMol, OBAtomAtomIter, OBMolAtomIter
