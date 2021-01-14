@@ -116,7 +116,6 @@ def kde_probs(Isomers,wfData,sigma):
 
             s_p = kde_estimator.integrate_box_1d(wfData.mean_abs_error - s_e_diff, wfData.mean_abs_error + s_e_diff)
 
-
             scaled_probs.append(s_p)
 
         return probs, scaled_probs
@@ -345,7 +344,6 @@ def ScaleNMR(calcShifts, expShifts):
 
 
 def BoltzmannWeight_WF(Isomers,WFdata):
-
 
     print("Conf", np.shape(np.array(WFdata.ScaledAtomProbs)))
 

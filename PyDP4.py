@@ -450,15 +450,27 @@ def main(settings):
             else:
                 WFdata = WF.UnPickle_res(WFdata, settings)
 
-
             #WFdata = WF.MakeOutput(WFdata, Isomers, settings)
-
 
             f = open(settings.ResFile,"a")
 
             f.write("\n" + settings.InputFiles[0].split("_")[0] + " " + str(WFdata.WFscaledprobs))
 
             f.close()
+
+            import pickle
+
+            results_dic = pickle.load(open(settings.ResFile + ".p","rb"))
+
+            os.rmdir(settings.ResFile + ".p")
+
+            results_dic[settings.InputFiles[0].split("_")[0]] = WFdata.WFscaledprobs
+
+            pickle.dump(results_dic,open(settings.ResFile + ".p","wb") )
+
+            quit()
+
+
 
     if 's' in settings.Workflow:
 
@@ -472,7 +484,9 @@ def main(settings):
 
         #DP4data = DP4.MakeOutput(DP4data,Isomers,settings)
 
-        f.write(" " + " " + str(DP4data.CDP4probs))
+        f = open(settings.ResFile, "a")
+
+        f.write(" " + str(DP4data.CDP4probs))
 
         f.close()
 
