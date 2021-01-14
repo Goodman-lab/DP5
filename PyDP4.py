@@ -462,7 +462,7 @@ def main(settings):
 
             results_dic = pickle.load(open(settings.ResFile + ".p","rb"))
 
-            os.rmdir(settings.ResFile + ".p")
+            os.system("rm " + settings.ResFile + ".p")
 
             results_dic[settings.InputFiles[0].split("_")[0]] = WFdata.WFscaledprobs
 
