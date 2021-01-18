@@ -414,9 +414,9 @@ def main(settings):
         #print('\nProcessing experimental NMR data...')
 
         #NMRdata = NMR.ProcessNMRData(Isomers, settings.NMRsource, settings)
-
+    '''
     if 's' in settings.Workflow:
-
+        
         if "o" not in settings.Workflow:
 
             print("DFT optimised conformers required for WF calculation")
@@ -470,7 +470,7 @@ def main(settings):
 
             quit()
 
-
+        '''
 
     if 's' in settings.Workflow:
 
@@ -486,9 +486,21 @@ def main(settings):
 
         f = open(settings.ResFile, "a")
 
-        f.write(" " + str(DP4data.CDP4probs))
+        f.write("\n" + os.getcwd().split("/")[-1] + " " + str(DP4data.CDP4probs))
 
         f.close()
+
+        import pickle
+
+        results_dic = pickle.load(open(settings.ResFile + ".p", "rb"))
+
+        os.system("rm " + settings.ResFile + ".p")
+
+        results_dic[os.getcwd().split("/")[-1]] = DP4data.CDP4probs
+
+        pickle.dump(results_dic, open(settings.ResFile + ".p", "wb"))
+
+        quit()
 
     else:
         print('\nNo DP4 analysis requested.')
@@ -498,6 +510,8 @@ def main(settings):
     print('\nPyDP4 process completed successfully.')
 
     print("workflow" , settings.Workflow)
+
+    WFdata = []
 
     return NMRData, Isomers, settings, DP4data, WFdata
 
