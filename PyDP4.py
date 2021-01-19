@@ -414,7 +414,7 @@ def main(settings):
         #print('\nProcessing experimental NMR data...')
 
         #NMRdata = NMR.ProcessNMRData(Isomers, settings.NMRsource, settings)
-    '''
+
     if 's' in settings.Workflow:
         
         if "o" not in settings.Workflow:
@@ -470,7 +470,6 @@ def main(settings):
 
             quit()
 
-        '''
 
     if 's' in settings.Workflow:
 
@@ -510,8 +509,6 @@ def main(settings):
     print('\nPyDP4 process completed successfully.')
 
     print("workflow" , settings.Workflow)
-
-    WFdata = []
 
     return NMRData, Isomers, settings, DP4data, WFdata
 
