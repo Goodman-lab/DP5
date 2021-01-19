@@ -121,7 +121,7 @@ def InternalScaling(DP4data):
 
     # calculate prediction errors
 
-    if len(DP4data.Cexp[0]) > 0:
+    if len(DP4data.Cexp[0]) > 1:
 
         for Cshifts, Cexp in zip(DP4data.Cshifts, DP4data.Cexp):
             DP4data.Cscaled.append(ScaleNMR(Cshifts, Cexp))
@@ -129,7 +129,7 @@ def InternalScaling(DP4data):
         for Cscaled, Cexp in zip(DP4data.Cscaled, DP4data.Cexp):
             DP4data.Cerrors.append([Cscaled[i] - Cexp[i] for i in range(0, len(Cscaled))])
 
-    if len(DP4data.Hexp[0]) > 0:
+    if len(DP4data.Hexp[0]) > 1:
 
         for Hshifts, Hexp in zip(DP4data.Hshifts, DP4data.Hexp):
             DP4data.Hscaled.append(ScaleNMR(Hshifts, Hexp))
