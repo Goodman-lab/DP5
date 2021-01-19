@@ -126,16 +126,23 @@ def InternalScaling(DP4data):
         for Cshifts, Cexp in zip(DP4data.Cshifts, DP4data.Cexp):
             DP4data.Cscaled.append(ScaleNMR(Cshifts, Cexp))
 
-        for Cscaled, Cexp in zip(DP4data.Cscaled, DP4data.Cexp):
-            DP4data.Cerrors.append([Cscaled[i] - Cexp[i] for i in range(0, len(Cscaled))])
+    else:
+        DP4data.Cscaled = DP4data.Cshifts
+
+    for Cscaled, Cexp in zip(DP4data.Cscaled, DP4data.Cexp):
+        DP4data.Cerrors.append([Cscaled[i] - Cexp[i] for i in range(0, len(Cscaled))])
+
 
     if len(DP4data.Hexp[0]) > 1:
 
         for Hshifts, Hexp in zip(DP4data.Hshifts, DP4data.Hexp):
             DP4data.Hscaled.append(ScaleNMR(Hshifts, Hexp))
 
-        for Hscaled, Hexp in zip(DP4data.Hscaled, DP4data.Hexp):
-            DP4data.Herrors.append([Hscaled[i] - Hexp[i] for i in range(0, len(Hscaled))])
+    else:
+        DP4data.Hscaled = DP4data.Hshifts
+
+    for Hscaled, Hexp in zip(DP4data.Hscaled, DP4data.Hexp):
+        DP4data.Herrors.append([Hscaled[i] - Hexp[i] for i in range(0, len(Hscaled))])
 
     return DP4data
 
