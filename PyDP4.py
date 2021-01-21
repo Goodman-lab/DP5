@@ -481,7 +481,9 @@ def main(settings):
         DP4data = DP4.CalcProbs(DP4data,settings)
         DP4data = DP4.CalcDP4(DP4data)
 
-        #DP4data = DP4.MakeOutput(DP4data,Isomers,settings)
+        DP4data = DP4.MakeOutput(DP4data,Isomers,settings)
+
+        quit()
 
         f = open(settings.ResFile, "a")
 
@@ -499,7 +501,7 @@ def main(settings):
 
         pickle.dump(results_dic, open(settings.ResFile + ".p", "wb"))
 
-        quit()
+
 
     else:
         print('\nNo DP4 analysis requested.')
