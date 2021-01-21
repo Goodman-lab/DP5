@@ -414,7 +414,7 @@ def main(settings):
         #print('\nProcessing experimental NMR data...')
 
         #NMRdata = NMR.ProcessNMRData(Isomers, settings.NMRsource, settings)
-    '''
+
     if 's' in settings.Workflow:
         
         if "o" not in settings.Workflow:
@@ -470,7 +470,7 @@ def main(settings):
 
             quit()
 
-    '''
+
     if 's' in settings.Workflow:
 
         print('\nCalculating DP4 probabilities...')
@@ -499,7 +499,7 @@ def main(settings):
 
         pickle.dump(results_dic, open(settings.ResFile + ".p", "wb"))
 
-        quit()
+
 
 
     else:
