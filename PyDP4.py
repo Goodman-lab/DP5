@@ -483,8 +483,6 @@ def main(settings):
 
         DP4data = DP4.MakeOutput(DP4data,Isomers,settings)
 
-        quit()
-
         f = open(settings.ResFile, "a")
 
         f.write("\n" + os.getcwd().split("/")[-1] + " " + str(DP4data.CDP4probs))
@@ -501,6 +499,7 @@ def main(settings):
 
         pickle.dump(results_dic, open(settings.ResFile + ".p", "wb"))
 
+        quit()
 
 
     else:
