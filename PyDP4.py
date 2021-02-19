@@ -450,7 +450,7 @@ def main(settings):
             else:
                 WFdata = WF.UnPickle_res(WFdata, settings)
 
-            #WFdata = WF.MakeOutput(WFdata, Isomers, settings)
+            WFdata = WF.MakeOutput(WFdata, Isomers, settings)
 
             f = open(settings.ResFile,"a")
 
@@ -470,7 +470,6 @@ def main(settings):
 
             quit()
 
-
     if 's' in settings.Workflow:
 
         print('\nCalculating DP4 probabilities...')
@@ -483,24 +482,21 @@ def main(settings):
 
         DP4data = DP4.MakeOutput(DP4data,Isomers,settings)
 
-        f = open(settings.ResFile, "a")
+        #f = open(settings.ResFile, "a")
 
-        f.write("\n" + os.getcwd().split("/")[-1] + " " + str(DP4data.CDP4probs))
+        #f.write("\n" + os.getcwd().split("/")[-1] + " " + str(DP4data.CDP4probs))
 
-        f.close()
+        #f.close()
 
         import pickle
 
-        results_dic = pickle.load(open(settings.ResFile + ".p", "rb"))
+        #results_dic = pickle.load(open(settings.ResFile + ".p", "rb"))
 
-        os.system("rm " + settings.ResFile + ".p")
+        #os.system("rm " + settings.ResFile + ".p")
 
-        results_dic[os.getcwd().split("/")[-1]] = DP4data.CDP4probs
+        #results_dic[os.getcwd().split("/")[-1]] = DP4data.CDP4probs
 
-        pickle.dump(results_dic, open(settings.ResFile + ".p", "wb"))
-
-
-
+        #pickle.dump(results_dic, open(settings.ResFile + ".p", "wb"))
 
     else:
         print('\nNo DP4 analysis requested.')
@@ -510,8 +506,6 @@ def main(settings):
     print('\nPyDP4 process completed successfully.')
 
     print("workflow" , settings.Workflow)
-
-    WFdata = []
 
     return NMRData, Isomers, settings, DP4data, WFdata
 
