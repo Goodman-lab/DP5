@@ -466,7 +466,7 @@ def main(settings):
 
             results_dic[settings.InputFiles[0].split("_")[0]] = WFdata.WFscaledprobs
 
-            pickle.dump(results_dic,open(settings.ResFile + ".p","wb") )
+            pickle.dump(results_dic,open(settings.ResFile + ".p","wb+") )
 
             quit()
 
