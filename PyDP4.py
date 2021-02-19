@@ -460,6 +460,8 @@ def main(settings):
 
             import pickle
 
+            print(settings.ResFile)
+
             results_dic = pickle.load(open(settings.ResFile + ".p","rb"))
 
             os.system("rm " + settings.ResFile + ".p")
