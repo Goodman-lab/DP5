@@ -509,6 +509,8 @@ def main(settings):
 
     print("workflow" , settings.Workflow)
 
+    WFdata = []
+
     return NMRData, Isomers, settings, DP4data, WFdata
 
 
