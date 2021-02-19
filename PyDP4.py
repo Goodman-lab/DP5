@@ -202,7 +202,7 @@ def main(settings):
     # Run conformational search, if requested
     if ('m' in settings.Workflow) and not (settings.AssumeDone or settings.UseExistingInputs):
 
-        print("Performing conformational search using ", end="")
+        #print("Performing conformational search using ", end="")
 
         if settings.MM == 't':
             print("Tinker")
