@@ -1,7 +1,10 @@
-import numpy as np
+import gzip
 import pickle
-from matplotlib import pyplot as plt
-import os
 
 
-print(os.getcwd().split("/")[-1])
+atomic_reps = pickle.load(open("frag_reps.p","rb"))
+
+with gzip.open("frag_reps.gz", "wb") as f:
+    pickle.dump(atomic_reps, f)
+
+

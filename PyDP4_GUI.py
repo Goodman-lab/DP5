@@ -150,7 +150,7 @@ class WFTab(QtWidgets.QWidget):
 
             self.Isomer_WF_table.setItem(c, 2, QtWidgets.QTableWidgetItem(str(round(unscaled_WF, 2))))
 
-            self.Isomer_WF_table.setItem(c, 3, QtWidgets.QTableWidgetItem(str(DP4)))
+            self.Isomer_WF_table.setItem(c, 3, QtWidgets.QTableWidgetItem(str(round(DP4 , 3))))
 
             c += 1
 
@@ -264,14 +264,18 @@ class WFTab(QtWidgets.QWidget):
             inds.append(int(label.split("C")[1]) - 1)
 
         for i, s in zip(inds, self.WFdata.BScaledAtomProbs[isomerindex]):
-            highlight[i] = cm.Oranges(s)
+
+            highlight[i] = cm.RdYlGn(1 - s)
 
         # pick selected atom
 
         if self.WF_table.item(self.WF_table.currentRow(), 0):
-            selected = int(self.WF_table.item(self.WF_table.currentRow(), 0).text().split("C")[1]) - 1
 
-            highlight[selected] = (0.12, 0.47, 0.71)
+            error_ind = int(self.WF_table.currentRow())
+
+            atom_ind = inds[error_ind]
+
+            highlight[atom_ind] = cm.viridis( 1 - self.WFdata.BScaledAtomProbs[isomerindex][error_ind])
 
         # m = Chem.MolFromMolFile(str(ui.table_widget.Tab1.worker.settings.InputFiles[0]).split('.sdf')[0] + '.sdf', removeHs=False)
 
@@ -293,8 +297,6 @@ class WFTab(QtWidgets.QWidget):
         svg_bytes = bytearray(svg, encoding='utf-8')
 
         self.image.renderer().load(svg_bytes)
-
-
 
         ui.update()
 
@@ -399,6 +401,8 @@ class StatsTab(QtWidgets.QWidget):
         '''colors = [(0.12, 0.47, 0.71), (1.0, 0.5, 0.05), (0.17, 0.63, 0.17), (0.84, 0.15, 0.16), (0.58, 0.4, 0.74),
                   (0.55, 0.34, 0.29), (0.89, 0.47, 0.76), (0.5, 0.5, 0.5), (0.74, 0.74, 0.13), (0.09, 0.75, 0.81)]'''
 
+        isomerindex = self.IsomerSelect.currentIndex()
+
         atom = []
 
         highlight = {}
@@ -419,7 +423,7 @@ class StatsTab(QtWidgets.QWidget):
 
             highlight[H_atom - 1] = (0.84, 0.15, 0.16)
 
-        m = Chem.MolFromMolFile(str(ui.table_widget.Tab1.worker.settings.InputFilesPaths[0]), removeHs=False)
+        m = Chem.MolFromMolFile(str(ui.table_widget.Tab1.worker.settings.InputFilesPaths[isomerindex]), removeHs=False)
 
         Chem.Compute2DCoords(m)
 
@@ -2503,7 +2507,7 @@ def ReadParamFile(f, t):
 
 q = queue.Queue()
 
-sys.stdout = WriteStream(q)
+#sys.stdout = WriteStream(q)
 
 app = QtWidgets.QApplication(sys.argv)
 
@@ -2512,13 +2516,13 @@ ui = Window()
 ui.show()
 
 thread = QtCore.QThread()
-
+'''
 my_receiver = MyReceiver(q)
 my_receiver.mysignal.connect(ui.table_widget.Tab1.append_text)
 my_receiver.moveToThread(thread)
 thread.started.connect(my_receiver.run)
 thread.start()
-
+'''
 sys.exit(app.exec_())
 
 

@@ -414,7 +414,7 @@ def main(settings):
         #print('\nProcessing experimental NMR data...')
 
         #NMRdata = NMR.ProcessNMRData(Isomers, settings.NMRsource, settings)
-    '''
+
     if 's' in settings.Workflow:
         
         if "o" not in settings.Workflow:
@@ -452,6 +452,7 @@ def main(settings):
 
             WFdata = WF.MakeOutput(WFdata, Isomers, settings)
 
+            '''
             f = open(settings.ResFile,"a")
 
             f.write("\n" + settings.InputFiles[0].split("_")[0] + " " + str(WFdata.WFscaledprobs))
@@ -471,7 +472,8 @@ def main(settings):
             pickle.dump(results_dic,open(settings.ResFile + ".p","wb+") )
 
             quit()
-    '''
+            '''
+
     if 's' in settings.Workflow:
 
         print('\nCalculating DP4 probabilities...')
@@ -483,7 +485,7 @@ def main(settings):
         DP4data = DP4.CalcDP4(DP4data)
 
         DP4data = DP4.MakeOutput(DP4data,Isomers,settings)
-
+        '''
         f = open(settings.ResFile, "a")
 
         f.write("\n" + os.getcwd().split("/")[-1] + " " + str(DP4data.CDP4probs))
@@ -499,7 +501,7 @@ def main(settings):
         results_dic[os.getcwd().split("/")[-1]] = DP4data.CDP4probs
 
         pickle.dump(results_dic, open(settings.ResFile + ".p", "wb"))
-
+        '''
     else:
         print('\nNo DP4 analysis requested.')
         NMRData = []
@@ -509,7 +511,7 @@ def main(settings):
 
     print("workflow" , settings.Workflow)
 
-    WFdata = []
+    #WFdata = []
 
     return NMRData, Isomers, settings, DP4data, WFdata
 
