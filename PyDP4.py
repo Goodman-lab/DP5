@@ -38,7 +38,7 @@ Interprets the arguments and takes care of the general workflow logic.
 import NMR
 import Tinker
 import MacroModel
-import WF as WF
+import DP5 as DP5
 import DP4 as DP4
 import sys
 import os
@@ -419,38 +419,38 @@ def main(settings):
         
         if "o" not in settings.Workflow:
 
-            print("DFT optimised conformers required for WF calculation")
+            print("DFT optimised conformers required for DP5 calculation")
 
         else:
 
-            print('\nCalculating WF probabilities...')
+            print('\nCalculating DP5 probabilities...')
 
             # make folder for WF data to go into
 
-            WFdata = WF.WFdata(Path(settings.ScriptDir),len(Isomers[0].Atoms))
+            DP5data = DP5.DP5data(Path(settings.ScriptDir), len(Isomers[0].Atoms))
 
             if not os.path.exists('wf'):
 
                 os.mkdir(Path(settings.OutputFolder) / 'wf')
 
-                WFdata = WF.ProcessIsomers(WFdata, Isomers, settings)
+                DP5data = DP5.ProcessIsomers(DP5data, Isomers, settings)
 
-                WFdata = WF.InternalScaling(WFdata)
+                DP5data = DP5.InternalScaling(DP5data)
 
-                WFdata = WF.kde_probs(Isomers, WFdata, 0.025)
+                DP5data = DP5.kde_probs(Isomers, DP5data, 0.025)
 
-                WFdata = WF.BoltzmannWeight_WF(Isomers, WFdata)
+                DP5data = DP5.BoltzmannWeight_DP5(Isomers, DP5data)
 
-                WFdata = WF.Calculate_WF(WFdata)
+                DP5data = DP5.Calculate_DP5(DP5data)
 
-                WFdata = WF.Rescale_WF(WFdata, settings)
+                DP5data = DP5.Rescale_DP5(DP5data, settings)
 
-                WFdata = WF.Pickle_res(WFdata, settings)
+                DP5data = DP5.Pickle_res(DP5data, settings)
 
             else:
-                WFdata = WF.UnPickle_res(WFdata, settings)
+                DP5data = DP5.UnPickle_res(DP5data, settings)
 
-            WFdata = WF.MakeOutput(WFdata, Isomers, settings)
+            DP5data = DP5.MakeOutput(DP5data, Isomers, settings)
 
             '''
             f = open(settings.ResFile,"a")
@@ -513,7 +513,7 @@ def main(settings):
 
     #WFdata = []
 
-    return NMRData, Isomers, settings, DP4data, WFdata
+    return NMRData, Isomers, settings, DP4data, DP5data
 
 
 # Selects which DFT package to import, returns imported module
