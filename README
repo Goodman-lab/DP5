@@ -52,9 +52,10 @@ Gaussian for DFT and it runs Gaussian on ziggy by default. NWChem and TINKER is 
 This setup has several requirements.
 
 1) One should have MacroModel or TINKER and NWChem or Gaussian.
-The DP4-AI folder contains settings.cfg, where the locations for the installed software packages
+The DP4-AI folder can contain settings.cfg, where the locations for the installed software packages
 can be given, so that DP4-AI can launch them and use in the workflow. Examples on how to do
-this are provided in the included settings.cfg.
+this are provided in the included settings.example - this should be renamed to settings.cfg and
+any relevant changes made.
 
 2) In order to run DP4-AI a python 3.6+ environment the following packages are required:
 numpy scipy Cython matplotlib nmrglue statsmodels lmfit openbabel rdkit pathos

@@ -476,6 +476,11 @@ def ReadShieldings(Isomers):
 
     for iso in Isomers:
 
+        if len(iso.NMROutputFiles) < 1:
+            print("Gaussian.py, ReadShieldings: No NMR DFT output" +
+                  " files found, NMR data could not be read. Quitting.")
+            quit()
+
         for GOutpFile in iso.NMROutputFiles:
 
             gausfile = open(GOutpFile, 'r')
@@ -551,6 +556,11 @@ def ReadGeometries(Isomers, settings):
 
             iso.DFTConformers = [[] for x in iso.OptOutputFiles]
 
+            if len(iso.OptOutputFiles) < 1:
+                print("Gaussian.py, ReadGeometries: No geometry optimisation output" +
+                      " files found, geometries could not be read. Quitting.")
+                quit()
+
             for num, GOutpFile in enumerate(iso.OptOutputFiles):
 
                 atoms, coords = ReadGeometry(GOutpFile)
@@ -564,6 +574,11 @@ def ReadGeometries(Isomers, settings):
         for iso in Isomers:
 
             iso.DFTConformers = [[] for x in iso.NMROutputFiles]
+
+            if len(iso.NMROutputFiles) < 1:
+                print("Gaussian.py, ReadGeometries: No NMR DFT output" +
+                      " files found, geometries could not be read. Quitting.")
+                quit()
 
             for num, GOutpFile in enumerate(iso.NMROutputFiles):
                 atoms, coords = ReadGeometry(GOutpFile)

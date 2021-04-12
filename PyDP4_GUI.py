@@ -665,9 +665,7 @@ class CalculationTab(QtWidgets.QWidget):
         for index in range(self.Structure_list.count()):
 
             if self.Structure_list.item(index).text() != '':
-
                 self.settings.InputFiles.append(self.Structure_list.item(index).text())
-
 
         # copy structures to output folder
 

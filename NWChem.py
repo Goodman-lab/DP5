@@ -233,13 +233,13 @@ def RunOptCalcs(Isomers, settings):
     NWJobs = []
 
     for iso in Isomers:
-        print(iso.NMRInputFiles)
+        print(iso.OptInputFiles)
         NWJobs.extend([x for x in iso.OptInputFiles if (x[:-3] + '.nwo') not in iso.OptOutputFiles])
 
     Completed = RunCalcs(NWJobs, settings)
 
     for iso in Isomers:
-        iso.NMROutputFiles.extend([x[:-3] + '.nwo' for x in iso.OptInputFiles if (x[:-3] + '.nwo') in Completed])
+        iso.OptOutputFiles.extend([x[:-3] + '.nwo' for x in iso.OptInputFiles if (x[:-3] + '.nwo') in Completed])
 
     os.chdir(jobdir)
 
@@ -327,7 +327,15 @@ def WriteNWChemFile(NWinp, conformer, atoms, charge, settings, type):
 
     f.write('end\n\nbasis\n  * library ' + basis + '\nend\n\n')
     if settings.Solvent != "":
-        f.write('cosmo\n  do_cosmo_smd true\n  solvent ' + settings.Solvent + '\n')
+        GausSolvents = ['chloroform', 'dimethylsulfoxide', 'benzene', 'methanol', 'pyridine', 'acetone']
+        NWSolvents = ['chcl3', 'dmso', 'benzene', 'methanol', 'pyridine', 'acetone']
+
+        if settings.Solvent in GausSolvents:
+            solvent = NWSolvents[GausSolvents.index(settings.Solvent)]
+        else:
+            solvent = settings.Solvent
+
+        f.write('cosmo\n  do_cosmo_smd true\n  solvent ' + solvent + '\n')
         f.write('end\n\n')
 
     if type == 'nmr':
@@ -451,6 +459,11 @@ def ReadShieldings(Isomers):
 
     for iso in Isomers:
 
+        if len(iso.NMROutputFiles) < 1:
+            print("NWChem.py, ReadShieldings: No NMR DFT output" +
+                  " files found, NMR data could not be read. Quitting.")
+            quit()
+
         for NWOutpFile in iso.NMROutputFiles:
             nwfile = open(NWOutpFile, 'r')
             NWOutp = nwfile.readlines()
@@ -525,6 +538,11 @@ def ReadGeometries(Isomers, settings):
 
             iso.DFTConformers = [[] for x in iso.OptOutputFiles]
 
+            if len(iso.OptOutputFiles) < 1:
+                print("NWChem.py, ReadGeometries: No geometry optimisation output" +
+                      " files found, geometries could not be read. Quitting.")
+                quit()
+
             for num, NWOutpFile in enumerate(iso.OptOutputFiles):
 
                 atoms, coords = ReadGeometry(NWOutpFile)
@@ -538,6 +556,11 @@ def ReadGeometries(Isomers, settings):
         for iso in Isomers:
 
             iso.DFTConformers = [[] for x in iso.NMROutputFiles]
+
+            if len(iso.NMROutputFiles) < 1:
+                print("NWChem.py, ReadGeometries: No geometry optimisation output" +
+                      " files found, geometries could not be read. Quitting.")
+                quit()
 
             for num, NWOutpFile in enumerate(iso.NMROutputFiles):
                 atoms, coords = ReadGeometry(NWOutpFile)
