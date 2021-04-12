@@ -637,8 +637,17 @@ class CalculationTab(QtWidgets.QWidget):
     def get_current_values(self):
 
         import PyDP4
+        import datetime
+        import getpass
 
         self.settings = PyDP4.Settings()
+
+        now = datetime.datetime.now()
+        self.settings.StartTime = now.strftime('%d%b%H%M')
+
+        self.settings.user = getpass.getuser()
+        self.settings.DarwinScrDir.replace('/u/', self.settings.user)
+
 
         # Read config file and fill in settings in from that
         self.settings = PyDP4.ReadConfig(self.settings)
@@ -656,14 +665,17 @@ class CalculationTab(QtWidgets.QWidget):
         for index in range(self.Structure_list.count()):
 
             if self.Structure_list.item(index).text() != '':
+
                 self.settings.InputFiles.append(self.Structure_list.item(index).text())
+
 
         # copy structures to output folder
 
         for f in self.Structure_paths:
 
-            if not Path(self.Output_folder / f.name).exists():
-                shutil.copyfile(f, self.settings.OutputFolder + os.path.sep + f)
+            if not Path(self.Output_folder / f ).exists():
+
+                shutil.copyfile(f, self.settings.OutputFolder / f)
 
         # add NMR
 
