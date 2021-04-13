@@ -139,6 +139,7 @@ class Settings:
 
     # --- Output folder ---
     OutputFolder = ''             # folder to print dp4 output to - default is cwd
+    GUIRunning = False             # Boolean has PyDP4 been called from commandline or from GUI
 
 settings = Settings()
 
@@ -365,8 +366,9 @@ def main(settings):
                     print('\nAssigning proton spectrum...')
                     Isomers = AssignProton(NMRData,Isomers,settings)
 
-                    print('\nPlotting proton spectrum...')
-                    PlotProton(NMRData, Isomers, settings)
+                    if settings.GUIRunning == False:
+                        print('\nPlotting proton spectrum...')
+                        PlotProton(NMRData, Isomers, settings)
 
                 elif f.name == "Carbon" or f.name == "carbon":
 
@@ -376,8 +378,9 @@ def main(settings):
                     print('\nAssigning carbon spectrum...')
                     Isomers = AssignCarbon(NMRData,Isomers,settings)
 
-                    print('\nPlotting carbon spectrum...')
-                    PlotCarbon(NMRData, Isomers, settings)
+                    if settings.GUIRunning == False:
+                        print('\nPlotting carbon spectrum...')
+                        PlotCarbon(NMRData, Isomers, settings)
 
         elif NMRData.Type == "jcamp":
 
@@ -391,8 +394,9 @@ def main(settings):
                     print('\nAssigning proton spectrum...')
                     Isomers = AssignProton(NMRData, Isomers, settings)
 
-                    print('\nPlotting proton spectrum...')
-                    PlotProton(NMRData, Isomers, settings)
+                    if settings.GUIRunning == False:
+                        print('\nPlotting proton spectrum...')
+                        PlotProton(NMRData, Isomers, settings)
 
                 elif f.name == "Carbon.dx" or f.name == "carbon.dx":
 
@@ -402,8 +406,9 @@ def main(settings):
                     print('\nAssigning carbon spectrum...')
                     Isomers = AssignCarbon(NMRData, Isomers, settings)
 
-                    print('\nPlotting carbon spectrum...')
-                    PlotCarbon(NMRData, Isomers, settings)
+                    if settings.GUIRunning == False:
+                        print('\nPlotting carbon spectrum...')
+                        PlotCarbon(NMRData, Isomers, settings)
 
             print('Raw FID NMR datafound and read.')
 

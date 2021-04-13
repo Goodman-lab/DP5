@@ -22,6 +22,7 @@ import pickle
 
 from Proton_processing import process_proton
 from Carbon_processing import process_carbon
+import shutil
 from pathlib import Path
 
 gasConstant = 8.3145
@@ -158,21 +159,29 @@ class NMRData:
 
         NMR_file = settings.NMRsource[ind]
 
-        if not gdir.exists():
+        if not Path(gdir).exists():
 
             os.mkdir(gdir)
 
-            os.mkdir(gdir  / settings.InputFiles[0] )
+            os.mkdir(gdir / settings.InputFiles[0])
 
-        if not os.path.exists(gdir / settings.InputFiles[0] ):
+        else:
 
-            os.mkdir(gdir / settings.InputFiles[0] )
+            if not Path(gdir / settings.InputFiles[0]).exists():
+
+                os.mkdir(gdir / settings.InputFiles[0])
 
         if not pdir.exists():
 
             os.mkdir(pdir)
 
             os.mkdir(pdir / settings.InputFiles[0])
+
+        else:
+
+            if not Path(pdir / settings.InputFiles[0]).exists():
+
+                os.mkdir(pdir / settings.InputFiles[0])
 
         if Path(pdir / settings.InputFiles[0] /  "protondata").exists():
 
@@ -211,21 +220,29 @@ class NMRData:
 
         NMR_file = settings.NMRsource[ind]
 
-        if not gdir.exists():
+        if not Path(gdir).exists():
 
             os.mkdir(gdir)
 
             os.mkdir(gdir  / settings.InputFiles[0])
 
-        if not Path(gdir  / settings.InputFiles[0]).exists():
+        else:
 
-            os.mkdir(gdir / settings.InputFiles[0])
+            if not Path(gdir  / settings.InputFiles[0]).exists():
+
+                os.mkdir(gdir / settings.InputFiles[0])
 
         if not pdir.exists():
 
             os.mkdir(pdir)
 
             os.mkdir(pdir / settings.InputFiles[0])
+
+        else:
+
+            if not Path(pdir / settings.InputFiles[0]).exists():
+
+                os.mkdir(pdir / settings.InputFiles[0])
 
         if Path(pdir / settings.InputFiles[0] / "carbondata").exists():
 

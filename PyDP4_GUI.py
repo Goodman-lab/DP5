@@ -642,6 +642,8 @@ class CalculationTab(QtWidgets.QWidget):
 
         self.settings = PyDP4.Settings()
 
+        self.settings.GUIRunning = True
+
         now = datetime.datetime.now()
         self.settings.StartTime = now.strftime('%d%b%H%M')
 
@@ -665,7 +667,7 @@ class CalculationTab(QtWidgets.QWidget):
         for index in range(self.Structure_list.count()):
 
             if self.Structure_list.item(index).text() != '':
-                self.settings.InputFiles.append(self.Structure_list.item(index).text())
+                self.settings.InputFiles.append(self.Structure_list.item(index).text()[:-4])
 
         # copy structures to output folder
 
@@ -1198,7 +1200,7 @@ class ProtonPlotTab(QtWidgets.QWidget):
 
         self.RenderImage([], None)
 
-        self.isomerindex = int(str(self.IsomerSelect.currentText())[-1])
+        self.isomerindex = int(str(self.IsomerSelect.currentText())[-1]) - 1
 
         self.isomer = ui.table_widget.Tab1.worker.Isomers[self.isomerindex]
 
@@ -1699,7 +1701,7 @@ class CarbonPlotTab(QtWidgets.QWidget):
 
             self.figure.subplots_adjust(left=0.05, right=0.95, bottom=0.07, top=0.95, wspace=0.05, hspace=0.05)
 
-            self.isomerindex = int(str(self.IsomerSelect.currentText())[-1])
+            self.isomerindex = int(str(self.IsomerSelect.currentText())[-1]) - 1
 
             self.isomer = ui.table_widget.Tab1.worker.Isomers[self.isomerindex]
             self.assigned_shifts = self.isomer.Cshifts

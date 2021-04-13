@@ -150,7 +150,7 @@ def guess_udic(dic, data):
 
 
 def spectral_processing(file, datatype):
-    print('Processing Spectrum')
+    print('Processing Proton Spectrum')
 
     if datatype == 'jcamp':
 
@@ -217,8 +217,6 @@ def spectral_processing(file, datatype):
         peak_regions.append(np.arange(s_start[r], s_end[r]))
 
     tydata = tydata / np.max(abs(tydata))
-
-    print("corrected")
 
     return tydata, spectral_xdata_ppm, corr_distance, uc, sigma, peak_regions
 
@@ -575,7 +573,7 @@ def baseline_find_signal(y_data, cdist, dev, t):
 
         sv.append(s)
 
-    print("done")
+
 
     sigma = np.mean(sv)
 
@@ -1498,8 +1496,6 @@ def integrate_sim_regions(sim_regions, grouped_peaks, peak_regions, y_data, para
         sim_integrals.append(region_integral)
 
     sim_integrals = np.array(sim_integrals)
-
-    print("exact", list(np.round(sim_integrals, 2)))
 
     y_integral = np.sum(y_data)
 

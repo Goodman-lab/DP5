@@ -20,10 +20,6 @@ def process_carbon(NMR_file,settings,datatype):
     total_spectral_ydata, spectral_ydata, spectral_xdata_ppm, threshold, corr_distance, uc = spectral_processing(
         NMR_file,datatype)
 
-    print("length y data",len(total_spectral_ydata))
-
-    print("length xdata",len(spectral_xdata_ppm))
-
     total_spectral_ydata = edge_removal(total_spectral_ydata)
 
     picked_peaks, simulated_ydata = iterative_peak_picking(total_spectral_ydata, 5, corr_distance)
@@ -39,6 +35,8 @@ def process_carbon(NMR_file,settings,datatype):
 ########################################################################################################################
 
 def spectral_processing(file,datatype):
+
+    print('Processing Carbon Spectrum')
 
     spectral_xdata_ppm, total_spectral_ydata, uc = initial_processing(file,datatype)
 
@@ -140,8 +138,6 @@ def jcamp_guess_udic(dic, data):
     return udic
 
 def initial_processing(file,datatype):
-
-    print('Processing Spectrum')
 
     if datatype =='jcamp':
 
@@ -549,7 +545,6 @@ def peak_pruning(picked_peaks, total_spectral_ydata, point_ppm,corr_distance):
     print("peak pruning")
 
     print("number of picked peaks",len(picked_peaks))
-
 
     distance = 0.25/point_ppm
 
