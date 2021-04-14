@@ -1,4 +1,3 @@
-from matplotlib import pyplot as plt
 import numpy as np
 from scipy.stats import gmean
 from lmfit import Minimizer, Parameters, report_fit

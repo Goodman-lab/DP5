@@ -6,7 +6,6 @@ import numpy as np
 from scipy.stats import norm
 from scipy.ndimage.filters import gaussian_filter1d as g1d
 from scipy.ndimage.filters import convolve1d as c1d
-from matplotlib import pyplot as plt
 import pickle
 from lmfit import Minimizer, Parameters, report_fit
 import copy as copy

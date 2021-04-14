@@ -166,9 +166,11 @@ def GetInchi(f):
     print("Getting inchi from file ",f)
 
     if os.path.sep not in f:
-        f = os.path.join(os.getcwd(), f)
+        f = os.path.join(os.getcwd(), f )
 
     m = Chem.MolFromMolFile(f, removeHs = False)
+
+    m = Chem.AddHs(m)
 
     idata = Chem.MolToInchiAndAuxInfo(m)
 
@@ -176,7 +178,6 @@ def GetInchi(f):
 
 
 def Inchi2Struct(inchi, f, aux):
-
 
     cwd = os.getcwd()
     fullf = os.path.join(cwd, f)
@@ -222,6 +223,11 @@ def GetTautProtons(inchi):
 def GenSelectDiastereomers(structf, atoms):
 
     f = structf
+
+    if (f[-4:] != '.sdf'):
+
+        f += '.sdf'
+
     inchi, aux = GetInchi(f)
     amap = GetInchiRenumMap(aux)
 
@@ -236,6 +242,7 @@ def GenSelectDiastereomers(structf, atoms):
         Inchi2Struct(ds_inchis[ds], f[:-4] + str(ds+1), aux)
         RestoreNumsSDF(f[:-4] + str(ds+1) + '.sdf', f, aux)
         filenames.append(f[:-4] + str(ds+1))
+
     return filenames
 
 
@@ -297,8 +304,11 @@ def GenDiastereomers(structf, atoms=[]):
         return GenSelectDiastereomers(structf, atoms)
 
     f = structf
-    inchi, aux = GetInchi(f)
 
+    if (f[-4:] != '.sdf'):
+        f += '.sdf'
+
+    inchi, aux = GetInchi(f)
 
     i,a = GetInchi(f)
 

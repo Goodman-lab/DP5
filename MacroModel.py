@@ -50,6 +50,7 @@ def SetupMacroModel(settings):
             convinp = settings.SCHRODINGER + '/utilities/sdconvert -isd '
 
         if (f[-4:] == '.sdf'):
+
             if not os.path.exists(f[:-4] + '.mae'):
                 outp = subprocess.check_output(convinp + f + ' -omae ' + f[:-4] +
                                                '.mae', shell=True)

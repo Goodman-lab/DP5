@@ -650,7 +650,6 @@ class CalculationTab(QtWidgets.QWidget):
         self.settings.user = getpass.getuser()
         self.settings.DarwinScrDir.replace('/u/', self.settings.user)
 
-
         # Read config file and fill in settings in from that
         self.settings = PyDP4.ReadConfig(self.settings)
 
