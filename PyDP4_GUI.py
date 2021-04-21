@@ -2314,7 +2314,7 @@ def ReadParamFile(f, t):
 
 q = queue.Queue()
 
-#sys.stdout = WriteStream(q)
+sys.stdout = WriteStream(q)
 
 app = QtWidgets.QApplication(sys.argv)
 

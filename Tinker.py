@@ -72,7 +72,6 @@ def SetupTinker(settings):
 
     return TinkerInputs
 
-
 def RunTinker(TinkerInputs, settings):
     #Run Tinker scan for all diastereomeric inputs
     TinkerOutputs = []
@@ -89,9 +88,9 @@ def RunTinker(TinkerInputs, settings):
             TinkerOutputs.append(isomer)
             continue
 
-        print(settings.TinkerPath + '/bin/scan ' + isomer + ' 0 10 20 0.00001 | tee ./' + isomer + \
+        print(settings.TinkerPath + '/bin/scan ' + isomer +' '+settings.TinkerPath + '/params/mmff.prm 0 10 20 0.00001 | tee ./' + isomer + \
             '.tout')
-        outp = subprocess.check_output(settings.TinkerPath + '/bin/scan ' + isomer +
+        outp = subprocess.check_output(settings.TinkerPath + '/bin/scan ' + isomer +' '+settings.TinkerPath+'/params/mmff.prm'+
             ' 0 10 20 0.00001 | tee ./' + isomer + '.tout', shell=True)
         NCompleted = NCompleted + 1
         TinkerOutputs.append(isomer)
@@ -99,10 +98,10 @@ def RunTinker(TinkerInputs, settings):
             " completed.")
 
         if settings.Rot5Cycle is True:
-            print(settings.TinkerPath + '/bin/scan ' + isomer + 'rot 0 10 20 0.00001 | tee ./' + \
+            print(settings.TinkerPath + '/bin/scan ' + isomer + 'rot '+settings.TinkerPath+'/params/mmff.prm 0 10 20 0.00001 | tee ./' + \
                 isomer + 'rot.tout')
             outp = subprocess.check_output(settings.TinkerPath + '/bin/scan ' + isomer +
-                'rot 0 10 20 0.00001 | tee ./' + isomer + 'rot.tout', shell=True)
+                'rot '+settings.TinkerPath+'/params/mmff.prm 0 10 20 0.00001 | tee ./' + isomer + 'rot.tout', shell=True)
             NCompleted = NCompleted + 1
 
     return TinkerOutputs
