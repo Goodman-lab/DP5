@@ -20,6 +20,7 @@ except ImportError:
 import subprocess
 from rdkit import Chem
 from rdkit.Chem import AllChem
+import shutil
 
 def main(f):
 
@@ -29,7 +30,6 @@ def main(f):
     ds_inchis = [FixTautProtons(f, i, aux) for i in ds_inchis]
 
     for ds in range(0, len(ds_inchis)):
-
         print("Isomer " + str(ds) + " inchi = " + ds_inchis[ds])
 
         Inchi2Struct(ds_inchis[ds], f[:-4] + str(ds+1), aux)
@@ -112,10 +112,10 @@ def RestoreNumsSDF(f, fold, AuxInfo):
     obconversion.ReadFile(obmol, f)
     #Get the atoms Hs are connected to
     oldHcons = GetHcons(fold)
-    #translate the H connected atoms to the new numbering system
+    # translate the H connected atoms to the new numbering system
     amap = GetInchiRenumMap(AuxInfo)
     for i in range(0, len(oldHcons)):
-        oldHcons[i][1] = amap.index(oldHcons[i][1])+1
+        oldHcons[i][1] = amap.index(oldHcons[i][1]) + 1
 
     newHcons = []
     temp = []
@@ -123,11 +123,11 @@ def RestoreNumsSDF(f, fold, AuxInfo):
     for atom in OBMolAtomIter(obmol):
         idx = atom.GetIdx()
         anum = atom.GetAtomicNum()
-        #If atom is hydrogen, check what it is connected to
+        # If atom is hydrogen, check what it is connected to
         if anum == 1:
             for NbrAtom in OBAtomAtomIter(atom):
                 newHcons.append([idx, NbrAtom.GetIdx()])
-        #Pick the temporary atom
+        # Pick the temporary atom
         temp.append(atom)
 
     for i in range(0, len(newHcons)):
@@ -135,40 +135,39 @@ def RestoreNumsSDF(f, fold, AuxInfo):
         for b in range(0, len(oldHcons)):
             if conatom == oldHcons[b][1]:
                 amap.append(oldHcons[b][0])
-                #remove the number, so that it doesn't get added twice
+                # remove the number, so that it doesn't get added twice
                 oldHcons[b][1] = 0
 
     newmol = OBMol()
     added = []
 
-    for i in range(1, len(amap)+1):
+    for i in range(1, len(amap) + 1):
         newn = amap.index(i)
         newmol.AddAtom(temp[newn])
         added.append(newn)
 
-    #Final runthrough to check that all atoms have been added,
-    #tautomeric protons can be missed. If tautomeric proton tracking
-    #is implemented this can be removed
+    # Final runthrough to check that all atoms have been added,
+    # tautomeric protons can be missed. If tautomeric proton tracking
+    # is implemented this can be removed
     for i in range(0, len(temp)):
         if not i in added:
             newmol.AddAtom(temp[i])
 
-    #Restore the bonds
+    # Restore the bonds
     newmol.ConnectTheDots()
     newmol.PerceiveBondOrders()
-    #Write renumbered molecule to file
+    # Write renumbered molecule to file
     obconversion.SetOutFormat("sdf")
     obconversion.WriteFile(newmol, f)
 
 
 def GetInchi(f):
-
-    print("Getting inchi from file ",f)
+    print("Getting inchi from file ", f)
 
     if os.path.sep not in f:
-        f = os.path.join(os.getcwd(), f )
+        f = os.path.join(os.getcwd(), f)
 
-    m = Chem.MolFromMolFile(f, removeHs = False)
+    m = Chem.MolFromMolFile(f, removeHs=False)
 
     m = Chem.AddHs(m)
 
@@ -178,7 +177,6 @@ def GetInchi(f):
 
 
 def Inchi2Struct(inchi, f, aux):
-
     cwd = os.getcwd()
     fullf = os.path.join(cwd, f)
     infile = open(f + '.inchi', 'w')
@@ -199,7 +197,7 @@ def Inchi2Struct(inchi, f, aux):
 
 
 def GetTautProtons(inchi):
-    #get the tautomer layer and pickup the data
+    # get the tautomer layer and pickup the data
     layers = inchi.split('/')
 
     for l in layers:
@@ -215,17 +213,15 @@ def GetTautProtons(inchi):
             ends.append(i)
     TautProts = []
     for i in range(0, len(starts)):
-        TautProts.append((ProtLayer[starts[i]+1:ends[i]]).split(','))
+        TautProts.append((ProtLayer[starts[i] + 1:ends[i]]).split(','))
 
     return TautProts
 
 
 def GenSelectDiastereomers(structf, atoms):
-
     f = structf
 
     if (f[-4:] != '.sdf'):
-
         f += '.sdf'
 
     inchi, aux = GetInchi(f)
@@ -233,24 +229,24 @@ def GenSelectDiastereomers(structf, atoms):
 
     translated_atoms = []
     for atom in atoms:
-        translated_atoms.append(amap.index(atom)+1)
+        translated_atoms.append(amap.index(atom) + 1)
 
     ds_inchis = GenSelectDSInchis(inchi, translated_atoms)
     ds_inchis = [FixTautProtons(f, i, aux) for i in ds_inchis]
     filenames = []
     for ds in range(0, len(ds_inchis)):
-        Inchi2Struct(ds_inchis[ds], f[:-4] + str(ds+1), aux)
-        RestoreNumsSDF(f[:-4] + str(ds+1) + '.sdf', f, aux)
-        filenames.append(f[:-4] + str(ds+1))
+        Inchi2Struct(ds_inchis[ds], f[:-4] + str(ds + 1), aux)
+        RestoreNumsSDF(f[:-4] + str(ds + 1) + '.sdf', f, aux)
+        filenames.append(f[:-4] + str(ds + 1))
 
     return filenames
 
 
 def GenSelectDSInchis(inchi, atoms):
-    #Inchis of all diastereomers, including the parent structure
+    # Inchis of all diastereomers, including the parent structure
     resinchis = []
 
-    #get the number of potential diastereomers
+    # get the number of potential diastereomers
     layers = inchi.decode().split('/')
     for l in layers:
         if 't' in l:
@@ -267,16 +263,16 @@ def GenSelectDSInchis(inchi, atoms):
         "No stereocentres remaining, no diastereomers will be generated."
         return 0
 
-    numds = 2**(len(sc))
+    numds = 2 ** (len(sc))
     print("Number of diastereomers to be generated: " + str(numds))
     temps = []
-    #Generate inversion patterns - essentially just binary strings
+    # Generate inversion patterns - essentially just binary strings
     for i in range(0, numds):
         template = bin(i)[2:].zfill(len(sc))
         temps.append(template)
 
-    #For each 1 in template, invert the corresponding stereocentre
-    #and add the resulting diastereomer to the list
+    # For each 1 in template, invert the corresponding stereocentre
+    # and add the resulting diastereomer to the list
     invert = {'+': '-', '-': '+'}
 
     reslayers = []
@@ -298,8 +294,7 @@ def GenSelectDSInchis(inchi, atoms):
     return resinchis
 
 
-def GenDiastereomers(structf, atoms=[]):
-
+def GenDiastereomers(structf, nS, atoms=[]):
     if len(atoms) > 0:
         return GenSelectDiastereomers(structf, atoms)
 
@@ -308,62 +303,74 @@ def GenDiastereomers(structf, atoms=[]):
     if (f[-4:] != '.sdf'):
         f += '.sdf'
 
+    if nS < 2:
+        cwd = os.getcwd()
+
+        fullf = os.path.join(cwd, f)
+
+        shutil.copy(fullf, fullf[:-4] + "0.sdf")
+
+        return [f[:-4] + "0.sdf"]
+
     inchi, aux = GetInchi(f)
 
-    i,a = GetInchi(f)
+    i, a = GetInchi(f)
 
     ds_inchis = GenDSInchis(inchi)
     ds_inchis = [FixTautProtons(f, i, aux) for i in ds_inchis]
     filenames = []
-    for ds in range(0, len(ds_inchis)):
 
+    for ds in range(0, len(ds_inchis)):
         print("Isomer " + str(ds) + " inchi = " + ds_inchis[ds])
 
-        Inchi2Struct(ds_inchis[ds], f[:-4] + str(ds+1), aux)
-        RestoreNumsSDF(f[:-4] + str(ds+1) + '.sdf', f, aux)
-        filenames.append(f[:-4] + str(ds+1))
+        Inchi2Struct(ds_inchis[ds], f[:-4] + str(ds + 1), aux)
+        RestoreNumsSDF(f[:-4] + str(ds + 1) + '.sdf', f, aux)
+        filenames.append(f[:-4] + str(ds + 1))
+
     return filenames
 
 
 def GenDSInchis(inchi):
-
     ilist = list(inchi)
-    #Inchis of all diastereomers, including the parent structure
+    # Inchis of all diastereomers, including the parent structure
     resinchis = []
 
-    #get the number of potential diastereomers
+    # get the number of potential diastereomers
     numds = 0
     layers = inchi.split('/')
     for l in layers:
         if 't' in l:
-            numds = 2**(len(l.translate({ord(i): None for i in 't,1234567890'}))-1)
+            numds = 2 ** (len(l.translate({ord(i): None for i in 't,1234567890'})) - 1)
+
     if numds == 0:
+
         raise ValueError("No chiral carbon detected in the input molecule!")
+
     else:
         print("Number of diastereomers to be generated: " + str(numds))
 
-    #find configuration sites (+ and -)
+    # find configuration sites (+ and -)
     bs = ilist.index('t')
     es = ilist[bs:].index('/')
     spos = []
-    for s in range(bs, bs+es):
+    for s in range(bs, bs + es):
         if ilist[s] == '+' or ilist[s] == '-':
             spos.append(s)
 
     temps = []
-    #Generate inversion patterns - essentially just binary strings
+    # Generate inversion patterns - essentially just binary strings
     for i in range(0, numds):
-        template = bin(i)[2:].zfill(len(spos)-1)
+        template = bin(i)[2:].zfill(len(spos) - 1)
         temps.append(template)
 
-    #For each 1 in template, invert the corresponding stereocentre
-    #and add the resulting diastereomer to the list
+    # For each 1 in template, invert the corresponding stereocentre
+    # and add the resulting diastereomer to the list
     invert = {'+': '-', '-': '+'}
 
     for ds in range(0, numds):
         t = list(ilist)
         for stereocentre in range(1, len(spos)):
-            if temps[ds][stereocentre-1] == '1':
+            if temps[ds][stereocentre - 1] == '1':
                 t[spos[stereocentre]] = invert[t[spos[stereocentre]]]
         resinchis.append(''.join(t))
 

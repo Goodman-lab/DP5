@@ -18,6 +18,10 @@ from rdkit.Chem import AllChem as Chem
 from rdkit.Chem import Draw
 from rdkit.Chem import rdDepictor
 from rdkit.Chem.Draw import rdMolDraw2D
+
+from rdkit import Chem
+from rdkit.Chem import AllChem
+
 import pickle
 
 from pathlib import Path
@@ -429,76 +433,82 @@ class CalculationTab(QtWidgets.QWidget):
         self.workflow_title.setText("Workflow")
         self.workflow_layout.addWidget(self.workflow_title, 0, 0)
 
+        self.CleanUp_yn = QtWidgets.QCheckBox(self)
+        self.CleanUp_yn.setObjectName("CleanUp_yn")
+        self.CleanUp_yn.setText("Clean\n"
+                                          "Structures")
+
+        self.workflow_layout.addWidget(self.CleanUp_yn,1,0)
 
         self.Gen_diastereomers_yn = QtWidgets.QCheckBox(self)
         self.Gen_diastereomers_yn.setObjectName("Gen_diastereomers_yn")
         self.Gen_diastereomers_yn.setText("Generate\n"
                                           "Diastereomers")
 
-        self.workflow_layout.addWidget(self.Gen_diastereomers_yn,1,0)
+        self.workflow_layout.addWidget(self.Gen_diastereomers_yn,1,1)
 
         self.Solvent_yn = QtWidgets.QCheckBox(self)
         self.Solvent_yn.setObjectName("Solvent_yn")
         self.Solvent_yn.setText("Solvent")
-        self.workflow_layout.addWidget(self.Solvent_yn,1,1)
+        self.workflow_layout.addWidget(self.Solvent_yn,1,2)
 
         self.solvent_drop = QtWidgets.QComboBox(self)
         self.solvent_drop.setObjectName("solvent_drop")
         solvents = ['chloroform', 'dimethylsulfoxide', 'benzene', 'methanol', 'pyridine', 'acetone']
         self.solvent_drop.addItems(solvents)
 
-        self.workflow_layout.addWidget(self.solvent_drop,2,1)
+        self.workflow_layout.addWidget(self.solvent_drop,2,2)
 
         self.MM_yn = QtWidgets.QCheckBox(self)
         self.MM_yn.setObjectName("MM_yn")
         self.MM_yn.setText("Molecular\nMechanics")
-        self.workflow_layout.addWidget(self.MM_yn,1,2)
+        self.workflow_layout.addWidget(self.MM_yn,1,3)
 
         self.MM_drop = QtWidgets.QComboBox(self)
         self.MM_drop.setObjectName("MM_drop")
         MM = ["MacroModel","Tinker"]
         self.MM_drop.addItems(MM)
-        self.workflow_layout.addWidget(self.MM_drop,2,2)
+        self.workflow_layout.addWidget(self.MM_drop,2,3)
 
         self.MM_advanced = QtWidgets.QPushButton(self)
         self.MM_advanced.setText("Advanced Settings")
-        self.workflow_layout.addWidget(self.MM_advanced,3,2)
+        self.workflow_layout.addWidget(self.MM_advanced,3,3)
 
         self.DFT_yn = QtWidgets.QCheckBox(self)
         self.DFT_yn.setObjectName("DFT_yn")
         self.DFT_yn.setText("DFT\nCalculations")
-        self.workflow_layout.addWidget(self.DFT_yn, 1, 3)
+        self.workflow_layout.addWidget(self.DFT_yn, 1, 4)
 
         self.DFT_drop = QtWidgets.QComboBox(self)
         self.DFT_drop.setObjectName("DFT_drop")
         DFT = ["Gaussian", "NWChem"]
         self.DFT_drop.addItems(DFT)
-        self.workflow_layout.addWidget(self.DFT_drop, 2, 3)
+        self.workflow_layout.addWidget(self.DFT_drop, 2, 4)
 
         self.DFT_advanced = QtWidgets.QPushButton(self)
         self.DFT_advanced.setText("Advanced Settings")
-        self.workflow_layout.addWidget(self.DFT_advanced,3,3)
+        self.workflow_layout.addWidget(self.DFT_advanced,3,5)
 
         self.Assignment_yn = QtWidgets.QCheckBox(self)
         self.Assignment_yn.setObjectName("Assignment_yn")
         self.Assignment_yn.setText("NMR\nAssignment")
-        self.workflow_layout.addWidget(self.Assignment_yn, 1, 4)
+        self.workflow_layout.addWidget(self.Assignment_yn, 1, 5)
 
         self.DP4_stat_yn = QtWidgets.QCheckBox(self)
         self.DP4_stat_yn.setObjectName("DP4_stat_yn")
         self.DP4_stat_yn.setText("DP4 Statistics")
-        self.workflow_layout.addWidget(self.DP4_stat_yn, 1, 5)
+        self.workflow_layout.addWidget(self.DP4_stat_yn, 1, 6)
 
         self.Add_stats_model = QtWidgets.QPushButton(self)
         self.Add_stats_model.setObjectName("Add_stats_model")
         self.Add_stats_model.setText("Add stats model")
-        self.workflow_layout.addWidget(self.Add_stats_model, 2, 5)
+        self.workflow_layout.addWidget(self.Add_stats_model, 2, 6)
 
         self.Stats_list = QtWidgets.QListWidget(self)
         self.Stats_list.setMaximumHeight(self.Add_structure.sizeHint().height())
         self.Stats_list.setObjectName("Stats_list")
 
-        self.workflow_layout.addWidget(self.Stats_list, 3, 5)
+        self.workflow_layout.addWidget(self.Stats_list, 3, 6)
         self.workflow_widget.setLayout(self.workflow_layout)
         self.Overall_verticallayout.addWidget(self.workflow_widget)
 
@@ -615,7 +625,6 @@ class CalculationTab(QtWidgets.QWidget):
 
         self.DFT_settings.show()
 
-
     def MM_pop(self):
 
         self.MM_settings.show()
@@ -661,13 +670,6 @@ class CalculationTab(QtWidgets.QWidget):
 
         self.settings.InputFilesPaths = self.Structure_paths
 
-        # add structures
-
-        for index in range(self.Structure_list.count()):
-
-            if self.Structure_list.item(index).text() != '':
-                self.settings.InputFiles.append(self.Structure_list.item(index).text()[:-4])
-
         # copy structures to output folder
 
         for f in self.Structure_paths:
@@ -676,7 +678,125 @@ class CalculationTab(QtWidgets.QWidget):
 
                 shutil.copyfile(f, self.settings.OutputFolder / f)
 
-        # add NMR
+        # add structures
+
+        Smiles = []
+        Smarts = []
+        InchIs = []
+
+
+
+        for index in range(self.Structure_list.count()):
+
+            list_text = self.Structure_list.item(index).text()
+
+            if list_text != '':
+
+                # check if file is text or sdf
+
+                if list_text.endswith('.sdf'):
+
+                    self.settings.InputFiles.append(list_text[:-4])
+
+                # else its a text file - work out if it contains smiles smarts or inchis
+
+                elif (list_text.endswith('Smiles')) or (list_text.endswith('smiles')):
+
+                    Smiles.append(list_text)
+
+                elif (list_text.endswith('Smarts')) or (list_text.endswith('smarts')):
+
+                    Smarts.append(list_text)
+
+                elif (list_text.endswith('InChI')) or (list_text.endswith('InChi')) or (list_text.endswith('inchi')):
+
+                    InChIs.append(list_text)
+
+                else:
+
+                    print("file type not recognised to use smiles, smarts or inchi input please use .smiles, .smarts or .inchi file extension respectively")
+
+            if len(Smiles) == 1:
+                self.settings.Smiles = Smiles[0]
+
+            elif len(Smiles) > 1:
+
+                #if the user has added more than one Smiles string make a new file and concatenate them
+
+                SmilesFile = open(self.settings.OutputFolder / "Smiles_Input.smiles","w+")
+
+                AllSmiles =[]
+
+                for f in Smiles:
+
+                    for line in open( self.settings.OutputFolder / f).readlines():
+
+                        AllSmiles.append(line.strip())
+
+                for s in AllSmiles[:-1]:
+
+                    SmilesFile.write(s + "\n")
+
+                SmilesFile.write(AllSmiles[-1])
+
+                SmilesFile.close()
+
+                self.settings.Smiles = "Smiles_Input.smiles"
+
+            if len(Smarts) == 1:
+                self.settings.Smarts = Smarts[0]
+
+            elif len(Smarts) > 1:
+
+                #if the user has added more than one Smiles string make a new file and concatenate them
+
+                SmartsFile = open(self.settings.OutputFolder / "Smarts_Input.smarts","w+")
+
+                AllSmarts =[]
+
+                for f in Smarts:
+
+                    for line in open( self.settings.OutputFolder / f).readlines():
+
+                        AllSmarts.append(line.strip())
+
+                for s in AllSmarts[:-1]:
+
+                    SmartsFile.write(s + "\n")
+
+                SmartsFile.write(AllSmarts[-1])
+
+                SmartsFile.close()
+
+                self.settings.Smarts = "Smarts_Input.smarts"
+
+            if len(InchIs) == 1:
+                self.settings.InChIs = InchIs[0]
+
+            elif len(InchIs) > 1:
+
+                #if the user has added more than one Smiles string make a new file and concatenate them
+
+                InchIsFile = open(self.settings.OutputFolder / "InchIs_Input.inchi","w+")
+
+                AllInchIs =[]
+
+                for f in InchIs:
+
+                    for line in open( self.settings.OutputFolder / f).readlines():
+
+                        AllInchIs.append(line.strip())
+
+                for s in AllInchIs[:-1]:
+
+                    InchIsFile.write(s + "\n")
+
+                InchIsFile.write(AllInchIs[-1])
+
+                InchIsFile.close()
+
+                self.settings.InchIs = "InchIs_Input.smarts"
+
 
         self.settings.NMRsource = self.NMR_paths
 
@@ -690,6 +810,10 @@ class CalculationTab(QtWidgets.QWidget):
         # generate diastereomers
 
         self.settings.Workflow = ''
+
+        if self.CleanUp_yn.isChecked() == 1:
+            self.settings.Workflow += 'c'
+
 
         if self.Gen_diastereomers_yn.isChecked() == 1:
             self.settings.Workflow += 'g'
@@ -945,7 +1069,6 @@ class CalculationTab(QtWidgets.QWidget):
 
             self.Gobutton.setEnabled(True)
 
-
 class DFT_advanced_settings(QtWidgets.QWidget):
 
     def __init__(self):
@@ -1053,7 +1176,6 @@ class DFT_advanced_settings(QtWidgets.QWidget):
         self.NMR_basis_drop.setEnabled(False)
 
         self.NMR_calc_yn.stateChanged.connect(self.NMRtoggle)
-
 
     def Energytoggle(self, state):
 
@@ -2192,7 +2314,7 @@ def ReadParamFile(f, t):
 
 q = queue.Queue()
 
-sys.stdout = WriteStream(q)
+#sys.stdout = WriteStream(q)
 
 app = QtWidgets.QApplication(sys.argv)
 

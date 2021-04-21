@@ -93,7 +93,10 @@ the GUI is then simply called by:
 python PyDP4_GUI.py
 
 This will open the main DP4-AI GUI window, the user can then select the required input files and the settings for MM and
-DFT calculations. The expected structure file format is *.sdf
+DFT calculations. The expected structure file format is *.sdf. In addition DP4-AI can also take inchi, smiles and smarts
+inputs. To use this feature text file should be prepared with the desired input strings on separate lines, marked with
+the relevant .smiles, .smarts or .inchi file extension and added using the GUI dialogue. Multiple file inputs in any
+combination of formats can be added this way
 
 Once the DP4-AI has finished all calculations the GUI will open a number of new tabs. These tabs display interactive
 carbon and proton NMR spectra as processed and assigned by NMR-AI as well as interactive plots of the NMR prediction
@@ -121,11 +124,12 @@ Alternatively:
 
 PyDP4.py -w gmns Candidate CandidateNMR
 
-The -w switch specifies the PyDP4 workflow, g specifies diastereomer generation, m molecular mechanics
-conformational searching, o DFT geometry optimisation, n DFT NMR calculation, e M062X single point energy calculations,
-s calculate DP4 statistics. The default workflow is gnms, optimum workflow is gnomes. The letter a can be given in place
-of s, in the instance DP4-AI will analyse and assign the provided NMR spectra but not calculate a DP4 probability. This
-is perticularly useful in cases where only one isomer of a molecule is being passed to DP4-AI.
+The -w switch specifies the PyDP4 workflow, c specifies structure clean up and 3d coordinate generation utilising rdkit,
+g specifies diastereomer generation, m molecular mechanics conformational searching, o DFT geometry optimisation,
+n DFT NMR calculation, e M062X single point energy calculations, s calculate DP4 statistics. The default workflow is gnms,
+optimum workflow is gnomes. The letter a can be given in place of s, in the instance DP4-AI will analyse and assign the
+provided NMR spectra but not calculate a DP4 probability. This is perticularly useful in cases where only one isomer of
+a molecule is being passed to DP4-AI.
 
 In addition the -s switch can be used to specify the solvent for use in MM and DFT calculations. Supported solvents are
 listed in the TMSdata file. Other Gaussian/Jaguar/NWChem supported solvents can be used, but only with manually interpreted
@@ -141,6 +145,12 @@ PyDP4.py Candidate1 Candidate2 Candidate3 ... CandidateNMR
 
 The script does not attempt to generate diastereomers, simply carries out the
 DP4 on the specified candidate structures.
+
+Structures can also be added from InChI, Smiles and Smarts strings using the designated switches. For example:
+
+PyDP4.py --InChI Candidates_inchis.inchi ... CandidateNMR
+
+where Candidates_inchs.inchi is a text file with all the desired inchi strings on separate lines.
 
 Script has several other switches, including switching the molecular mechanics and dft software etc.
 

@@ -47,154 +47,208 @@ import importlib
 import getpass
 from pathlib import Path
 
-DFTpackages = [['n', 'w', 'g', 'z', 'd'],['NWChem', 'NWChemZiggy', 'Gaussian', 'GaussianZiggy', 'GaussianDarwin']]
+DFTpackages = [['n', 'w', 'g', 'z', 'd'], ['NWChem', 'NWChemZiggy', 'Gaussian', 'GaussianZiggy', 'GaussianDarwin']]
 
 if os.name == 'nt':
     import pyximport
+
     pyximport.install()
     import ConfPrune
 else:
     import pyximport
+
     pyximport.install()
     import ConfPrune
 
-#Assigning the config default values
-#Settings are defined roughly in the order they are used in the script
+
+# Assigning the config default values
+# Settings are defined roughly in the order they are used in the script
 class Settings:
     # --- Main options ---
-    MM = 'm'        # m for MacroModel, t for Tinker
-    DFT = 'z'       # n, g, z or for NWChem or Gaussian
-    Workflow = 'gmns' # defines which steps to include in the workflow
-                    # g for generate diastereomers
-                    # m for molecular mechanics conformational search
-                    # o for DFT optimization
-                    # e for DFT single-point energies
-                    # n for DFT NMR calculation
-                    # s for computational and experimental NMR data extraction and stats analysis
-    Solvent = ''    # solvent for DFT optimization and NMR calculation
+    MM = 'm'  # m for MacroModel, t for Tinker
+    DFT = 'z'  # n, g, z or for NWChem or Gaussian
+    Workflow = 'gmns'  # defines which steps to include in the workflow
+    # g for generate diastereomers
+    # m for molecular mechanics conformational search
+    # o for DFT optimization
+    # e for DFT single-point energies
+    # n for DFT NMR calculation
+    # s for computational and experimental NMR data extraction and stats analysis
+    Solvent = ''  # solvent for DFT optimization and NMR calculation
     ScriptDir = ''  # Script directory, automatically set on launch
-    InputFiles = [] # Structure input files - can be MacroModel *-out.mae or *sdf files
-    InputFilesPaths = [] # Path object for Structure input files - can be MacroModel *-out.mae or *sdf files
+    InputFiles = []  # Structure input files - can be MacroModel *-out.mae or *sdf files
+    InputFilesPaths = []  # Path object for Structure input files - can be MacroModel *-out.mae or *sdf files
     NMRsource = ''  # File or folder containing NMR description or data
-    Title = 'DP4molecule'       # Title of the calculation, set to NMR file name by default on launch
-    AssumeDone = False          # Assume all computations done, only read DFT output data and analyze (use for reruns)
-    AssumeConverged = False     # Assume all optimizations have converged, do NMR and/or energy calcs on existing DFT geometries
-    UseExistingInputs = False   # Don't regenerate DFT inputs, use existing ones. Good for restarting a failed calc
+    Title = 'DP4molecule'  # Title of the calculation, set to NMR file name by default on launch
+    AssumeDone = False  # Assume all computations done, only read DFT output data and analyze (use for reruns)
+    AssumeConverged = False  # Assume all optimizations have converged, do NMR and/or energy calcs on existing DFT geometries
+    UseExistingInputs = False  # Don't regenerate DFT inputs, use existing ones. Good for restarting a failed calc
+    Smiles = None  # Smiles input file - text file with smiles strings on separate lines
+    InChIs = None  # InChI input file - text file with inchi strings on separate lines
+    Smarts = None  # Smarts input file - text file with Smarts strings on separate lines
 
     # --- Diastereomer generation ---
     SelectedStereocentres = []  # which stereocentres to vary for diastereomer generation
 
     # --- Molecular mechanics ---
-    ForceField = 'mmff'         # ff tfOPto use for conformational search
-    MMstepcount = 10000         # Max number of MM steps to do, if less than MMfactor*rotable_bonds
-    MMfactor = 2500             # MMfactor*rotable_bonds gives number of steps to do if less than MMstepcount
-    Rot5Cycle = False           # Special dealing with 5-membered saturated rings, see FiveConf.py
-    RingAtoms = []              # Define the 5-membered ring, useful if several are present in molecule
-    SCHRODINGER = ''            # Define the root folder for Schrodinger software
-    TinkerPath = '/home/ah809/Downloads/tinker/' # Define the root folder for Tinker software,
-                                # must contain bin/scan and params/mmff.prm for the process to work
+    ForceField = 'mmff'  # ff tfOPto use for conformational search
+    MMstepcount = 10000  # Max number of MM steps to do, if less than MMfactor*rotable_bonds
+    MMfactor = 2500  # MMfactor*rotable_bonds gives number of steps to do if less than MMstepcount
+    Rot5Cycle = False  # Special dealing with 5-membered saturated rings, see FiveConf.py
+    RingAtoms = []  # Define the 5-membered ring, useful if several are present in molecule
+    SCHRODINGER = ''  # Define the root folder for Schrodinger software
+    TinkerPath = '/home/ah809/Downloads/tinker/'  # Define the root folder for Tinker software,
+    # must contain bin/scan and params/mmff.prm for the process to work
 
     # --- Conformer pruning ---
-    HardConfLimit = 1000       # Immediately stop if conformers to run exceed this number
-    ConfPrune = True        # Should we prune conformations?
-    PerStructConfLimit = 100    # Max numbers of conformers allowed per structure for DFT stages
-    InitialRMSDcutoff = 0.75    # Initial RMSD threshold for pruning
-    MaxCutoffEnergy = 10.0      # Max conformer MM energy in kJ/mol to allow
+    HardConfLimit = 1000  # Immediately stop if conformers to run exceed this number
+    ConfPrune = True  # Should we prune conformations?
+    PerStructConfLimit = 100  # Max numbers of conformers allowed per structure for DFT stages
+    InitialRMSDcutoff = 0.75  # Initial RMSD threshold for pruning
+    MaxCutoffEnergy = 10.0  # Max conformer MM energy in kJ/mol to allow
 
     # --- DFT ---
-    NWChemPath = "nwchem"     # Path to nwchem executable. If it's in the path, can be just 'nwchem'
-    GausPath = ""               # Path to Gaussian executable. If it's in the path, can be just 'g09' or 'g16'
-                                # If left empty, it will attempt to use g09 in GAUS_EXEDIR environment variable
-    MaxDFTOptCycles = 50        # Max number of DFT geometry optimization cycles to request.
-    CalcFC = False              # Calculate QM force constants before optimization
-    OptStepSize = 30            # Max step Gaussian should take in geometry optimization
-    charge = None               # Manually specify charge for DFT calcs
-    nBasisSet = "6-311g(d)"     # Basis set for NMR calcs
-    nFunctional = "mPW1PW91"    # Functional for NMR calcs
-    oBasisSet = "6-31g(d,p)"    # Basis set for geometry optimizations
-    oFunctional = "b3lyp"       # Functional for geometry optimizations
-    eBasisSet = "def2tzvp"      # Basis set for energy calculations
-    eFunctional = "m062x"       # Functional for energy calculations
+    NWChemPath = "nwchem"  # Path to nwchem executable. If it's in the path, can be just 'nwchem'
+    GausPath = ""  # Path to Gaussian executable. If it's in the path, can be just 'g09' or 'g16'
+    # If left empty, it will attempt to use g09 in GAUS_EXEDIR environment variable
+    MaxDFTOptCycles = 50  # Max number of DFT geometry optimization cycles to request.
+    CalcFC = False  # Calculate QM force constants before optimization
+    OptStepSize = 30  # Max step Gaussian should take in geometry optimization
+    charge = None  # Manually specify charge for DFT calcs
+    nBasisSet = "6-311g(d)"  # Basis set for NMR calcs
+    nFunctional = "mPW1PW91"  # Functional for NMR calcs
+    oBasisSet = "6-31g(d,p)"  # Basis set for geometry optimizations
+    oFunctional = "b3lyp"  # Functional for geometry optimizations
+    eBasisSet = "def2tzvp"  # Basis set for energy calculations
+    eFunctional = "m062x"  # Functional for energy calculations
 
     # --- Computational clusters ---
     """ These should probably be moved to relevant *.py files as Cambridge specific """
-    user = ''              # Linux user on computational clusters, not used for local calcs
-    TimeLimit = 24              # Queue time limit on comp clusters
-    queue = 'SWAN'              # Which queue to use on Ziggy
-    project = 'GOODMAN-SL3-CPU' # Which project to use on Darwin
+    user = ''  # Linux user on computational clusters, not used for local calcs
+    TimeLimit = 24  # Queue time limit on comp clusters
+    queue = 'SWAN'  # Which queue to use on Ziggy
+    project = 'GOODMAN-SL3-CPU'  # Which project to use on Darwin
     DarwinScrDir = '/home/u/rds/hpc-work/'  # Which scratch directory to use on Darwin
-    StartTime = ''              # Automatically set on launch, used for folder names
-    nProc = 1                   # Cores used per job, must be less than node size on cluster
-    DarwinNodeSize = 32         # Node size on current CSD3
-    MaxConcurrentJobsZiggy = 75      # Max concurrent jobs to submit on ziggy
-    MaxConcurrentJobsDarwin = 320 # Max concurrent jobs to submit on CSD3
+    StartTime = ''  # Automatically set on launch, used for folder names
+    nProc = 1  # Cores used per job, must be less than node size on cluster
+    DarwinNodeSize = 32  # Node size on current CSD3
+    MaxConcurrentJobsZiggy = 75  # Max concurrent jobs to submit on ziggy
+    MaxConcurrentJobsDarwin = 320  # Max concurrent jobs to submit on CSD3
 
     # --- NMR analysis ---
-    TMS_SC_C13 = 191.69255      # Default TMS reference C shielding constant (from B3LYP/6-31g**)
-    TMS_SC_H1 = 31.7518583      # Default TMS reference H shielding constant (from B3LYP/6-31g**)
+    TMS_SC_C13 = 191.69255  # Default TMS reference C shielding constant (from B3LYP/6-31g**)
+    TMS_SC_H1 = 31.7518583  # Default TMS reference H shielding constant (from B3LYP/6-31g**)
 
     # --- Stats ---
-    StatsModel = 'g'            # What statistical model type to use
-    StatsParamFile = 'none'         # Where to find statistical model parameters
+    StatsModel = 'g'  # What statistical model type to use
+    StatsParamFile = 'none'  # Where to find statistical model parameters
 
     # --- Output folder ---
-    OutputFolder = ''             # folder to print dp4 output to - default is cwd
-    GUIRunning = False             # Boolean has PyDP4 been called from commandline or from GUI
+    OutputFolder = ''  # folder to print dp4 output to - default is cwd
+    GUIRunning = False  # Boolean has PyDP4 been called from commandline or from GUI
+
 
 settings = Settings()
+
 
 # Data structure keeping all of isomer data in one place.
 class Isomer:
     def __init__(self, InputFile, Charge=-100):
         self.InputFile = InputFile  # Initial structure input file
-        self.BaseName = InputFile # Basename for other files
-        self.Atoms = []             # Element labels
-        self.Conformers = []        # from conformational search, list of atom coordinate lists
-        self.MMCharge = 0           # charge from conformational search
-        self.ExtCharge = Charge     # externally provided charge
-        self.RMSDCutoff = 0         # RMSD cutoff eventually used to get the conformer number below the limit
-        self.DFTConformers = []     # from DFT optimizations, list of atom coordinate lists
-        self.ConfIndices = []       # List of conformer indices from the original conformational search for reference
-        self.MMEnergies = []        # Corresponding MM energies in kj/mol
-        self.DFTEnergies = []       # Corresponding DFT energies in hartrees
-        self.Energies = []          # Final energies used in conformer population prediction in kj/mol
-        self.Populations = []       # Conformer populations
-        self.OptInputFiles = []     # list of DFT NMR input file names
-        self.OptOutputFiles = []    # list of DFT NMR output file names
-        self.EInputFiles = []     # list of DFT NMR input file names
-        self.EOutputFiles = []    # list of DFT NMR output file names
-        self.NMRInputFiles = []     # list of DFT NMR input file names
-        self.NMROutputFiles = []    # list of DFT NMR output file names
-        self.ShieldingLabels = []   # A list of atom labels corresponding to the shielding values
-        self.ConformerShieldings = [] # list of calculated NMR shielding constant lists for every conformer
+        self.BaseName = InputFile  # Basename for other files
+        self.Atoms = []  # Element labels
+        self.Conformers = []  # from conformational search, list of atom coordinate lists
+        self.MMCharge = 0  # charge from conformational search
+        self.ExtCharge = Charge  # externally provided charge
+        self.RMSDCutoff = 0  # RMSD cutoff eventually used to get the conformer number below the limit
+        self.DFTConformers = []  # from DFT optimizations, list of atom coordinate lists
+        self.ConfIndices = []  # List of conformer indices from the original conformational search for reference
+        self.MMEnergies = []  # Corresponding MM energies in kj/mol
+        self.DFTEnergies = []  # Corresponding DFT energies in hartrees
+        self.Energies = []  # Final energies used in conformer population prediction in kj/mol
+        self.Populations = []  # Conformer populations
+        self.OptInputFiles = []  # list of DFT NMR input file names
+        self.OptOutputFiles = []  # list of DFT NMR output file names
+        self.EInputFiles = []  # list of DFT NMR input file names
+        self.EOutputFiles = []  # list of DFT NMR output file names
+        self.NMRInputFiles = []  # list of DFT NMR input file names
+        self.NMROutputFiles = []  # list of DFT NMR output file names
+        self.ShieldingLabels = []  # A list of atom labels corresponding to the shielding values
+        self.ConformerShieldings = []  # list of calculated NMR shielding constant lists for every conformer
         self.BoltzmannShieldings = []  # Boltzmann weighted NMR shielding constant list for the isomer
-        self.Cshifts = []           # Calculated C NMR shifts
-        self.Hshifts = []           # Calculated H NMR
+        self.Cshifts = []  # Calculated C NMR shifts
+        self.Hshifts = []  # Calculated H NMR
         self.Clabels = []
         self.Hlabels = []
-        self.Cexp = []              # Experimental C NMR shifts
-        self.Hexp = []              # Experimental H NMR shifts
+        self.Cexp = []  # Experimental C NMR shifts
+        self.Hexp = []  # Experimental H NMR shifts
+
 
 def main(settings):
-
     print("Current working directory: " + os.getcwd())
     print("Initial input files: " + str(settings.InputFiles))
     print("NMR file: " + str(settings.NMRsource))
     print("Workflow: " + str(settings.Workflow))
 
-    # Check the number of input files, generate some if necessary
-    if ('g' in settings.Workflow) and len(settings.InputFiles) == 1:
+    # Read in any text inputs and add these to the input file list
+
+    import StructureInput
+
+    if settings.Smiles:
+        settings.InputFiles.extend(StructureInput.GenerateSDFFromTxt(settings.Smiles, 'Smiles'))
+
+    if settings.Smarts:
+        settings.InputFiles.extend(StructureInput.GenerateSDFFromTxt(settings.Smarts, 'Smarts'))
+
+    if settings.InChIs:
+        settings.InputFiles.extend(StructureInput.GenerateSDFFromTxt(settings.InChIs, 'InChI'))
+
+    # Clean up input files if c in workflow - this generates a new set of 3d coordinates as a starting point
+
+    if 'c' in settings.Workflow and len(settings.InputFiles) > 0:
+        import StructureInput
+
+        # if requested generate 3d coordinates to define any stereochemistry
+
+        settings.InputFiles = StructureInput.CleanUp(settings.InputFiles)
+
+    # if no structure inputs have been found at this point quit
+
+    if len(settings.InputFiles) == 0:
+        print("\nNo input files were found please use -h for help with input options quitting...")
+
+        quit()
+
+    # if g in workflow check number of stereocentres for each input and generate and diastereomers
+
+    if ('g' in settings.Workflow):
+
         import InchiGen
         print("\nGenerating diastereomers...")
-        settings.InputFiles = InchiGen.GenDiastereomers(settings.InputFiles[0], settings.SelectedStereocentres)
+
+        FinalInputFiles = []
+
+        nStereo = [StructureInput.NumberofStereoCentres(InpFile) for InpFile in settings.InputFiles]
+
+        if len(settings.InputFiles) == 1:
+
+            FinalInputFiles.extend(
+                InchiGen.GenDiastereomers(settings.InputFiles[0], nStereo[0], settings.SelectedStereocentres))
+
+        else:
+
+            for InpFile, nStereoCentres in zip(settings.InputFiles, nStereo):
+                FinalInputFiles.extend(InchiGen.GenDiastereomers(InpFile, nStereoCentres, []))
+
+        settings.InputFiles = list(FinalInputFiles)
 
     print("Generated input files: " + str(settings.InputFiles) + '\n')
 
     # Create isomer data structures
     Isomers = [Isomer(f.split('.sdf')[0]) for f in settings.InputFiles]
 
-    print("Assuming all computations are done? ... ",settings.AssumeDone )
-    print("Using preexisting DFT data? ... ",settings.UseExistingInputs)
+    print("Assuming all computations are done? ... ", settings.AssumeDone)
+    print("Using preexisting DFT data? ... ", settings.UseExistingInputs)
 
     # Run conformational search, if requested
     if ('m' in settings.Workflow) and not (settings.AssumeDone or settings.UseExistingInputs):
@@ -222,14 +276,14 @@ def main(settings):
             Isomers = MacroModel.ReadConformers(MacroModelOutputs, Isomers, settings)
             print('Energy window: ' + str(settings.MaxCutoffEnergy) + ' kJ/mol')
             for iso in Isomers:
-                print(iso.InputFile + ": "+ str(len(iso.Conformers)) + ' conformers read within energy window' )
+                print(iso.InputFile + ": " + str(len(iso.Conformers)) + ' conformers read within energy window')
     else:
         print('No conformational search was requested. Skipping...')
         settings.ConfPrune = False
 
     # Prune conformations, if requested.
     # For each isomer, the conformers list is replaced with a smaller list of conformers
-    if (settings.ConfPrune) and not(settings.AssumeDone or settings.UseExistingInputs):
+    if (settings.ConfPrune) and not (settings.AssumeDone or settings.UseExistingInputs):
         print('\nPruning conformers...')
         Isomers = ConfPrune.RMSDPrune(Isomers, settings)
         for iso in Isomers:
@@ -242,7 +296,7 @@ def main(settings):
     else:
         print('\nNo DFT calculations were requested. Skipping...')
 
-    if not(settings.AssumeDone):
+    if not (settings.AssumeDone):
 
         # Run DFT optimizations, if requested
         if ('o' in settings.Workflow):
@@ -257,9 +311,9 @@ def main(settings):
 
             print('\nReading DFT optimized geometries...')
 
-            Isomers = DFT.ReadGeometries(Isomers,settings)
+            Isomers = DFT.ReadGeometries(Isomers, settings)
 
-            #Add convergence check here before continuing with calcs!
+            # Add convergence check here before continuing with calcs!
             if (DFT.Converged(Isomers) == False) and (settings.AssumeConverged == False):
                 print('Some of the conformers did not converge, quitting...')
                 quit()
@@ -319,8 +373,7 @@ def main(settings):
             Isomers = DFT.ReadShieldings(Isomers)
             Isomers = DFT.ReadEnergies(Isomers, settings)
 
-    if not(NMR.NMRDataValid(Isomers)) or ('n' not in settings.Workflow):
-
+    if not (NMR.NMRDataValid(Isomers)) or ('n' not in settings.Workflow):
         print('\nNo NMR data calculated, quitting...')
         quit()
 
@@ -346,7 +399,7 @@ def main(settings):
             print('Experimental NMR description found and read.')
 
             # performs a pairwise assignment
-            Isomers = NMR.PairwiseAssignment(Isomers,NMRData)
+            Isomers = NMR.PairwiseAssignment(Isomers, NMRData)
 
             print('Cshifts: ' + str(NMRData.Cshifts))
             print('Hshifts: ' + str(NMRData.Hshifts))
@@ -364,7 +417,7 @@ def main(settings):
                     from Proton_plotting import PlotProton
 
                     print('\nAssigning proton spectrum...')
-                    Isomers = AssignProton(NMRData,Isomers,settings)
+                    Isomers = AssignProton(NMRData, Isomers, settings)
 
                     if settings.GUIRunning == False:
                         print('\nPlotting proton spectrum...')
@@ -376,7 +429,7 @@ def main(settings):
                     from Carbon_plotting import PlotCarbon
 
                     print('\nAssigning carbon spectrum...')
-                    Isomers = AssignCarbon(NMRData,Isomers,settings)
+                    Isomers = AssignCarbon(NMRData, Isomers, settings)
 
                     if settings.GUIRunning == False:
                         print('\nPlotting carbon spectrum...')
@@ -412,21 +465,21 @@ def main(settings):
 
             print('Raw FID NMR datafound and read.')
 
-        #print('\nProcessing experimental NMR data...')
+        # print('\nProcessing experimental NMR data...')
 
-        #NMRdata = NMR.ProcessNMRData(Isomers, settings.NMRsource, settings)
+        # NMRdata = NMR.ProcessNMRData(Isomers, settings.NMRsource, settings)
 
     if 's' in settings.Workflow:
 
         print('\nCalculating DP4 probabilities...')
         DP4data = DP4.DP4data()
-        DP4data = DP4.ProcessIsomers(DP4data,Isomers)
+        DP4data = DP4.ProcessIsomers(DP4data, Isomers)
         DP4data = DP4.InternalScaling(DP4data)
-        DP4data = DP4.CalcProbs(DP4data,settings)
+        DP4data = DP4.CalcProbs(DP4data, settings)
         DP4data = DP4.CalcDP4(DP4data)
-        DP4data = DP4.MakeOutput(DP4data,Isomers,settings)
+        DP4data = DP4.MakeOutput(DP4data, Isomers, settings)
 
-        #print(DP4.FormatData(DP4data))
+        # print(DP4.FormatData(DP4data))
 
     else:
         print('\nNo DP4 analysis requested.')
@@ -455,20 +508,18 @@ def getScriptPath():
 
 
 def NMR_files(NMR_args):
-
     print("NMR_path")
 
     NMR_path = Path(NMR_args)
     NMR_Data = []
 
-    #check if path is from cwd or elsewhere:
+    # check if path is from cwd or elsewhere:
     if len(NMR_path.parts) == 1:
-
-        #if so a folder in the cwd has been passed add the cwd to the path
+        # if so a folder in the cwd has been passed add the cwd to the path
         NMR_path = Path.cwd() / NMR_path
         print(NMR_path)
 
-    #now check if it is a directory or a file, add proton and carbon data here
+    # now check if it is a directory or a file, add proton and carbon data here
     if NMR_path.is_dir():
 
         p_switch = 0
@@ -492,7 +543,7 @@ def NMR_files(NMR_args):
         if p_switch == 0 and c_switch == 0:
             NMR_Data.append(f)
 
-    #if its not a directory add the file
+    # if its not a directory add the file
 
     else:
 
@@ -505,7 +556,6 @@ def NMR_files(NMR_args):
 
 # Read the config file and fill in the corresponding attributes in settings class
 def ReadConfig(settings):
-
     cfgpath = os.path.join(getScriptPath(), 'settings.cfg')
     if not os.path.exists(cfgpath):
         print('settings.cfg is missing!')
@@ -518,7 +568,7 @@ def ReadConfig(settings):
     # Read in the new settings values from config
     newsettings = []
     for line in config:
-        if ('#' in line) or (len(line)<3) or ('=' not in line):
+        if ('#' in line) or (len(line) < 3) or ('=' not in line):
             continue
 
         newsettings.append([x.strip() for x in line[:-1].split('=')])
@@ -551,19 +601,21 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='PyDP4 script to setup\
     and run Tinker, Gaussian (on ziggy) and DP4')
     parser.add_argument('-w', '--workflow', help="Defines which steps to include in the workflow, " +
-    "can contain g for generate diastereomers, m for molecular mechanics conformational search, " +
-    "o for DFT optimization, e for DFT single-point energies, n for DFT NMR calculation, " +
-    "a for computational and experimental NMR data extraction " +
-    "s for computational and experimental NMR data extraction and stats analysis, default is 'gmns'", default=settings.Workflow)
+                                                 "can contain g for generate diastereomers, m for molecular mechanics conformational search, " +
+                                                 "o for DFT optimization, e for DFT single-point energies, n for DFT NMR calculation, " +
+                                                 "a for computational and experimental NMR data extraction " +
+                                                 "s for computational and experimental NMR data extraction and stats analysis, default is 'gmns'",
+                        default=settings.Workflow)
     parser.add_argument('-m', '--mm', help="Select molecular mechanics program,\
     t for tinker or m for macromodel, default is m", choices=['t', 'm'],
-    default='m')
+                        default='m')
     parser.add_argument('-d', '--dft', help="Select DFT program, \
     g for Gaussian, n for NWChem, z for Gaussian on ziggy, d for Gaussian on \
     Darwin, default is g", choices=DFTpackages[0], default='g')
     parser.add_argument('--StepCount', help="Specify\
     stereocentres for diastereomer generation")
-    parser.add_argument('StructureFiles', nargs='+', default=['-'], help=
+
+    parser.add_argument('StructureFiles', nargs='*', default=[], help=
     "One or more SDF file for the structures to be verified by DP4. At least one\
     is required, if automatic diastereomer generation is used.")
 
@@ -580,7 +632,7 @@ if __name__ == '__main__':
     parser.add_argument("--nProc", help="Specify number of processor cores\
     to use for Gaussian calculations", type=int, default=1)
     parser.add_argument("--batch", help="Specify max number of jobs per batch",
-    type=int, default=settings.MaxConcurrentJobsZiggy)
+                        type=int, default=settings.MaxConcurrentJobsZiggy)
     parser.add_argument("--project", help="Specify project for job submission\
     on darwin", default=settings.project)
     parser.add_argument("--ConfLimit", help="Specify maximum number of \
@@ -588,8 +640,8 @@ if __name__ == '__main__':
     performed", type=int, default=settings.PerStructConfLimit)
 
     parser.add_argument("--MaxConfE", help="Specify maximum MMFF energy \
-    allowed before conformer is discarded before DFT stage", type=float,\
-    default=settings.MaxCutoffEnergy)
+    allowed before conformer is discarded before DFT stage", type=float, \
+                        default=settings.MaxCutoffEnergy)
 
     parser.add_argument("-r", "--rot5", help="Manually generate conformers for\
     5-memebered rings", action="store_true")
@@ -602,7 +654,8 @@ if __name__ == '__main__':
     parser.add_argument("--AssumeDFTDone", help="Assume RMSD pruning, DFT setup\
     and DFT calculations have been run already", action="store_true")
     parser.add_argument("--AssumeConverged", help="Assume DFT optimizations have" + \
-    " converged and can be used for NMR and or energy calcs", action="store_true")
+                                                  " converged and can be used for NMR and or energy calcs",
+                        action="store_true")
     parser.add_argument("--UseExistingInputs", help="Use previously generated\
     DFT inputs, avoids long conf pruning and regeneration", action="store_true")
     parser.add_argument("--NoConfPrune", help="Skip RMSD pruning, use all\
@@ -630,7 +683,16 @@ if __name__ == '__main__':
     conformational search, implemented options 'mmff' and 'opls' (2005\
     version)", choices=['mmff', 'opls'], default=settings.ForceField)
 
-    parser.add_argument('-OutputFolder', help="Directory for dp4 ouput default is cwd",default= settings.OutputFolder)
+    parser.add_argument('--OutputFolder', help="Directory for dp4 output default is cwd", default=settings.OutputFolder)
+
+    parser.add_argument('--Smiles', help="txt file input containing smiles strings on separate lines",
+                        default=settings.Smiles)
+
+    parser.add_argument('--Smarts', help="txt file input containing smarts strings on separate lines",
+                        default=settings.Smarts)
+
+    parser.add_argument('--InChIs', help="txt file input containing inchi strings on separate lines",
+                        default=settings.InChIs)
 
     args = parser.parse_args()
     print(args.StructureFiles)
@@ -657,7 +719,7 @@ if __name__ == '__main__':
     settings.OptStepSize = args.OptStep
     if args.FC:
         settings.CalcFC = True
-    
+
     if args.TimeLimit:
         settings.TimeLimit = args.TimeLimit
 
@@ -672,7 +734,7 @@ if __name__ == '__main__':
     if args.Charge is not None:
         settings.charge = int(args.Charge)
     if args.StereoCentres is not None:
-        settings.SelectedStereocentres =\
+        settings.SelectedStereocentres = \
             [int(x) for x in (args.StereoCentres).split(',')]
     if args.NoConfPrune:
         settings.ConfPrune = False
@@ -687,18 +749,18 @@ if __name__ == '__main__':
     if args.rot5:
         settings.Rot5Cycle = True
     if args.ra is not None:
-        settings.RingAtoms =\
+        settings.RingAtoms = \
             [int(x) for x in (args.ra).split(',')]
-    
+
     if settings.StatsParamFile != 'none':
         if os.path.isfile(settings.StatsParamFile):
             print("Statistical parameter file found at " + settings.StatsParamFile)
-        elif (not os.path.isfile(settings.StatsParamFile)) and\
-            os.path.isfile(settings.ScriptDir+settings.StatsParamFile):
-                settings.StatsParamFile = settings.ScriptDir+settings.StatsParamFile
-                print("Statistical parameter file found at " + settings.StatsParamFile)
-        elif (not os.path.isfile(settings.StatsParamFile)) and\
-            (not os.path.isfile(settings.ScriptDir+settings.StatsParamFile)):
+        elif (not os.path.isfile(settings.StatsParamFile)) and \
+                os.path.isfile(settings.ScriptDir + settings.StatsParamFile):
+            settings.StatsParamFile = settings.ScriptDir + settings.StatsParamFile
+            print("Statistical parameter file found at " + settings.StatsParamFile)
+        elif (not os.path.isfile(settings.StatsParamFile)) and \
+                (not os.path.isfile(settings.ScriptDir + settings.StatsParamFile)):
             print("Stats file not found, quitting.")
 
     now = datetime.datetime.now()
@@ -712,12 +774,16 @@ if __name__ == '__main__':
 
     settings.InputFiles = args.StructureFiles
 
-    settings.NMRsource =  args.ExpNMR
+    settings.Smiles = args.Smiles
+    settings.Smarts = args.Smarts
+    settings.InChIs = args.InChIs
+
+    settings.NMRsource = args.ExpNMR
 
     NMR_files(settings.NMRsource)
 
-    #check if NMR data has been passed from the cwd or the full path
+    # check if NMR data has been passed from the cwd or the full path
 
     settings.OutputFolder = Path(args.OutputFolder)
-    
+
     main(settings)
