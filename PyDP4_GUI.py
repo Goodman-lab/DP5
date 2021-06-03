@@ -13,6 +13,10 @@ from scipy.stats import norm
 from PyQt5.QtSvg import QSvgWidget
 from rdkit.Chem import AllChem as Chem
 from rdkit.Chem.Draw import rdMolDraw2D
+
+from rdkit import Chem
+from rdkit.Chem import AllChem
+
 import pickle
 from matplotlib import cm
 
@@ -526,8 +530,6 @@ class plotstats(QtWidgets.QWidget):
 
             self.statsfig.set_ylabel("probability density")
 
-            self.statsfig.set_title("")
-
             self.statscanvas.draw()
 
     def multipdf(self, x):
@@ -710,6 +712,7 @@ class CalculationTab(QtWidgets.QWidget):
         self.Overall_verticallayout.addWidget(self.input_widget)
 
         ############ workflow
+
         self.workflow_layout = QtWidgets.QGridLayout(self)
         self.workflow_widget = QtWidgets.QWidget(self)
 
@@ -921,6 +924,7 @@ class CalculationTab(QtWidgets.QWidget):
 
         self.DFT_settings.show()
 
+
     def MM_pop(self):
 
         self.MM_settings.show()
@@ -1089,7 +1093,101 @@ class CalculationTab(QtWidgets.QWidget):
             if not Path(self.Output_folder / f).exists():
                 shutil.copyfile(f, self.settings.OutputFolder / f)
 
-        # add NMR
+                    Smiles.append(list_text)
+
+                elif (list_text.endswith('Smarts')) or (list_text.endswith('smarts')):
+
+                    Smarts.append(list_text)
+
+                elif (list_text.endswith('InChI')) or (list_text.endswith('InChi')) or (list_text.endswith('inchi')):
+
+                    InChIs.append(list_text)
+
+                else:
+
+                    print("file type not recognised to use smiles, smarts or inchi input please use .smiles, .smarts or .inchi file extension respectively")
+
+            if len(Smiles) == 1:
+                self.settings.Smiles = Smiles[0]
+
+            elif len(Smiles) > 1:
+
+                #if the user has added more than one Smiles string make a new file and concatenate them
+
+                SmilesFile = open(self.settings.OutputFolder / "Smiles_Input.smiles","w+")
+
+                AllSmiles =[]
+
+                for f in Smiles:
+
+                    for line in open( self.settings.OutputFolder / f).readlines():
+
+                        AllSmiles.append(line.strip())
+
+                for s in AllSmiles[:-1]:
+
+                    SmilesFile.write(s + "\n")
+
+                SmilesFile.write(AllSmiles[-1])
+
+                SmilesFile.close()
+
+                self.settings.Smiles = "Smiles_Input.smiles"
+
+            if len(Smarts) == 1:
+                self.settings.Smarts = Smarts[0]
+
+            elif len(Smarts) > 1:
+
+                #if the user has added more than one Smiles string make a new file and concatenate them
+
+                SmartsFile = open(self.settings.OutputFolder / "Smarts_Input.smarts","w+")
+
+                AllSmarts =[]
+
+                for f in Smarts:
+
+                    for line in open( self.settings.OutputFolder / f).readlines():
+
+                        AllSmarts.append(line.strip())
+
+                for s in AllSmarts[:-1]:
+
+                    SmartsFile.write(s + "\n")
+
+                SmartsFile.write(AllSmarts[-1])
+
+                SmartsFile.close()
+
+                self.settings.Smarts = "Smarts_Input.smarts"
+
+            if len(InchIs) == 1:
+                self.settings.InChIs = InchIs[0]
+
+            elif len(InchIs) > 1:
+
+                #if the user has added more than one Smiles string make a new file and concatenate them
+
+                InchIsFile = open(self.settings.OutputFolder / "InchIs_Input.inchi","w+")
+
+                AllInchIs =[]
+
+                for f in InchIs:
+
+                    for line in open( self.settings.OutputFolder / f).readlines():
+
+                        AllInchIs.append(line.strip())
+
+                for s in AllInchIs[:-1]:
+
+                    InchIsFile.write(s + "\n")
+
+                InchIsFile.write(AllInchIs[-1])
+
+                InchIsFile.close()
+
+                self.settings.InchIs = "InchIs_Input.smarts"
+
 
         self.settings.NMRsource = self.NMR_paths
 
@@ -1157,10 +1255,6 @@ class CalculationTab(QtWidgets.QWidget):
                 self.settings.StatsParamFile = self.Stats_list.item(0).text()
                 self.settings.StatsModel = 'm'
 
-        if self.DP5_stat_yn.isChecked():
-
-            self.settings.Workflow += 'w'
-
         elif self.Assignment_yn.isChecked():
 
             self.settings.Workflow += 'a'
@@ -1191,7 +1285,6 @@ class CalculationTab(QtWidgets.QWidget):
             filename = Path(f)
 
             self.Structure_list.addItem(filename.name)
-
             self.Structure_paths.append(filename)
 
     def removestructure(self):
@@ -1236,30 +1329,7 @@ class CalculationTab(QtWidgets.QWidget):
 
             if p_switch == 0 and c_switch == 0:
                 self.NMR_list.addItem(filename.name)
-                self.NMR_paths.append(filename.name)
-
-            self.Add_NMR_desc.setEnabled(False)
-
-    def addNMRdesc(self):
-
-        f = QtWidgets.QFileDialog.getOpenFileName()[0]
-
-        if f:
-            filename = Path(f)
-
-            self.NMR_list.addItem(filename.name)
-            self.NMR_paths.append(filename)
-
-            self.Add_NMR.setEnabled(False)
-            self.Add_NMR_desc.setEnabled(False)
-
-
-    def remove_all_NMR(self):
-
-        self.NMR_list.clear()
-        self.NMR_paths = []
-        self.Add_NMR.setEnabled(True)
-        self.Add_NMR_desc.setEnabled(True)
+                self.NMR_paths.append(f)
 
     def removeNMR(self):
 
@@ -1269,11 +1339,6 @@ class CalculationTab(QtWidgets.QWidget):
         for i in item:
             self.NMR_list.takeItem(self.NMR_list.row(i))
             self.NMR_paths.pop(self.NMR_list.row(i))
-
-        if len(self.NMR_paths) == 0:
-            self.Add_NMR.setEnabled(True)
-            self.Add_NMR_desc.setEnabled(True)
-
 
     def addstats(self):
         filename = QtWidgets.QFileDialog.getOpenFileName()
@@ -1356,7 +1421,7 @@ class CalculationTab(QtWidgets.QWidget):
             #self.Gen_diastereomers_yn.setChecked(True)
             self.MM_yn.setChecked(False)
 
-    def DP4toggle(self, state):
+    def Statstoggle(self, state):
 
         if state > 0:
             self.Add_stats_model.setEnabled(True)
@@ -1370,24 +1435,6 @@ class CalculationTab(QtWidgets.QWidget):
 
         else:
             self.Add_stats_model.setEnabled(False)
-            self.DFT_yn.setChecked(False)
-            self.Solvent_yn.setChecked(False)
-            self.solvent_drop.setEnabled(False)
-            #self.Gen_diastereomers_yn.setChecked(True)
-            self.MM_yn.setChecked(False)
-            self.Assignment_yn.setChecked(False)
-
-    def DP5toggle(self, state):
-
-        if state > 0:
-            self.DFT_yn.setChecked(True)
-            self.Solvent_yn.setChecked(True)
-            self.solvent_drop.setEnabled(True)
-            #self.Gen_diastereomers_yn.setChecked(True)
-            self.MM_yn.setChecked(True)
-            self.Assignment_yn.setChecked(True)
-
-        else:
             self.DFT_yn.setChecked(False)
             self.Solvent_yn.setChecked(False)
             self.solvent_drop.setEnabled(False)
@@ -1521,6 +1568,7 @@ class DFT_advanced_settings(QtWidgets.QWidget):
 
         self.NMR_calc_yn.stateChanged.connect(self.NMRtoggle)
 
+
     def Energytoggle(self, state):
 
         if state > 0:
@@ -1589,7 +1637,6 @@ class ProtonPlotTab(QtWidgets.QWidget):
         self.IsomerSelect.addItems(self.Isomer_number())
 
         self.IsomerSelect.currentIndexChanged.connect(self.PlotProton)
-
         self.image = QSvgWidget()
 
         self.widget1 = QtWidgets.QWidget(self)
@@ -2653,7 +2700,7 @@ def ReadParamFile(f, t):
 
 q = queue.Queue()
 
-#sys.stdout = WriteStream(q)
+sys.stdout = WriteStream(q)
 
 app = QtWidgets.QApplication(sys.argv)
 

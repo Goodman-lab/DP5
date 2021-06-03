@@ -5,7 +5,7 @@
 # then the value. No quotes, no spaces anywhere
 
 # Define the root folder for Schrodinger software
-SCHRODINGER=
+SCHRODINGER=not-installed
 
 # Define the root folder for Tinker software,
 # must contain bin/scan and params/mmff.prm for the process to work
