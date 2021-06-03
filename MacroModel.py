@@ -18,7 +18,6 @@ import re
 
 
 def SetupMacroModel(settings):
-
     if settings.SCHRODINGER == '':
         SchrodEnv = os.getenv('SCHRODINGER')
         if SchrodEnv != None:
@@ -32,24 +31,25 @@ def SetupMacroModel(settings):
     MacroModelInputs = []
 
     for f in settings.InputFiles:
-        
+
         if settings.Rot5Cycle is True:
-            if not os.path.exists(f+'rot.sdf'):
+            if not os.path.exists(f + 'rot.sdf'):
                 import FiveConf
-                #Generate the flipped fivemembered ring,
-                #result is in '*rot.sdf' file
+                # Generate the flipped fivemembered ring,
+                # result is in '*rot.sdf' file
                 FiveConf.main(f + '.sdf', settings)
 
         scriptdir = getScriptPath()
         cwd = os.getcwd()
 
-        #Convert input structure to mae file
+        # Convert input structure to mae file
         if os.name == 'nt':
             convinp = '"' + settings.SCHRODINGER + '/utilities/sdconvert" -isd '
         else:
             convinp = settings.SCHRODINGER + '/utilities/sdconvert -isd '
 
         if (f[-4:] == '.sdf'):
+
             if not os.path.exists(f[:-4] + '.mae'):
                 outp = subprocess.check_output(convinp + f + ' -omae ' + f[:-4] +
                                                '.mae', shell=True)
@@ -60,15 +60,15 @@ def SetupMacroModel(settings):
                                                '.mae', shell=True)
             MacroModelInputs.append(f + '.mae')
 
-        #Copy default com file to directory
+        # Copy default com file to directory
         shutil.copyfile(settings.ScriptDir + '/default.com', cwd + '/' + f + '.com')
-        #Change input and output file names in com file
+        # Change input and output file names in com file
         comf = open(f + '.com', 'r+')
         com = comf.readlines()
         com[0] = f + '.mae\n'
         com[1] = f + '-out.mae\n'
 
-        #Change the molecular mechanics step count in the com file
+        # Change the molecular mechanics step count in the com file
         cycles = (str(settings.MMstepcount)).rjust(6)
         temp = list(com[7])
         temp[7:13] = list(cycles)
@@ -76,22 +76,22 @@ def SetupMacroModel(settings):
         comf.truncate(0)
         comf.seek(0)
         comf.writelines(com)
-                
-        #Change the forcefield in the com file
+
+        # Change the forcefield in the com file
         if (settings.ForceField).lower() == "opls":
             temp = list(com[3])
-            
+
             temp[11:13] = list('14')
             com[3] = "".join(temp)
             comf.truncate(0)
-            
+
             comf.seek(0)
             comf.writelines(com)
-        
+
         comf.close()
-        
+
         if settings.Rot5Cycle is True:
-            #Convert input structure to mae file
+            # Convert input structure to mae file
             if os.name == 'nt':
                 convinp = '"' + settings.SCHRODINGER + '/utilities/sdconvert" -isd '
             else:
@@ -100,16 +100,16 @@ def SetupMacroModel(settings):
                                            'rot.mae', shell=True)
             MacroModelInputs.append(f + 'rot.mae')
 
-            #Copy default com file to directory
+            # Copy default com file to directory
             shutil.copyfile(settings.ScriptDir + '/default.com', cwd + '/' + f +
                             'rot.com')
-            #Change input and output file names in com file
+            # Change input and output file names in com file
             comf = open(f + 'rot.com', 'r+')
             com = comf.readlines()
             com[0] = f + 'rot.mae\n'
             com[1] = f + 'rot-out.mae\n'
 
-            #Change the molecular mechanics step count in the com file
+            # Change the molecular mechanics step count in the com file
             cycles = (str(settings.MMstepcount)).rjust(6)
             temp = list(com[7])
             temp[7:13] = list(cycles)
@@ -124,8 +124,8 @@ def SetupMacroModel(settings):
 
 
 def RunMacroModel(MacroModelInputs, settings):
-    #not args, but MacroModelInputs, numDS removed
-    #Run Macromodel conformation search for all diastereomeric inputs
+    # not args, but MacroModelInputs, numDS removed
+    # Run Macromodel conformation search for all diastereomeric inputs
 
     MacroModelBaseNames = [x[:-4] for x in MacroModelInputs]
     MacroModelOutputs = []
@@ -134,9 +134,9 @@ def RunMacroModel(MacroModelInputs, settings):
 
     # Check if MacroModel is installed in the provided path, but if it's missing, complain,
     # but don't quit quite yet, the conformation search data might already be there
-    if shutil.which(os.path.join(settings.SCHRODINGER,'bmin')) is None:
+    if shutil.which(os.path.join(settings.SCHRODINGER, 'bmin')) is None:
         print('MacroModel.py, RunMacroModel:\n  Could not find MacroModel executable at ' +
-              os.path.join(settings.SCHRODINGER,'bmin'))
+              os.path.join(settings.SCHRODINGER, 'bmin'))
         SchrodingerNotInstalled = True
 
     if os.name == 'nt':
@@ -162,7 +162,7 @@ def RunMacroModel(MacroModelInputs, settings):
             continue
 
         time.sleep(60)
-        while(not IsMMCompleted(isomer + '.log')):
+        while (not IsMMCompleted(isomer + '.log')):
             time.sleep(30)
         NCompleted = NCompleted + 1
         MacroModelOutputs.append(isomer + '.log')
@@ -187,7 +187,6 @@ def ReadConformers(MacroModelOutputs, Isomers, settings):
 
 
 def ReadMacromodel(MMoutp, settings):
-
     conformers = []
     conformer = -1
     AbsEs = []
@@ -202,7 +201,7 @@ def ReadMacromodel(MMoutp, settings):
     MaeFile.close()
 
     AbsEOffsets = []
-    #find conformer description blocks
+    # find conformer description blocks
     blocks = []
     DataIndexes = []
     for i in range(len(MaeInp)):
@@ -211,46 +210,46 @@ def ReadMacromodel(MMoutp, settings):
         if 'p_m_ct' in MaeInp[i]:
             blocks.append(i)
 
-    #find absolute energy offsets
+    # find absolute energy offsets
     for block in blocks:
         for i in range(block, len(MaeInp)):
             if 'mmod_Potential_Energy' in MaeInp[i]:
-                AbsEOffsets.append(i-block)
+                AbsEOffsets.append(i - block)
                 break
 
-    #Get absolute energies for conformers
+    # Get absolute energies for conformers
     for i in range(len(blocks)):
         for line in range(blocks[i], len(MaeInp)):
             if ':::' in MaeInp[line]:
-                AbsEs.append(float(MaeInp[line+AbsEOffsets[i]]))
+                AbsEs.append(float(MaeInp[line + AbsEOffsets[i]]))
                 break
 
-    #Pick only the conformers in the energy window
+    # Pick only the conformers in the energy window
     MinE = min(AbsEs)
 
-    #find geometry descriptions for each block
+    # find geometry descriptions for each block
     for i in range(len(blocks)):
         for line in (MaeInp[blocks[i]:]):
             if 'm_atom' in line:
                 blocks[i] = blocks[i] + MaeInp[blocks[i]:].index(line)
                 break
 
-    #find start of atom coordinates for each block
+    # find start of atom coordinates for each block
     for i in range(len(blocks)):
-        if (AbsEs[i] < MinE+settings.MaxCutoffEnergy):
-            #Save the locations of atom number, xyz and charge
+        if (AbsEs[i] < MinE + settings.MaxCutoffEnergy):
+            # Save the locations of atom number, xyz and charge
             DataIndex = [0, 0, 0, 0, 0]
             for offset, line in enumerate(MaeInp[blocks[i]:]):
                 if 'i_m_mmod_type' in line:
-                    DataIndex[0] = offset-1
+                    DataIndex[0] = offset - 1
                 if 'r_m_x_coord' in line:
-                    DataIndex[1] = offset-1
+                    DataIndex[1] = offset - 1
                 if 'r_m_y_coord' in line:
-                    DataIndex[2] = offset-1
+                    DataIndex[2] = offset - 1
                 if 'r_m_z_coord' in line:
-                    DataIndex[3] = offset-1
+                    DataIndex[3] = offset - 1
                 if 'r_m_charge1' in line:
-                    DataIndex[4] = offset-1
+                    DataIndex[4] = offset - 1
                 if ':::' in line:
                     blocks[i] = blocks[i] + MaeInp[blocks[i]:].index(line)
                     break
@@ -258,18 +257,18 @@ def ReadMacromodel(MMoutp, settings):
         else:
             break
 
-    #Read the atom numbers and coordinates
+    # Read the atom numbers and coordinates
     for i, block in enumerate(blocks):
-        if (AbsEs[i] < MinE+settings.MaxCutoffEnergy):
+        if (AbsEs[i] < MinE + settings.MaxCutoffEnergy):
             conformers.append([])
             ConfAbsEs.append(AbsEs[i])
             conformer = conformer + 1
-            index = block+1
+            index = block + 1
             atom = 0
             while not ':::' in MaeInp[index]:
-                #Replace quoted fields with x
+                # Replace quoted fields with x
                 line = (re.sub(r"\".*?\"", "x", MaeInp[index],
-                                    flags=re.DOTALL)).split(' ')
+                               flags=re.DOTALL)).split(' ')
                 line = [word for word in line[:-1] if word != '']
                 conformers[conformer].append([])
                 if conformer == 0:
@@ -284,8 +283,8 @@ def ReadMacromodel(MMoutp, settings):
                     conformers[conformer][atom].append(line[DataIndexes[i][2]])  # add Y
                     conformers[conformer][atom].append(line[DataIndexes[i][3]])  # add Z
 
-                index = index + 1   # Move to next line
-                atom = atom + 1     # Move to next atom
+                index = index + 1  # Move to next line
+                atom = atom + 1  # Move to next atom
         else:
             break
 
@@ -293,7 +292,6 @@ def ReadMacromodel(MMoutp, settings):
 
 
 def GetMacromodelSymbol(atomType):
-
     Lookup = ['C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C',
               'C', 'C', 'C', 'O', 'O', 'O', ' ', 'O', ' ', 'O',
               'O', ' ', 'O', 'N', 'N', 'N', ' ', ' ', ' ', ' ',
@@ -307,10 +305,10 @@ def GetMacromodelSymbol(atomType):
               'S', 'Cl', 'B', 'F', ' ', ' ', ' ', ' ', 'S', 'S',
               ' ', ' ', 'S', 'S']
 
-    if Lookup[atomType-1] == ' ':
+    if Lookup[atomType - 1] == ' ':
         print('Unknown atom type')
 
-    return Lookup[atomType-1]
+    return Lookup[atomType - 1]
 
 
 def getScriptPath():

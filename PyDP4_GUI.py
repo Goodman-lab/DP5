@@ -42,23 +42,21 @@ class TabWidget(QtWidgets.QWidget):
 
     def __init__(self, parent):
         super(QtWidgets.QWidget, self).__init__(parent)
-        self.layouttabs = QtWidgets.QVBoxLayout(self)
+        self.layouttabs = QtWidgets.QVBoxLayout()
 
         # Initialize tab screen
         self.tabs = QtWidgets.QTabWidget()
+
         self.tab1 = QtWidgets.QWidget()
 
         self.Tab1 = CalculationTab()
 
-        # Add tabs
-        self.tabs.addTab(self.tab1, "Calculation")
-
+        self.tabs.addTab(self.Tab1, "Calculation")
         self.tab1.layout = QtWidgets.QVBoxLayout()
-        self.tab1.layout.addWidget(self.Tab1)
-        self.tab1.setLayout(self.tab1.layout)
 
         # Add tabs to widget
         self.layouttabs.addWidget(self.tabs)
+
         self.setLayout(self.layouttabs)
 
     def addplottabs(self):
@@ -68,8 +66,6 @@ class TabWidget(QtWidgets.QWidget):
         self.tab4 = QtWidgets.QWidget()
         self.tab5 = QtWidgets.QWidget()
         self.tab6 = QtWidgets.QWidget()
-
-        self.Tab5 = ConformerTab()
 
         self.tabs.addTab(self.tab5, "Conformers")
 
@@ -93,25 +89,28 @@ class TabWidget(QtWidgets.QWidget):
             self.tab3.layout.addWidget(self.Tab3)
             self.tab3.setLayout(self.tab3.layout)
 
+        self.Tab5 = ConformerTab()
         self.tab5.layout = QtWidgets.QVBoxLayout(self)
         self.tab5.layout.addWidget(self.Tab5)
         self.tab5.setLayout(self.tab5.layout)
 
-        self.Tab4 = StatsTab()
+        self.Tab6 = DP5Tab()
 
+        if 's' in ui.table_widget.Tab1.settings.Workflow:
+            self.tabs.addTab(self.tab6, "DP5")
+            self.tab6.layout = QtWidgets.QVBoxLayout(self)
+            self.tab6.layout.addWidget(self.Tab6)
+            self.tab6.setLayout(self.tab6.layout)
+
+        self.Tab4 = StatsTab()
         if 's' in ui.table_widget.Tab1.settings.Workflow and len(ui.table_widget.Tab1.settings.InputFiles) > 1:
             self.tabs.addTab(self.tab4, "DP4")
             self.tab4.layout = QtWidgets.QVBoxLayout(self)
             self.tab4.layout.addWidget(self.Tab4)
             self.tab4.setLayout(self.tab4.layout)
 
-        self.Tab6 = WFTab()
 
-        if 's' in ui.table_widget.Tab1.settings.Workflow:
-            self.tabs.addTab(self.tab6, "WF")
-            self.tab6.layout = QtWidgets.QVBoxLayout(self)
-            self.tab6.layout.addWidget(self.Tab6)
-            self.tab6.setLayout(self.tab6.layout)
+
 
         self.layouttabs.addWidget(self.tabs)
         self.setLayout(self.layouttabs)
@@ -119,57 +118,54 @@ class TabWidget(QtWidgets.QWidget):
         ui.update()
 
 
-class WFTab(QtWidgets.QWidget):
+class DP5Tab(QtWidgets.QWidget):
 
     def __init__(self):
-        super(WFTab, self).__init__()
+        super(DP5Tab, self).__init__()
 
         # main horizontal widget
 
         self.main_layout = QtWidgets.QHBoxLayout()
         self.setLayout(self.main_layout)
         self.Isomers = ui.table_widget.Tab1.worker.Isomers
-        self.WFdata = ui.table_widget.Tab1.worker.WFData
+        self.DP5data = ui.table_widget.Tab1.worker.DP5Data
         self.DP4data = ui.table_widget.Tab1.worker.DP4Data
 
-        self.Isomer_WF_table = QtWidgets.QTableWidget(self)
+        self.Isomer_DP5_table = QtWidgets.QTableWidget(self)
 
-        self.Isomer_WF_table.setColumnCount(4)
+        self.Isomer_DP5_table.setColumnCount(3)
 
-        self.Isomer_WF_table.setHorizontalHeaderLabels(["Isomer", "Scaled WF", "Unscaled WF", "DP4"])
+        self.Isomer_DP5_table.setHorizontalHeaderLabels(["Isomer", "Scaled DP5", "DP4"])
 
-        self.Isomer_WF_table.setRowCount(len(self.WFdata.WFscaledprobs))
+        self.Isomer_DP5_table.setRowCount(len(self.DP5data.DP5scaledprobs))
 
         c = 0
 
-        for scaled_WF, unscaled_WF, DP4 in zip(self.WFdata.WFscaledprobs, self.WFdata.WFunscaledprobs, self.DP4data.DP4probs):
+        for scaled_DP5, DP4 in zip(self.DP5data.DP5scaledprobs, self.DP4data.DP4probs):
 
-            self.Isomer_WF_table.setItem(c, 0, QtWidgets.QTableWidgetItem(str(c + 1)))
+            self.Isomer_DP5_table.setItem(c, 0, QtWidgets.QTableWidgetItem(str(c + 1)))
 
-            self.Isomer_WF_table.setItem(c, 1, QtWidgets.QTableWidgetItem(str(round(scaled_WF, 2))))
+            self.Isomer_DP5_table.setItem(c, 1, QtWidgets.QTableWidgetItem(str(round(scaled_DP5, 2))))
 
-            self.Isomer_WF_table.setItem(c, 2, QtWidgets.QTableWidgetItem(str(round(unscaled_WF, 2))))
-
-            self.Isomer_WF_table.setItem(c, 3, QtWidgets.QTableWidgetItem(str(round(DP4 , 3))))
+            self.Isomer_DP5_table.setItem(c, 2, QtWidgets.QTableWidgetItem(str(round(DP4 , 3))))
 
             c += 1
 
-        self.Isomer_WF_table.selectRow(0)
+        self.Isomer_DP5_table.selectRow(0)
 
         # add error table
 
-        self.WF_table = QtWidgets.QTableWidget(self)
+        self.DP5_table = QtWidgets.QTableWidget(self)
 
-        self.WF_table.setColumnCount(5)
+        self.DP5_table.setColumnCount(4)
 
-        self.WF_table.setHorizontalHeaderLabels(
-            ["Atom Label", "Scaled wf", "Unscaled wf", "Scaled error (ppm)", "Unscaled error (ppm)"])
+        self.DP5_table.setHorizontalHeaderLabels(
+            ["Atom Label", "DP5",  "Scaled error (ppm)", "Unscaled error (ppm)"])
 
-        self.WF_table.setColumnWidth(0, 70)
-        self.WF_table.setColumnWidth(1, 70)
-        self.WF_table.setColumnWidth(2, 70)
-        self.WF_table.setColumnWidth(3, 70)
-        self.WF_table.setColumnWidth(4, 70)
+        self.DP5_table.setColumnWidth(0, 70)
+        self.DP5_table.setColumnWidth(1, 70)
+        self.DP5_table.setColumnWidth(2, 70)
+        self.DP5_table.setColumnWidth(3, 70)
 
         #########
 
@@ -183,13 +179,11 @@ class WFTab(QtWidgets.QWidget):
 
         # organise layouts
 
-
-
         self.table_layout = QtWidgets.QVBoxLayout()
 
-        self.table_layout.addWidget(self.Isomer_WF_table)
+        self.table_layout.addWidget(self.Isomer_DP5_table)
 
-        self.table_layout.addWidget(self.WF_table)
+        self.table_layout.addWidget(self.DP5_table)
 
         #self.image_layout.addWidget(self.image)
 
@@ -197,50 +191,49 @@ class WFTab(QtWidgets.QWidget):
 
         self.main_layout.addWidget(self.table_widget)
 
-
         self.main_layout.addWidget(self.image)
 
         # connections
 
-        self.Isomer_WF_table.currentCellChanged.connect(self.Mol_drawer)
+        self.Isomer_DP5_table.currentCellChanged.connect(self.Mol_drawer)
 
-        self.Isomer_WF_table.currentCellChanged.connect(self.populatetable)
+        self.Isomer_DP5_table.currentCellChanged.connect(self.populatetable)
 
-        self.WF_table.currentCellChanged.connect(self.Mol_drawer)
+        self.DP5_table.currentCellChanged.connect(self.Mol_drawer)
 
     def populatetable(self):
 
-        isomerindex = self.Isomer_WF_table.currentRow()
+        isomerindex = self.Isomer_DP5_table.currentRow()
 
         # which isomer is selected
 
-        self.WF_table.setRowCount(0)
+        self.DP5_table.setRowCount(0)
 
-        self.labels, self.shifts, self.exps, self.scaleds = self.WFdata.Clabels[isomerindex], \
-                                                            self.WFdata.Cshifts[isomerindex], \
-                                                            self.WFdata.Cexp[isomerindex], \
-                                                            self.WFdata.Cscaled[isomerindex], \
+        self.labels, self.shifts, self.exps, self.scaleds = self.DP5data.Clabels[isomerindex], \
+                                                            self.DP5data.Cshifts[isomerindex], \
+                                                            self.DP5data.Cexp[isomerindex], \
+                                                            self.DP5data.Cscaled[isomerindex], \
 
-        self.unscaled_probs, self.scaled_probs = self.WFdata.BUnscaledAtomProbs[isomerindex], self.WFdata.BScaledAtomProbs[isomerindex]
+        self.scaled_probs = self.DP5data.BScaledAtomProbs[isomerindex]
 
-        self.WF_table.setRowCount(len(self.labels))
+        self.DP5_table.setRowCount(len(self.labels))
 
         # set info in rows and columns
 
         c = 0
 
-        for label, shift, exp, scaled_shift, unscaled_prob, scaled_prob in zip(self.labels, self.shifts, self.exps,
-                                                                               self.scaleds, self.unscaled_probs,
+        for label, shift, exp, scaled_shift,  scaled_prob in zip(self.labels, self.shifts, self.exps,
+                                                                               self.scaleds,
                                                                                self.scaled_probs):
-            self.WF_table.setItem(c, 0, QtWidgets.QTableWidgetItem(label))
-            self.WF_table.setItem(c, 1, QtWidgets.QTableWidgetItem(str(round(scaled_prob, 2))))
-            self.WF_table.setItem(c, 2, QtWidgets.QTableWidgetItem(str(round(unscaled_prob, 2))))
-            self.WF_table.setItem(c, 3, QtWidgets.QTableWidgetItem(str(round(abs(scaled_shift - exp), 2))))
-            self.WF_table.setItem(c, 4, QtWidgets.QTableWidgetItem(str(round(abs(shift - exp), 2))))
+            self.DP5_table.setItem(c, 0, QtWidgets.QTableWidgetItem(label))
+            self.DP5_table.setItem(c, 1, QtWidgets.QTableWidgetItem(str(round(scaled_prob, 2))))
+
+            self.DP5_table.setItem(c, 2, QtWidgets.QTableWidgetItem(str(round(abs(scaled_shift - exp), 2))))
+            self.DP5_table.setItem(c, 3, QtWidgets.QTableWidgetItem(str(round(abs(shift - exp), 2))))
 
             c += 1
 
-        self.WF_table.selectRow(0)
+        self.DP5_table.selectRow(0)
 
         # self.plot()
 
@@ -254,33 +247,32 @@ class WFTab(QtWidgets.QWidget):
 
     def Mol_drawer(self):
 
-        isomerindex = self.Isomer_WF_table.currentRow()
+        isomerindex = self.Isomer_DP5_table.currentRow()
 
         highlight = {}
 
         inds = []
 
-        for label in self.WFdata.Clabels[isomerindex]:
+        for label in self.DP5data.Clabels[isomerindex]:
             inds.append(int(label.split("C")[1]) - 1)
 
-        for i, s in zip(inds, self.WFdata.BScaledAtomProbs[isomerindex]):
+        for i, s in zip(inds, self.DP5data.BScaledAtomProbs[isomerindex]):
 
-            highlight[i] = cm.RdYlGn(1 - s)
+            highlight[i] = cm.RdYlGn( s)
 
         # pick selected atom
 
-        if self.WF_table.item(self.WF_table.currentRow(), 0):
+        if self.DP5_table.item(self.DP5_table.currentRow(), 0):
 
-            error_ind = int(self.WF_table.currentRow())
+            error_ind = int(self.DP5_table.currentRow())
 
             atom_ind = inds[error_ind]
 
-            highlight[atom_ind] = cm.viridis( 1 - self.WFdata.BScaledAtomProbs[isomerindex][error_ind])
+            highlight[atom_ind] = cm.viridis(  self.DP5data.BScaledAtomProbs[isomerindex][error_ind])
 
-        # m = Chem.MolFromMolFile(str(ui.table_widget.Tab1.worker.settings.InputFiles[0]).split('.sdf')[0] + '.sdf', removeHs=False)
+        #m = Chem.MolFromMolFile(str(ui.table_widget.Tab1.worker.settings.InputFiles[0]).split('.sdf')[0] + '.sdf', removeHs=False)
 
-        m = Chem.MolFromMolFile(str(ui.table_widget.Tab1.worker.settings.InputFilesPaths[isomerindex]),
-                                removeHs=False)
+        m = Chem.MolFromMolFile(str(ui.table_widget.Tab1.worker.settings.InputFilesPaths[isomerindex]).split('.sdf')[0] + '.sdf',removeHs=False)
 
         Chem.Compute2DCoords(m)
 
@@ -386,8 +378,6 @@ class StatsTab(QtWidgets.QWidget):
         self.main_layout.addWidget(self.error_widget)
         self.main_layout.addWidget(self.plot_widget)
 
-
-
     def Isomer_number(self):
         Isomer_list = []
 
@@ -400,6 +390,8 @@ class StatsTab(QtWidgets.QWidget):
 
         '''colors = [(0.12, 0.47, 0.71), (1.0, 0.5, 0.05), (0.17, 0.63, 0.17), (0.84, 0.15, 0.16), (0.58, 0.4, 0.74),
                   (0.55, 0.34, 0.29), (0.89, 0.47, 0.76), (0.5, 0.5, 0.5), (0.74, 0.74, 0.13), (0.09, 0.75, 0.81)]'''
+
+
 
         isomerindex = self.IsomerSelect.currentIndex()
 
@@ -423,8 +415,10 @@ class StatsTab(QtWidgets.QWidget):
 
             highlight[H_atom - 1] = (0.84, 0.15, 0.16)
 
-        m = Chem.MolFromMolFile(str(ui.table_widget.Tab1.worker.settings.InputFilesPaths[isomerindex]), removeHs=False)
+        print(ui.table_widget.Tab1.worker.settings.InputFilesPaths)
 
+
+        m = Chem.MolFromMolFile(str(ui.table_widget.Tab1.worker.settings.InputFilesPaths[isomerindex]).split('.sdf')[0] + '.sdf',removeHs=False)
         Chem.Compute2DCoords(m)
 
         drawer = rdMolDraw2D.MolDraw2DSVG(self.image.width(), self.image.height())
@@ -642,7 +636,7 @@ class CalculationTab(QtWidgets.QWidget):
         self.Overall_widget = QtWidgets.QWidget(self)
 
         self.title = QtWidgets.QLabel(self)
-        self.title.setText("PyDP4 GUI")
+        self.title.setText("DP5 GUI")
         self.title.setObjectName("Title")
         self.Overall_verticallayout.addWidget(self.title)
 
@@ -716,7 +710,6 @@ class CalculationTab(QtWidgets.QWidget):
         self.Overall_verticallayout.addWidget(self.input_widget)
 
         ############ workflow
-
         self.workflow_layout = QtWidgets.QGridLayout(self)
         self.workflow_widget = QtWidgets.QWidget(self)
 
@@ -725,76 +718,87 @@ class CalculationTab(QtWidgets.QWidget):
         self.workflow_title.setText("Workflow")
         self.workflow_layout.addWidget(self.workflow_title, 0, 0)
 
+        self.CleanUp_yn = QtWidgets.QCheckBox(self)
+        self.CleanUp_yn.setObjectName("CleanUp_yn")
+        self.CleanUp_yn.setText("Clean\n"
+                                          "Structures")
+
+        self.workflow_layout.addWidget(self.CleanUp_yn,1,0)
 
         self.Gen_diastereomers_yn = QtWidgets.QCheckBox(self)
         self.Gen_diastereomers_yn.setObjectName("Gen_diastereomers_yn")
         self.Gen_diastereomers_yn.setText("Generate\n"
                                           "Diastereomers")
 
-        self.workflow_layout.addWidget(self.Gen_diastereomers_yn,1,0)
+        self.workflow_layout.addWidget(self.Gen_diastereomers_yn,1,1)
 
         self.Solvent_yn = QtWidgets.QCheckBox(self)
         self.Solvent_yn.setObjectName("Solvent_yn")
         self.Solvent_yn.setText("Solvent")
-        self.workflow_layout.addWidget(self.Solvent_yn,1,1)
+        self.workflow_layout.addWidget(self.Solvent_yn,1,2)
 
         self.solvent_drop = QtWidgets.QComboBox(self)
         self.solvent_drop.setObjectName("solvent_drop")
         solvents = ['chloroform', 'dimethylsulfoxide', 'benzene', 'methanol', 'pyridine', 'acetone']
         self.solvent_drop.addItems(solvents)
 
-        self.workflow_layout.addWidget(self.solvent_drop,2,1)
+        self.workflow_layout.addWidget(self.solvent_drop,2,2)
 
         self.MM_yn = QtWidgets.QCheckBox(self)
         self.MM_yn.setObjectName("MM_yn")
         self.MM_yn.setText("Molecular\nMechanics")
-        self.workflow_layout.addWidget(self.MM_yn,1,2)
+        self.workflow_layout.addWidget(self.MM_yn,1,3)
 
         self.MM_drop = QtWidgets.QComboBox(self)
         self.MM_drop.setObjectName("MM_drop")
         MM = ["MacroModel","Tinker"]
         self.MM_drop.addItems(MM)
-        self.workflow_layout.addWidget(self.MM_drop,2,2)
+        self.workflow_layout.addWidget(self.MM_drop,2,3)
 
         self.MM_advanced = QtWidgets.QPushButton(self)
         self.MM_advanced.setText("Advanced Settings")
-        self.workflow_layout.addWidget(self.MM_advanced,3,2)
+        self.workflow_layout.addWidget(self.MM_advanced,3,3)
 
         self.DFT_yn = QtWidgets.QCheckBox(self)
         self.DFT_yn.setObjectName("DFT_yn")
         self.DFT_yn.setText("DFT\nCalculations")
-        self.workflow_layout.addWidget(self.DFT_yn, 1, 3)
+        self.workflow_layout.addWidget(self.DFT_yn, 1, 4)
 
         self.DFT_drop = QtWidgets.QComboBox(self)
         self.DFT_drop.setObjectName("DFT_drop")
         DFT = ["Gaussian", "NWChem"]
         self.DFT_drop.addItems(DFT)
-        self.workflow_layout.addWidget(self.DFT_drop, 2, 3)
+        self.workflow_layout.addWidget(self.DFT_drop, 2, 4)
 
         self.DFT_advanced = QtWidgets.QPushButton(self)
         self.DFT_advanced.setText("Advanced Settings")
-        self.workflow_layout.addWidget(self.DFT_advanced,3,3)
+        self.workflow_layout.addWidget(self.DFT_advanced,3,4)
 
         self.Assignment_yn = QtWidgets.QCheckBox(self)
         self.Assignment_yn.setObjectName("Assignment_yn")
         self.Assignment_yn.setText("NMR\nAssignment")
-        self.workflow_layout.addWidget(self.Assignment_yn, 1, 4)
+        self.workflow_layout.addWidget(self.Assignment_yn, 1, 5)
+
+        self.DP5_stat_yn = QtWidgets.QCheckBox(self)
+        self.DP5_stat_yn.setObjectName("DP5_stat_yn")
+        self.DP5_stat_yn.setText("DP5 Statistics")
+        self.workflow_layout.addWidget(self.DP5_stat_yn, 1, 6)
 
         self.DP4_stat_yn = QtWidgets.QCheckBox(self)
         self.DP4_stat_yn.setObjectName("DP4_stat_yn")
         self.DP4_stat_yn.setText("DP4 Statistics")
-        self.workflow_layout.addWidget(self.DP4_stat_yn, 1, 5)
+        self.workflow_layout.addWidget(self.DP4_stat_yn, 1, 7)
 
         self.Add_stats_model = QtWidgets.QPushButton(self)
         self.Add_stats_model.setObjectName("Add_stats_model")
         self.Add_stats_model.setText("Add stats model")
-        self.workflow_layout.addWidget(self.Add_stats_model, 2, 5)
+        self.workflow_layout.addWidget(self.Add_stats_model, 2, 7)
 
         self.Stats_list = QtWidgets.QListWidget(self)
         self.Stats_list.setMaximumHeight(self.Add_structure.sizeHint().height())
         self.Stats_list.setObjectName("Stats_list")
 
-        self.workflow_layout.addWidget(self.Stats_list, 3, 5)
+        self.workflow_layout.addWidget(self.Stats_list, 3, 7)
         self.workflow_widget.setLayout(self.workflow_layout)
         self.Overall_verticallayout.addWidget(self.workflow_widget)
 
@@ -857,7 +861,9 @@ class CalculationTab(QtWidgets.QWidget):
 
         self.Add_stats_model.setEnabled(False)
 
-        self.DP4_stat_yn.stateChanged.connect(self.Statstoggle)
+        self.DP4_stat_yn.stateChanged.connect(self.DP4toggle)
+
+        self.DP5_stat_yn.stateChanged.connect(self.DP5toggle)
 
         self.Add_stats_model.clicked.connect(self.addstats)
 
@@ -936,11 +942,21 @@ class CalculationTab(QtWidgets.QWidget):
     def get_current_values(self):
 
         import PyDP4
+        import datetime
+        import getpass
 
         self.settings = PyDP4.Settings()
 
+        self.settings.GUIRunning = True
+
         # Read config file and fill in settings in from that
         self.settings = PyDP4.ReadConfig(self.settings)
+
+        now = datetime.datetime.now()
+        self.settings.StartTime = now.strftime('%d%b%H%M')
+
+        self.settings.user = getpass.getuser()
+        self.settings.DarwinScrDir.replace('/u/', self.settings.user)
 
         # add output folder
 
@@ -950,19 +966,128 @@ class CalculationTab(QtWidgets.QWidget):
 
         self.settings.InputFilesPaths = self.Structure_paths
 
-        # add structures
+        # copy structures to output folder
+
+        Smiles = []
+        Smarts = []
+        InChIs = []
 
         for index in range(self.Structure_list.count()):
 
-            if self.Structure_list.item(index).text() != '':
-                self.settings.InputFiles.append(self.Structure_list.item(index).text())
+            list_text = self.Structure_list.item(index).text()
 
-        # copy structures to output folder
+            if list_text != '':
+
+                # check if file is text or sdf
+
+                if list_text.endswith('.sdf'):
+
+                    self.settings.InputFiles.append(list_text[:-4])
+
+                # else its a text file - work out if it contains smiles smarts or inchis
+
+                elif (list_text.endswith('Smiles')) or (list_text.endswith('smiles')):
+
+                    Smiles.append(list_text)
+
+                elif (list_text.endswith('Smarts')) or (list_text.endswith('smarts')):
+
+                    Smarts.append(list_text)
+
+                elif (list_text.endswith('InChI')) or (list_text.endswith('InChi')) or (list_text.endswith('inchi')):
+
+                    InChIs.append(list_text)
+
+                else:
+
+                    print("file type not recognised to use smiles, smarts or inchi input please use .smiles, .smarts or .inchi file extension respectively")
+
+            if len(Smiles) == 1:
+                self.settings.Smiles = Smiles[0]
+
+            elif len(Smiles) > 1:
+
+                #if the user has added more than one Smiles string make a new file and concatenate them
+
+                SmilesFile = open(self.settings.OutputFolder / "Smiles_Input.smiles","w+")
+
+                AllSmiles =[]
+
+                for f in Smiles:
+
+                    for line in open( self.settings.OutputFolder / f).readlines():
+
+                        AllSmiles.append(line.strip())
+
+                for s in AllSmiles[:-1]:
+
+                    SmilesFile.write(s + "\n")
+
+                SmilesFile.write(AllSmiles[-1])
+
+                SmilesFile.close()
+
+                self.settings.Smiles = "Smiles_Input.smiles"
+
+            if len(Smarts) == 1:
+                self.settings.Smarts = Smarts[0]
+
+            elif len(Smarts) > 1:
+
+                #if the user has added more than one Smiles string make a new file and concatenate them
+
+                SmartsFile = open(self.settings.OutputFolder / "Smarts_Input.smarts","w+")
+
+                AllSmarts =[]
+
+                for f in Smarts:
+
+                    for line in open( self.settings.OutputFolder / f).readlines():
+
+                        AllSmarts.append(line.strip())
+
+                for s in AllSmarts[:-1]:
+
+                    SmartsFile.write(s + "\n")
+
+                SmartsFile.write(AllSmarts[-1])
+
+                SmartsFile.close()
+
+                self.settings.Smarts = "Smarts_Input.smarts"
+
+            if len(InChIs) == 1:
+                self.settings.InChIs = InChIs[0]
+
+            elif len(InChIs) > 1:
+
+                #if the user has added more than one Smiles string make a new file and concatenate them
+
+                InchIsFile = open(self.settings.OutputFolder / "InchIs_Input.inchi","w+")
+
+                AllInchIs =[]
+
+                for f in InChIs:
+
+                    for line in open( self.settings.OutputFolder / f).readlines():
+
+                        AllInchIs.append(line.strip())
+
+                for s in AllInchIs[:-1]:
+
+                    InchIsFile.write(s + "\n")
+
+                InchIsFile.write(AllInchIs[-1])
+
+                InchIsFile.close()
+
+                self.settings.InChIs = "InchIs_Input.smarts"
+
 
         for f in self.Structure_paths:
 
-            if not Path(self.Output_folder / f.name).exists():
-                shutil.copyfile(f, self.Output_folder / f.name)
+            if not Path(self.Output_folder / f).exists():
+                shutil.copyfile(f, self.settings.OutputFolder / f)
 
         # add NMR
 
@@ -978,6 +1103,9 @@ class CalculationTab(QtWidgets.QWidget):
         # generate diastereomers
 
         self.settings.Workflow = ''
+
+        if self.CleanUp_yn.isChecked() == 1:
+            self.settings.Workflow += 'c'
 
         if self.Gen_diastereomers_yn.isChecked() == 1:
             self.settings.Workflow += 'g'
@@ -1028,6 +1156,10 @@ class CalculationTab(QtWidgets.QWidget):
             if self.Stats_list.item(0) != None:
                 self.settings.StatsParamFile = self.Stats_list.item(0).text()
                 self.settings.StatsModel = 'm'
+
+        if self.DP5_stat_yn.isChecked():
+
+            self.settings.Workflow += 'w'
 
         elif self.Assignment_yn.isChecked():
 
@@ -1224,7 +1356,7 @@ class CalculationTab(QtWidgets.QWidget):
             #self.Gen_diastereomers_yn.setChecked(True)
             self.MM_yn.setChecked(False)
 
-    def Statstoggle(self, state):
+    def DP4toggle(self, state):
 
         if state > 0:
             self.Add_stats_model.setEnabled(True)
@@ -1238,6 +1370,24 @@ class CalculationTab(QtWidgets.QWidget):
 
         else:
             self.Add_stats_model.setEnabled(False)
+            self.DFT_yn.setChecked(False)
+            self.Solvent_yn.setChecked(False)
+            self.solvent_drop.setEnabled(False)
+            #self.Gen_diastereomers_yn.setChecked(True)
+            self.MM_yn.setChecked(False)
+            self.Assignment_yn.setChecked(False)
+
+    def DP5toggle(self, state):
+
+        if state > 0:
+            self.DFT_yn.setChecked(True)
+            self.Solvent_yn.setChecked(True)
+            self.solvent_drop.setEnabled(True)
+            #self.Gen_diastereomers_yn.setChecked(True)
+            self.MM_yn.setChecked(True)
+            self.Assignment_yn.setChecked(True)
+
+        else:
             self.DFT_yn.setChecked(False)
             self.Solvent_yn.setChecked(False)
             self.solvent_drop.setEnabled(False)
@@ -1516,7 +1666,7 @@ class ProtonPlotTab(QtWidgets.QWidget):
 
         self.RenderImage([], None)
 
-        self.isomerindex = int(str(self.IsomerSelect.currentText())[-1])
+        self.isomerindex = int(str(self.IsomerSelect.currentText())[-1]) -1
 
         self.isomer = ui.table_widget.Tab1.worker.Isomers[self.isomerindex]
 
@@ -1886,9 +2036,9 @@ class ProtonPlotTab(QtWidgets.QWidget):
         for i in atom:
             highlight[i] = colors[color % 10]
 
-        # m = Chem.MolFromMolFile(str(ui.table_widget.Tab1.worker.settings.InputFiles[0]).split('.sdf')[0] + '.sdf', removeHs=False)
+        isomerindex = int(str(self.IsomerSelect.currentText())[-1]) -1
 
-        m = Chem.MolFromMolFile(str(ui.table_widget.Tab1.worker.settings.InputFilesPaths[0]), removeHs=False)
+        m = Chem.MolFromMolFile(str(ui.table_widget.Tab1.worker.settings.InputFilesPaths[isomerindex]).split('.sdf')[0] + '.sdf',removeHs=False)
 
         Chem.Compute2DCoords(m)
 
@@ -2017,7 +2167,7 @@ class CarbonPlotTab(QtWidgets.QWidget):
 
             self.figure.subplots_adjust(left=0.05, right=0.95, bottom=0.07, top=0.95, wspace=0.05, hspace=0.05)
 
-            self.isomerindex = int(str(self.IsomerSelect.currentText())[-1])
+            self.isomerindex = int(str(self.IsomerSelect.currentText())[-1]) -1
 
             self.isomer = ui.table_widget.Tab1.worker.Isomers[self.isomerindex]
             self.assigned_shifts = self.isomer.Cshifts
@@ -2283,18 +2433,14 @@ class CarbonPlotTab(QtWidgets.QWidget):
 
     def RenderImage(self, atom):
 
-        # colors = [(0.12, 0.47, 0.71), (1.0, 0.5, 0.05), (0.17, 0.63, 0.17), (0.84, 0.15, 0.16), (0.58, 0.4, 0.74), (0.55, 0.34, 0.29), (0.89, 0.47, 0.76), (0.5, 0.5, 0.5), (0.74, 0.74, 0.13), (0.09, 0.75, 0.81)]
-
         highlight = {}
 
         for i in atom:
             highlight[i] = (0, 1, 1)
 
-        # m = Chem.MolFromMolFile(str(ui.table_widget.Tab1.worker.settings.InputFiles[0]).split('.sdf')[0] + '.sdf', removeHs=False)
-        m = Chem.MolFromMolFile(str(ui.table_widget.Tab1.worker.settings.InputFilesPaths[0]), removeHs=False)
-        # m = Chem.MolFromMolFile(ui.table_widget.Tab1.worker.settings.InputFilesPaths[0], removeHs=False)
+        isomerindex = int(str(self.IsomerSelect.currentText())[-1]) -1
 
-        # m = Chem.AddHs(m)
+        m = Chem.MolFromMolFile(str(ui.table_widget.Tab1.worker.settings.InputFilesPaths[isomerindex]).split('.sdf')[0] + '.sdf',removeHs=False)
 
         Chem.Compute2DCoords(m)
 
@@ -2453,7 +2599,7 @@ class PyDP4WorkerObject(QtCore.QObject):
         print(ui.table_widget.Tab1.settings.OutputFolder)
         os.chdir(ui.table_widget.Tab1.settings.OutputFolder)
 
-        self.NMRData, self.Isomers, self.settings, self.DP4Data,self.WFData = PyDP4.main(ui.table_widget.Tab1.settings)
+        self.NMRData, self.Isomers, self.settings, self.DP4Data,self.DP5Data = PyDP4.main(ui.table_widget.Tab1.settings)
         os.chdir(launchdir)
         self.finished.emit()
 
@@ -2516,13 +2662,13 @@ ui = Window()
 ui.show()
 
 thread = QtCore.QThread()
-'''
+
 my_receiver = MyReceiver(q)
 my_receiver.mysignal.connect(ui.table_widget.Tab1.append_text)
 my_receiver.moveToThread(thread)
 thread.started.connect(my_receiver.run)
 thread.start()
-'''
+
 sys.exit(app.exec_())
 
 

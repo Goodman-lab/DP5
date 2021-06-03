@@ -20,10 +20,6 @@ def process_carbon(NMR_file,settings,datatype):
     total_spectral_ydata, spectral_ydata, spectral_xdata_ppm, threshold, corr_distance, uc = spectral_processing(
         NMR_file,datatype)
 
-    print("length y data",len(total_spectral_ydata))
-
-    print("length xdata",len(spectral_xdata_ppm))
-
     total_spectral_ydata = edge_removal(total_spectral_ydata)
 
     picked_peaks, simulated_ydata = iterative_peak_picking(total_spectral_ydata, 5, corr_distance)
@@ -39,6 +35,8 @@ def process_carbon(NMR_file,settings,datatype):
 ########################################################################################################################
 
 def spectral_processing(file,datatype):
+
+    print("Processing Carbon Spectrum")
 
     spectral_xdata_ppm, total_spectral_ydata, uc = initial_processing(file,datatype)
 
@@ -141,8 +139,6 @@ def jcamp_guess_udic(dic, data):
 
 def initial_processing(file,datatype):
 
-    print('Processing Spectrum')
-
     if datatype =='jcamp':
 
         dic, total_spectral_ydata = ng.jcampdx.read(file)  # read file
@@ -205,12 +201,11 @@ def estimate_autocorrelation(total_spectral_ydata):
 
     corr_distance = counter
 
-    print('autocorrelation distance = ' + str(corr_distance))
 
     return corr_distance
 
 def gaussian_convolution(corr_distance, total_spectral_ydata):
-    print('convolution')
+
     real_part = np.real(total_spectral_ydata)
     im_part = np.imag(total_spectral_ydata)
 
@@ -238,7 +233,7 @@ def lorentz_convolution(corr_distance, total_spectral_ydata):
         kernel = lorentzian(vector, corr, p0)
         return kernel
 
-    print('convolution')
+
     real_part = np.real(total_spectral_ydata)
     im_part = np.imag(total_spectral_ydata)
     kernel = build_kernel(corr_distance)
@@ -254,7 +249,7 @@ def lorentz_convolution(corr_distance, total_spectral_ydata):
     return convolved_y
 
 def iterative_point_picking(convolved_y, threshold):
-    print("initial peak picking")
+
     real_convolved_y = np.real(convolved_y)
     copy_convolved_y = np.array(real_convolved_y)
     picked_points = []
@@ -282,7 +277,7 @@ def iterative_point_picking(convolved_y, threshold):
 
 def binary_map(picked_points, uc, convolved_y):
 
-    print("generating binary map")
+
     picked_points = np.array(picked_points)
 
     # find where peak blocks are
@@ -329,7 +324,7 @@ def binary_map(picked_points, uc, convolved_y):
     return binary_map_regions, binary_map_list
 
 def estimate_phase_angles(convolved_y, binary_map_regions, corr_distance):
-    print("estimating phase angles")
+
     convolved_y_phased = np.array(convolved_y)
 
     def inte(binary_map_regions, peak_regions, corr_distance):
@@ -419,7 +414,7 @@ def estimate_phase_angles(convolved_y, binary_map_regions, corr_distance):
     return globalangles, phased_peak_regions, convolved_y_phased
 
 def iterative_point_picking_region(binary_map_regions, real_convolved_y_phased, threshold):
-    print('peak picking by region')
+
 
     copy_convolved_y = np.array(real_convolved_y_phased)
     picked_points = []
@@ -460,7 +455,7 @@ def peak_picking_region(real_convolved_y_phased, picked_points_region):
 def linear_regression(picked_peaks_region, globalangles, real_convolved_y_phased, binary_map_regions):
 
     # region weighting vector
-    print('Linear regression')
+
     region_weighting_matrix = [1] * len(picked_peaks_region)
 
     for index,region in enumerate(picked_peaks_region):
@@ -502,7 +497,7 @@ def linear_regression(picked_peaks_region, globalangles, real_convolved_y_phased
     return p0, p1
 
 def final_phasing(total_spectral_ydata, p0, p1):
-    print("final phasing")
+
     # total_spectral_ydata = ng.proc_base.ps(total_spectral_ydata, p0=p0, p1=p1)
 
     relativeposition = np.linspace(1, 0, len(total_spectral_ydata))
@@ -546,16 +541,9 @@ def edge_removal(total_spectral_ydata):
 
 def peak_pruning(picked_peaks, total_spectral_ydata, point_ppm,corr_distance):
 
-    print("peak pruning")
-
-    print("number of picked peaks",len(picked_peaks))
-
-
     distance = 0.25/point_ppm
 
     distance = corr_distance * point_ppm
-
-    print(distance)
 
     grouped_peaks = [[picked_peaks[0]]]
 
@@ -581,8 +569,6 @@ def peak_pruning(picked_peaks, total_spectral_ydata, point_ppm,corr_distance):
 
     picked_peaks = np.array(new_peaks)
 
-    print("number of peaks pruned to",len(picked_peaks))
-
     return picked_peaks
 
 def rounding_variables(all_peak_locations_ppm, final_solvent_peak_locations, assigned_peaks_sorted_descending, differences):
@@ -598,7 +584,7 @@ def rounding_variables(all_peak_locations_ppm, final_solvent_peak_locations, ass
 
 def simulate_calc_data(spectral_xdata_ppm, calculated_locations, simulated_ydata):
     ###simulate calcutated data
-    print('Simulating Calculated Spectrum')
+
 
     simulated_calc_ydata = np.zeros(len(spectral_xdata_ppm))
 
@@ -857,7 +843,7 @@ def solvent_removal(simulated_y_data,spectral_xdata_ppm,solvent,uc,picked_peaks)
 
         params,fit_s_peaks, amp_vector, fit_s_y = first_order_peak(mxppm, J, np.array(region), 1, uc,1)
 
-        print("fit_s_peaks",spectral_xdata_ppm[fit_s_peaks])
+
 
         #find average of fitted peaks for referencing:
 

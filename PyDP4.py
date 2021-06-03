@@ -81,6 +81,9 @@ class Settings:
     AssumeDone = False          # Assume all computations done, only read DFT output data and analyze (use for reruns)
     AssumeConverged = False     # Assume all optimizations have converged, do NMR and/or energy calcs on existing DFT geometries
     UseExistingInputs = False   # Don't regenerate DFT inputs, use existing ones. Good for restarting a failed calc
+    Smiles = None # Smiles input file - text file with smiles strings on separate lines
+    InChIs = None # InChI input file - text file with inchi strings on separate lines
+    Smarts = None # Smarts input file - text file with Smarts strings on separate lines
 
     # --- Diastereomer generation ---
     SelectedStereocentres = []  # which stereocentres to vary for diastereomer generation
@@ -141,6 +144,7 @@ class Settings:
     # --- Output folder ---
     OutputFolder = ''             # folder to print dp4 output to - default is cwd
     ResFile = ''
+    GUIRunning = False
 
 settings = Settings()
 
@@ -180,16 +184,68 @@ class Isomer:
 
 def main(settings):
 
+
     print("Current working directory: " + os.getcwd())
     print("Initial input files: " + str(settings.InputFiles))
     print("NMR file: " + str(settings.NMRsource))
     print("Workflow: " + str(settings.Workflow))
 
-    # Check the number of input files, generate some if necessary
-    if ('g' in settings.Workflow) and len(settings.InputFiles) == 1:
+    #Read in any text inputs and add these to the input file list
+
+    import StructureInput
+
+    if settings.Smiles:
+
+        settings.InputFiles.extend( StructureInput.GenerateSDFFromTxt(settings.Smiles,'Smiles'))
+
+    if settings.Smarts:
+        settings.InputFiles.extend(StructureInput.GenerateSDFFromTxt(settings.Smarts, 'Smarts'))
+
+    if settings.InChIs:
+        settings.InputFiles.extend(StructureInput.GenerateSDFFromTxt(settings.InChIs, 'InChI'))
+
+    # Clean up input files if c in workflow - this generates a new set of 3d coordinates as a starting point
+
+    if 'c' in settings.Workflow and len(settings.InputFiles) > 0:
+
+        import StructureInput
+
+        #if requested generate 3d coordinates to define any stereochemistry
+
+        settings.InputFiles = StructureInput.CleanUp(settings.InputFiles)
+
+    #if no structure inputs have been found at this point quit
+
+    if len(settings.InputFiles) == 0:
+
+        print("\nNo input files were found please use -h for help with input options quitting...")
+
+        quit()
+
+    # if g in workflow check number of stereocentres for each input and generate and diastereomers
+
+    if ('g' in settings.Workflow):
+
         import InchiGen
         print("\nGenerating diastereomers...")
-        settings.InputFiles = InchiGen.GenDiastereomers(settings.InputFiles[0], settings.SelectedStereocentres)
+
+        FinalInputFiles = []
+
+        nStereo = [StructureInput.NumberofStereoCentres(InpFile) for InpFile in settings.InputFiles]
+
+        if len(settings.InputFiles) == 1:
+
+            FinalInputFiles.extend(InchiGen.GenDiastereomers( settings.InputFiles[0] , nStereo[0] , settings.SelectedStereocentres))
+
+        else:
+
+            for InpFile, nStereoCentres in zip(settings.InputFiles  , nStereo):
+
+                FinalInputFiles.extend( InchiGen.GenDiastereomers( InpFile , nStereoCentres, []))
+
+        settings.InputFiles = list(FinalInputFiles)
+
+    settings.InputFilesPaths = [ Path.cwd() / i for i in settings.InputFiles  ]
 
     print("Generated input files: " + str(settings.InputFiles) + '\n')
 
@@ -369,8 +425,9 @@ def main(settings):
                     print('\nAssigning proton spectrum...')
                     Isomers = AssignProton(NMRData,Isomers,settings)
 
-                    print('\nPlotting proton spectrum...')
-                    PlotProton(NMRData, Isomers, settings)
+                    if settings.GUIRunning == False:
+                        print('\nPlotting proton spectrum...')
+                        PlotProton(NMRData, Isomers, settings)
 
                 elif f.name == "Carbon" or f.name == "carbon":
 
@@ -380,8 +437,10 @@ def main(settings):
                     print('\nAssigning carbon spectrum...')
                     Isomers = AssignCarbon(NMRData,Isomers,settings)
 
-                    print('\nPlotting carbon spectrum...')
-                    PlotCarbon(NMRData, Isomers, settings)
+                    if settings.GUIRunning == False:
+                        print('\nPlotting carbon spectrum...')
+                        PlotCarbon(NMRData, Isomers, settings)
+
 
         elif NMRData.Type == "jcamp":
 
@@ -395,8 +454,9 @@ def main(settings):
                     print('\nAssigning proton spectrum...')
                     Isomers = AssignProton(NMRData, Isomers, settings)
 
-                    print('\nPlotting proton spectrum...')
-                    PlotProton(NMRData, Isomers, settings)
+                    if settings.GUIRunning == False:
+                        print('\nPlotting proton spectrum...')
+                        PlotProton(NMRData, Isomers, settings)
 
                 elif f.name == "Carbon.dx" or f.name == "carbon.dx":
 
@@ -406,8 +466,9 @@ def main(settings):
                     print('\nAssigning carbon spectrum...')
                     Isomers = AssignCarbon(NMRData, Isomers, settings)
 
-                    print('\nPlotting carbon spectrum...')
-                    PlotCarbon(NMRData, Isomers, settings)
+                    if settings.GUIRunning == False:
+                        print('\nPlotting carbon spectrum...')
+                        PlotCarbon(NMRData, Isomers, settings)
 
             print('Raw FID NMR datafound and read.')
 
@@ -415,64 +476,40 @@ def main(settings):
 
         #NMRdata = NMR.ProcessNMRData(Isomers, settings.NMRsource, settings)
 
-    if 's' in settings.Workflow:
-        
-        if "o" not in settings.Workflow:
+    if 'w' in settings.Workflow:
 
-            print("DFT optimised conformers required for DP5 calculation")
+        print('\nCalculating DP5 probabilities...')
+
+        # make folder for WF data to go into
+
+        DP5data = DP5.DP5data(Path(settings.ScriptDir), len(Isomers[0].Atoms))
+
+        if not os.path.exists('dp5'):
+
+            os.mkdir(Path(settings.OutputFolder) / 'dp5')
+
+            DP5data = DP5.ProcessIsomers(DP5data, Isomers, settings)
+
+            DP5data = DP5.InternalScaling(DP5data)
+
+            DP5data = DP5.kde_probs(Isomers, DP5data, 0.025)
+
+            DP5data = DP5.BoltzmannWeight_DP5(Isomers, DP5data)
+
+            DP5data = DP5.Calculate_DP5(DP5data)
+
+            DP5data = DP5.Rescale_DP5(DP5data, settings)
+
+            DP5data = DP5.Pickle_res(DP5data, settings)
 
         else:
+            DP5data = DP5.UnPickle_res(DP5data, settings)
 
-            print('\nCalculating DP5 probabilities...')
+        DP5data = DP5.MakeOutput(DP5data, Isomers, settings)
 
-            # make folder for WF data to go into
+    else:
 
-            DP5data = DP5.DP5data(Path(settings.ScriptDir), len(Isomers[0].Atoms))
-
-            if not os.path.exists('wf'):
-
-                os.mkdir(Path(settings.OutputFolder) / 'wf')
-
-                DP5data = DP5.ProcessIsomers(DP5data, Isomers, settings)
-
-                DP5data = DP5.InternalScaling(DP5data)
-
-                DP5data = DP5.kde_probs(Isomers, DP5data, 0.025)
-
-                DP5data = DP5.BoltzmannWeight_DP5(Isomers, DP5data)
-
-                DP5data = DP5.Calculate_DP5(DP5data)
-
-                DP5data = DP5.Rescale_DP5(DP5data, settings)
-
-                DP5data = DP5.Pickle_res(DP5data, settings)
-
-            else:
-                DP5data = DP5.UnPickle_res(DP5data, settings)
-
-            DP5data = DP5.MakeOutput(DP5data, Isomers, settings)
-
-            '''
-            f = open(settings.ResFile,"a")
-
-            f.write("\n" + settings.InputFiles[0].split("_")[0] + " " + str(WFdata.WFscaledprobs))
-
-            f.close()
-
-            import pickle
-
-            print(settings.ResFile)
-
-            results_dic = pickle.load(open(settings.ResFile + ".p","rb"))
-
-            os.system("rm " + settings.ResFile + ".p")
-
-            results_dic[settings.InputFiles[0].split("_")[0]] = WFdata.WFscaledprobs
-
-            pickle.dump(results_dic,open(settings.ResFile + ".p","wb+") )
-
-            quit()
-            '''
+        DP5data = []
 
     if 's' in settings.Workflow:
 
@@ -485,33 +522,15 @@ def main(settings):
         DP4data = DP4.CalcDP4(DP4data)
 
         DP4data = DP4.MakeOutput(DP4data,Isomers,settings)
-        '''
-        f = open(settings.ResFile, "a")
 
-        f.write("\n" + os.getcwd().split("/")[-1] + " " + str(DP4data.CDP4probs))
-
-        f.close()
-
-        import pickle
-
-        results_dic = pickle.load(open(settings.ResFile + ".p", "rb"))
-
-        os.system("rm " + settings.ResFile + ".p")
-
-        results_dic[os.getcwd().split("/")[-1]] = DP4data.CDP4probs
-
-        pickle.dump(results_dic, open(settings.ResFile + ".p", "wb"))
-        '''
     else:
         print('\nNo DP4 analysis requested.')
-        NMRData = []
+
         DP4data = []
 
     print('\nPyDP4 process completed successfully.')
 
     print("workflow" , settings.Workflow)
-
-    #WFdata = []
 
     return NMRData, Isomers, settings, DP4data, DP5data
 
@@ -708,9 +727,15 @@ if __name__ == '__main__':
     conformational search, implemented options 'mmff' and 'opls' (2005\
     version)", choices=['mmff', 'opls'], default=settings.ForceField)
 
-    parser.add_argument('-OutputFolder', help="Directory for dp4 output default is cwd",default= settings.OutputFolder)
+    parser.add_argument('--OutputFolder', help="Directory for dp4 output default is cwd",default= settings.OutputFolder)
 
-    parser.add_argument('-ResFile')
+    parser.add_argument('--Smiles', help="txt file input containing smiles strings on separate lines",default= settings.Smiles)
+
+    parser.add_argument('--Smarts', help="txt file input containing smarts strings on separate lines",default= settings.Smarts)
+
+    parser.add_argument('--InChIs', help="txt file input containing inchi strings on separate lines",default= settings.InChIs)
+
+    parser.add_argument('--ResFile')
 
     args = parser.parse_args()
     print(args.StructureFiles)
@@ -793,6 +818,10 @@ if __name__ == '__main__':
         f.write(' '.join(sys.argv) + '\n')
 
     settings.InputFiles = args.StructureFiles
+
+    settings.Smiles = args.Smiles
+    settings.Smarts = args.Smarts
+    settings.InChIs = args.InChIs
 
     settings.NMRsource =  args.ExpNMR
 

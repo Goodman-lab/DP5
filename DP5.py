@@ -39,33 +39,27 @@ class DP5data:
         self.Compounds = [] #qml compound objects for each isomer
         self.AtomReps = [] # FCHL representations ordered by Clabels
 
-        self.UnscaledAtomProbs = [] #per atom unscaled wf probabilities for all conformers
-        self.ScaledAtomProbs = [] #per atom wf scaled probabilities for all conformers
+        self.ScaledAtomProbs = [] #per atom dp5 scaled probabilities for all conformers
 
-        self.CUnscaledprobs = []  #WF for isomers based on Carbon data
-        self.CScaledprobs = []  # WF for isomers based on Carbon data
-        self.Cplusprobs = []  # WF for isomers based on Carbon data
+        self.CScaledprobs = []  # DP5 for isomers based on Carbon data
 
-        self.BUnscaledAtomProbs = [] #per atom wf unscaled probabilities boltzmann weighted
-        self.BScaledAtomProbs = [] #per atom wf scaled probabilities boltzmann weighted
+        self.BScaledAtomProbs = [] #per atom dp5 scaled probabilities boltzmann weighted
 
-        self.WFunscaledprobs = []  # Final WFS
-        self.WFscaledprobs = []  # Final WFS
-        self.WFplusprobs = []  # Final WFs plus probs
+        self.DP5scaledprobs = []  # Final DP5S
 
         self.output = str()  # final DP4 output
 
-        if self.Atom_number < 86:
+        self.folded_scaled_errors = pickle.load(open(ScriptPath / "folded_scaled_errors.p", "rb"))
 
-            self.folded_scaled_errors = pickle.load(open(ScriptPath /  "folded_scaled_errors.p", "rb"))
+        #self.folded_unscaled_errors = pickle.load(open(ScriptPath / "folded_unscaled_errors.p", "rb"))
+
+        if self.Atom_number < 86:
 
             with gzip.open(ScriptPath / "atomic_reps_c.gz", "rb") as f:
 
                 self.atomic_reps = pickle.load(f)
 
         else:
-
-            self.folded_scaled_errors = pickle.load(open(ScriptPath / "frag_folded_errors.p", "rb"))
 
             with gzip.open(ScriptPath / "frag_reps.gz", "rb") as f:
 
@@ -75,12 +69,10 @@ class DP5data:
 
         self.output = ""
 
-
 def kde_probs(Isomers,dp5Data,sigma):
 
     def kde_probfunction(conf_shifts, conf_reps):
 
-        probs = []
         scaled_probs = []
 
         errors = [abs(shift - exp) for shift, exp in zip(conf_shifts, dp5Data.Cexp[iso])]
@@ -100,41 +92,35 @@ def kde_probs(Isomers,dp5Data,sigma):
 
             # calculate kde using K_sim as the weighting function
 
-
             if np.sum(K_sim) == 0:
 
-                kde_estimator = kde(dp5Data.folded_scaled_errors)
+                scaled_kde_estimator = kde(dp5Data.folded_scaled_errors)
 
             else:
 
-                kde_estimator = kde(dp5Data.folded_scaled_errors, weights=K_sim)
+                scaled_kde_estimator = kde(dp5Data.folded_scaled_errors, weights=K_sim)
 
-            e_diff = abs(e - dp5Data.mean_abs_error)
-
-            p = kde_estimator.integrate_box_1d(dp5Data.mean_abs_error - e_diff, dp5Data.mean_abs_error + e_diff)
-
-            probs.append(p)
 
             s_e_diff = abs(s_e - dp5Data.mean_abs_error)
 
-            s_p = kde_estimator.integrate_box_1d(dp5Data.mean_abs_error - s_e_diff, dp5Data.mean_abs_error + s_e_diff)
+            s_p = scaled_kde_estimator.integrate_box_1d(dp5Data.mean_abs_error - s_e_diff, dp5Data.mean_abs_error + s_e_diff)
 
             scaled_probs.append(s_p)
 
-        return probs, scaled_probs
+        return  scaled_probs
 
     #for each atom in the molecule calculate the atomic worry factor
 
-    dp5Data.UnscaledAtomProbs = [[] for i in range(len(Isomers))]
+
     dp5Data.ScaledAtomProbs = [[] for i in range(len(Isomers))]
 
     for iso in range(len(Isomers)):
 
         res = [[] for i in dp5Data.AtomReps[iso]]
-        dp5Data.UnscaledAtomProbs[iso] = [[] for i in dp5Data.AtomReps[iso]]
+
         dp5Data.ScaledAtomProbs[iso] = [[] for i in dp5Data.AtomReps[iso]]
 
-        maxproc = 5
+        maxproc = 4
 
         pool = mp.Pool(maxproc)
 
@@ -148,7 +134,9 @@ def kde_probs(Isomers,dp5Data,sigma):
 
         for ind1 in range(len(res)):
 
-            dp5Data.UnscaledAtomProbs[iso][ind1], dp5Data.ScaledAtomProbs[iso][ind1] = res[ind1].get()
+
+
+            dp5Data.ScaledAtomProbs[iso][ind1] = res[ind1].get()
 
     return dp5Data
 
@@ -212,8 +200,6 @@ def ProcessIsomers(dp5Data, Isomers,Settings):
 
     #write qml compound objects and atomic representations
 
-
-
     #check the number of atoms in the structures
 
     #if there are less than 86 (max number of atoms in a molecule in the training set) atoms
@@ -232,7 +218,7 @@ def ProcessIsomers(dp5Data, Isomers,Settings):
 
             for i,geom in enumerate(iso.DFTConformers):
 
-                xyz_file = open(str(OutputFolder / "wf" /InputFile.stem) + "_" +str(i).zfill(3) + ".xyz", "w")
+                xyz_file = open(str(OutputFolder / "dp5" /InputFile.stem) + "_" +str(i).zfill(3) + ".xyz", "w")
 
                 xyz_file.write(str(len(iso.Atoms)) + "\n" + "\n")
 
@@ -242,7 +228,7 @@ def ProcessIsomers(dp5Data, Isomers,Settings):
 
                 xyz_file.close()
 
-                dp5Data.Compounds.append(qml.Compound(xyz = str(Settings.OutputFolder/"wf"/ InputFile.stem) +"_"+ str(i).zfill(3) + ".xyz"))
+                dp5Data.Compounds.append(qml.Compound(xyz = str(Settings.OutputFolder/"dp5"/ InputFile.stem) +"_"+ str(i).zfill(3) + ".xyz"))
 
                 dp5Data.Compounds[-1].generate_fchl_representation(max_size=86, cut_distance=c_distance)
 
@@ -270,7 +256,7 @@ def ProcessIsomers(dp5Data, Isomers,Settings):
 
             for i,geom in enumerate(iso.DFTConformers):
 
-                xyz_file = open(str(OutputFolder / "wf" /InputFile.stem) + "_" +str(i).zfill(3) + ".xyz", "w")
+                xyz_file = open(str(OutputFolder / "dp5" /InputFile.stem) + "_" +str(i).zfill(3) + ".xyz", "w")
 
                 xyz_file.write(str(len(iso.Atoms)) + "\n" + "\n")
 
@@ -289,15 +275,15 @@ def ProcessIsomers(dp5Data, Isomers,Settings):
                 m = OBMol()
                 obconversion.ReadFile(m, iso.InputFile)
 
-                os.mkdir(str(OutputFolder / "wf" /InputFile.stem) + "_" +str(i).zfill(3) + "_fragments")
+                os.mkdir(str(OutputFolder / "dp5" /InputFile.stem) + "_" +str(i).zfill(3) + "_fragments")
 
-                mol_fragments(m,str(OutputFolder / "wf" /InputFile.stem) + "_" +str(i).zfill(3) + "_fragments")
+                mol_fragments(m,str(OutputFolder / "dp5" /InputFile.stem) + "_" +str(i).zfill(3) + "_fragments")
 
                 conf_rep = []
 
-                for xyz_frag in sorted(os.listdir(  str(OutputFolder / "wf" /InputFile.stem) + "_" +str(i).zfill(3) + "_fragments")):
+                for xyz_frag in sorted(os.listdir(  str(OutputFolder / "dp5" /InputFile.stem) + "_" +str(i).zfill(3) + "_fragments")):
 
-                    c = qml.Compound(xyz=str(OutputFolder / "wf" /InputFile.stem) + "_" +str(i).zfill(3) + "_fragments/" + xyz_frag)
+                    c = qml.Compound(xyz=str(OutputFolder / "dp5" /InputFile.stem) + "_" +str(i).zfill(3) + "_fragments/" + xyz_frag)
 
                     c.generate_fchl_representation(max_size=54, cut_distance=c_distance)
 
@@ -350,42 +336,28 @@ def BoltzmannWeight_DP5(Isomers,dp5Data):
 
     print("Conf", np.shape(np.array(dp5Data.ScaledAtomProbs)))
 
-    for iso,scaled_probs,unscaled_probs in zip( Isomers, dp5Data.ScaledAtomProbs,dp5Data.UnscaledAtomProbs):
+    for iso,scaled_probs in zip( Isomers, dp5Data.ScaledAtomProbs):
 
         B_scaled_probs = [0] * len(scaled_probs[0])
 
-        B_unscaled_probs = [0] * len(scaled_probs[0])
-
-        for population, conf_scaled_p,conf_unscaled_p in zip(iso.Populations, scaled_probs,unscaled_probs ):
+        for population, conf_scaled_p in zip(iso.Populations, scaled_probs ):
 
             for i in range(len(B_scaled_probs)):
 
                 B_scaled_probs[i] += conf_scaled_p[i] * population
 
-                B_unscaled_probs[i] += conf_unscaled_p[i] * population
-
         dp5Data.BScaledAtomProbs.append(B_scaled_probs)
-
-        dp5Data.BUnscaledAtomProbs.append(B_unscaled_probs)
 
     return dp5Data
 
 
 def Calculate_DP5(dp5Data):
 
-    for scaled_probs,unscaled_probs in zip(dp5Data.BScaledAtomProbs,dp5Data.BUnscaledAtomProbs):
+    for scaled_probs in dp5Data.BScaledAtomProbs:
 
-        WFunscaled = 1 - gmean([1 - p_si for p_si in unscaled_probs])
+        DP5scaled = (gmean([1 - p_si for p_si in scaled_probs]))
 
-        WFscaled = (1 - gmean([1 - p_si for p_si in scaled_probs]))
-
-        WFplus = (1  - gmean([1 - p_si for p_si in scaled_probs] + [1 - p_si for p_si in unscaled_probs]))
-
-        dp5Data.CUnscaledprobs.append(WFunscaled)
-
-        dp5Data.CScaledprobs.append(WFscaled)
-
-        dp5Data.Cplusprobs.append(WFplus)
+        dp5Data.CScaledprobs.append(DP5scaled)
 
     return dp5Data
 
@@ -398,16 +370,13 @@ def Rescale_DP5(dp5Data,Settings):
 
     i = 0
 
-    for scaled,unscaled in zip(dp5Data.BScaledAtomProbs,dp5Data.BUnscaledAtomProbs):
+    for scaled in dp5Data.BScaledAtomProbs:
 
-        dp5Data.BScaledAtomProbs[i] = [  (incorrect_kde.pdf(x) / (incorrect_kde.pdf(x) + correct_kde.pdf(x)))[0] for x in scaled  ]
-        dp5Data.BUnscaledAtomProbs[i] = [  (incorrect_kde.pdf(x) / (incorrect_kde.pdf(x) + correct_kde.pdf(x)))[0] for x in unscaled  ]
+        dp5Data.BScaledAtomProbs[i] = [  1 -  (incorrect_kde.pdf(x) / (incorrect_kde.pdf(x) + correct_kde.pdf(x)))[0] for x in scaled  ]
 
         i += 1
 
-    dp5Data.WFunscaledprobs = [  (incorrect_kde.pdf(x) / (incorrect_kde.pdf(x) + correct_kde.pdf(x)))[0] for x in dp5Data.CUnscaledprobs  ]  # Final WFS
-    dp5Data.WFscaledprobs = [  (incorrect_kde.pdf(x) / (incorrect_kde.pdf(x) + correct_kde.pdf(x)))[0] for x in dp5Data.CScaledprobs  ]   # Final WFS
-    dp5Data.WFplusprobs = [  (incorrect_kde.pdf(x) / (incorrect_kde.pdf(x) + correct_kde.pdf(x)))[0] for x in dp5Data.Cplusprobs  ]   # Final WFs plus probs
+    dp5Data.DP5scaledprobs = [1 -   (incorrect_kde.pdf(x) / (incorrect_kde.pdf(x) + correct_kde.pdf(x)))[0] for x in dp5Data.CScaledprobs  ]   # Final DP5S
 
     return dp5Data
 
@@ -425,25 +394,25 @@ def Pickle_res(dp5Data,Settings):
                 "ConfCshifts": dp5Data.ConfCshifts,
                 "Compounds": dp5Data.Compounds,
                 "AtomReps": dp5Data.AtomReps,
-                "UnscaledAtomProbs": dp5Data.UnscaledAtomProbs,
+                #"UnscaledAtomProbs": dp5Data.UnscaledAtomProbs,
                 "ScaledAtomProbs": dp5Data.ScaledAtomProbs,
-                "BUnscaledAtomProbs": dp5Data.BUnscaledAtomProbs,
+                #"BUnscaledAtomProbs": dp5Data.BUnscaledAtomProbs,
                 "BScaledAtomProbs": dp5Data.BScaledAtomProbs,
-                "CUnscaledprobs": dp5Data.CUnscaledprobs,
+                #"CUnscaledprobs": dp5Data.CUnscaledprobs,
                 "CScaledprobs": dp5Data.CScaledprobs,
-                "Cplusprobs": dp5Data.Cplusprobs,
-                "WFunscaledprobs": dp5Data.WFunscaledprobs,
-                "WFscaledprobs": dp5Data.WFscaledprobs,
-                "WFplusprobs": dp5Data.WFplusprobs}
+                #"Cplusprobs": dp5Data.Cplusprobs,
+                #"DP5unscaledprobs": dp5Data.DP5unscaledprobs,
+                "DP5scaledprobs": dp5Data.DP5scaledprobs,}
+                #"DP5plusprobs": dp5Data.DP5plusprobs}
 
-    pickle.dump(data_dic , open(Path(Settings.OutputFolder) / "wf" / "data_dic.p","wb"))
+    pickle.dump(data_dic , open(Path(Settings.OutputFolder) / "dp5" / "data_dic.p","wb"))
 
     return dp5Data
 
 
 def UnPickle_res(dp5Data,Settings):
 
-    data_dic =  pickle.load(open(Path(Settings.OutputFolder) / "wf" / "data_dic.p","rb"))
+    data_dic =  pickle.load(open(Path(Settings.OutputFolder) / "dp5" / "data_dic.p","rb"))
 
     dp5Data.Cshifts = data_dic["Cshifts"]
     dp5Data.Cexp = data_dic["Cexp"]
@@ -456,16 +425,16 @@ def UnPickle_res(dp5Data,Settings):
     dp5Data.ConfCshifts = data_dic["ConfCshifts"]
     dp5Data.Compounds = data_dic["Compounds"]
     dp5Data.AtomReps = data_dic["AtomReps"]
-    dp5Data.UnscaledAtomProbs = data_dic["UnscaledAtomProbs"]
+    #dp5Data.UnscaledAtomProbs = data_dic["UnscaledAtomProbs"]
     dp5Data.ScaledAtomProbs = data_dic["ScaledAtomProbs"]
-    dp5Data.BUnscaledAtomProbs = data_dic["BUnscaledAtomProbs"]
+    #dp5Data.BUnscaledAtomProbs = data_dic["BUnscaledAtomProbs"]
     dp5Data.BScaledAtomProbs = data_dic["BScaledAtomProbs"]
-    dp5Data.CUnscaledprobs = data_dic["CUnscaledprobs"]
+    #dp5Data.CUnscaledprobs = data_dic["CUnscaledprobs"]
     dp5Data.CScaledprobs = data_dic["CScaledprobs"]
-    dp5Data.Cplusprobs = data_dic["Cplusprobs"]
-    dp5Data.WFunscaledprobs = data_dic["WFunscaledprobs"]
-    dp5Data.WFscaledprobs = data_dic["WFscaledprobs"]
-    dp5Data.WFplusprobs = data_dic["WFplusprobs"]
+    #dp5Data.Cplusprobs = data_dic["Cplusprobs"]
+    #dp5Data.DP5unscaledprobs = data_dic["DP5unscaledprobs"]
+    dp5Data.DP5scaledprobs = data_dic["DP5scaledprobs"]
+    #dp5Data.DP5plusprobs = data_dic["DP5plusprobs"]
 
     return dp5Data
 
@@ -540,7 +509,7 @@ def MakeOutput(dp5Data, Isomers, Settings):
 
     dp5Data.output += ("\n\nResults of DP4 using Carbon: ")
 
-    for i, p in enumerate(dp5Data.WFscaledprobs):
+    for i, p in enumerate(dp5Data.DP5scaledprobs):
         dp5Data.output += ("\nIsomer " + str(i + 1) + ": " + format(p * 100, "4.1f") + "%")
 
     dp5Data.output += ("\n\nResults of DP4: ")
@@ -553,11 +522,11 @@ def MakeOutput(dp5Data, Isomers, Settings):
 
     if Settings.OutputFolder == '':
 
-        out = open(str(os.getcwd()) + "/" + str(Settings.InputFiles[0] + "NMR.wf"), "w+")
+        out = open(str(os.getcwd()) + "/" + str(Settings.InputFiles[0] + "NMR.dp5"), "w+")
 
     else:
 
-        out = open(os.path.join(Settings.OutputFolder, str(Settings.InputFiles[0] + "NMR.wf")), "w+")
+        out = open(os.path.join(Settings.OutputFolder, str(Settings.InputFiles[0] + "NMR.dp5")), "w+")
 
     out.write(dp5Data.output)
 

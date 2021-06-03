@@ -24,8 +24,6 @@ def process_proton(NMR_file, settings, datatype):
     total_spectral_ydata, spectral_xdata_ppm, corr_distance, uc, noise_std, peak_regions = spectral_processing(NMR_file,
                                                                                                                datatype)
 
-    print('peak picking')
-
     gradient_peaks, gradient_regions, gradient_groups, std = gradient_peak_picking(total_spectral_ydata, corr_distance,
                                                                                    uc, noise_std, peak_regions)
 
@@ -47,8 +45,6 @@ def process_proton(NMR_file, settings, datatype):
         settings.Solvent, total_spectral_ydata, spectral_xdata_ppm, picked_peaks, peak_regions, grouped_peaks,
         total_params,
         uc)
-
-    print('simulating spectrum')
 
     sim_regions, full_sim_data = simulate_regions(total_params, peak_regions, grouped_peaks, total_spectral_ydata,
                                                   spectral_xdata_ppm)
@@ -150,7 +146,7 @@ def guess_udic(dic, data):
 
 
 def spectral_processing(file, datatype):
-    print('Processing Spectrum')
+    print('Processing Proton Spectrum')
 
     if datatype == 'jcamp':
 
@@ -218,8 +214,6 @@ def spectral_processing(file, datatype):
 
     tydata = tydata / np.max(abs(tydata))
 
-    print("corrected")
-
     return tydata, spectral_xdata_ppm, corr_distance, uc, sigma, peak_regions
 
 
@@ -278,8 +272,6 @@ def estimate_autocorrelation(total_spectral_ydata):
         t.append(tc)
 
         c += 1
-
-    print('autocorrelation distance = ' + str(c))
 
     return c
 
@@ -575,8 +567,6 @@ def baseline_find_signal(y_data, cdist, dev, t):
 
         sv.append(s)
 
-    print("done")
-
     sigma = np.mean(sv)
 
     b = np.linspace(-0.001, 0.001, 1000)
@@ -750,8 +740,6 @@ def p7plot(params, region, group, ind, xppm):
 
 
 def gradient_peak_picking(y_data, corr_distance, uc, std, binary_map_regions):
-    print("     gradient peak picking")
-
     final_peaks = []
 
     # estimate std of second derivative data
@@ -816,8 +804,6 @@ def gradient_peak_picking(y_data, corr_distance, uc, std, binary_map_regions):
     # draw new regions symmetrically around the newly found peaks
 
     dist_hz = uc(0, "Hz") - uc(9, "Hz")
-
-    print("     resetting region boundries, distance = " + str(dist_hz))
 
     peak_regions = []
 
@@ -1065,8 +1051,6 @@ def multiproc_BIC_minimisation(peak_regions, grouped_peaks, total_spectral_ydata
         fit_y = p7sim(params, region, fitted_peaks, ind1)
 
         ################################################################################################################
-
-        print("     done region " + str(ind1 + 1) + "of" + str(len(peak_regions)))
 
         return fitted_peaks, params, fit_y
 
@@ -1498,8 +1482,6 @@ def integrate_sim_regions(sim_regions, grouped_peaks, peak_regions, y_data, para
         sim_integrals.append(region_integral)
 
     sim_integrals = np.array(sim_integrals)
-
-    print("exact", list(np.round(sim_integrals, 2)))
 
     y_integral = np.sum(y_data)
 

@@ -1,4 +1,6 @@
 from matplotlib import pyplot as plt
+import matplotlib
+matplotlib.use('Agg')
 import numpy as np
 import os
 from pathlib import Path
@@ -129,7 +131,7 @@ def PlotCarbon(NMRData,Isomers,settings):
 
         plt.legend()
 
-        f_name = "Carbon_" + str(isomerindex + 1 ) + '.svg'
+        f_name = "Carbon_" + str(isomerindex + 1 ) + ".svg"
 
         plt.savefig(gdir / f_name,format = "svg", bbox_inches='tight')
 

@@ -1,4 +1,6 @@
 from matplotlib import pyplot as plt
+import matplotlib
+matplotlib.use('Agg')
 import numpy as np
 import os
 from pathlib import Path
@@ -154,7 +156,7 @@ def PlotProton(NMRData,Isomers,settings):
 
         plt.ylim([-0.5, 2.0])
 
-        f_name = "Proton_" + str(isomerindex + 1) + '.svg'
+        f_name = "Proton_" + str(isomerindex + 1) + ".svg"
 
         plt.savefig(gdir /f_name,format = "svg", bbox_inches='tight')
 
