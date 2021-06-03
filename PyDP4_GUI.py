@@ -953,14 +953,14 @@ class CalculationTab(QtWidgets.QWidget):
 
         self.settings.GUIRunning = True
 
-        # Read config file and fill in settings in from that
-        self.settings = PyDP4.ReadConfig(self.settings)
-
         now = datetime.datetime.now()
         self.settings.StartTime = now.strftime('%d%b%H%M')
 
         self.settings.user = getpass.getuser()
         self.settings.DarwinScrDir.replace('/u/', self.settings.user)
+
+        # Read config file and fill in settings in from that
+        self.settings = PyDP4.ReadConfig(self.settings)
 
         # add output folder
 
@@ -971,6 +971,13 @@ class CalculationTab(QtWidgets.QWidget):
         self.settings.InputFilesPaths = self.Structure_paths
 
         # copy structures to output folder
+
+        for f in self.Structure_paths:
+
+            if not Path(self.Output_folder / f).exists():
+                shutil.copyfile(f, self.settings.OutputFolder / f)
+
+        # add structures
 
         Smiles = []
         Smarts = []
@@ -1004,27 +1011,26 @@ class CalculationTab(QtWidgets.QWidget):
 
                 else:
 
-                    print("file type not recognised to use smiles, smarts or inchi input please use .smiles, .smarts or .inchi file extension respectively")
+                    print(
+                        "file type not recognised to use smiles, smarts or inchi input please use .smiles, .smarts or .inchi file extension respectively")
 
             if len(Smiles) == 1:
                 self.settings.Smiles = Smiles[0]
 
             elif len(Smiles) > 1:
 
-                #if the user has added more than one Smiles string make a new file and concatenate them
+                # if the user has added more than one Smiles string make a new file and concatenate them
 
-                SmilesFile = open(self.settings.OutputFolder / "Smiles_Input.smiles","w+")
+                SmilesFile = open(self.settings.OutputFolder / "Smiles_Input.smiles", "w+")
 
-                AllSmiles =[]
+                AllSmiles = []
 
                 for f in Smiles:
 
-                    for line in open( self.settings.OutputFolder / f).readlines():
-
+                    for line in open(self.settings.OutputFolder / f).readlines():
                         AllSmiles.append(line.strip())
 
                 for s in AllSmiles[:-1]:
-
                     SmilesFile.write(s + "\n")
 
                 SmilesFile.write(AllSmiles[-1])
@@ -1038,20 +1044,18 @@ class CalculationTab(QtWidgets.QWidget):
 
             elif len(Smarts) > 1:
 
-                #if the user has added more than one Smiles string make a new file and concatenate them
+                # if the user has added more than one Smiles string make a new file and concatenate them
 
-                SmartsFile = open(self.settings.OutputFolder / "Smarts_Input.smarts","w+")
+                SmartsFile = open(self.settings.OutputFolder / "Smarts_Input.smarts", "w+")
 
-                AllSmarts =[]
+                AllSmarts = []
 
                 for f in Smarts:
 
-                    for line in open( self.settings.OutputFolder / f).readlines():
-
+                    for line in open(self.settings.OutputFolder / f).readlines():
                         AllSmarts.append(line.strip())
 
                 for s in AllSmarts[:-1]:
-
                     SmartsFile.write(s + "\n")
 
                 SmartsFile.write(AllSmarts[-1])
@@ -1065,121 +1069,18 @@ class CalculationTab(QtWidgets.QWidget):
 
             elif len(InChIs) > 1:
 
-                #if the user has added more than one Smiles string make a new file and concatenate them
+                # if the user has added more than one Smiles string make a new file and concatenate them
 
-                InchIsFile = open(self.settings.OutputFolder / "InchIs_Input.inchi","w+")
+                InchIsFile = open(self.settings.OutputFolder / "InchIs_Input.inchi", "w+")
 
-                AllInchIs =[]
+                AllInchIs = []
 
                 for f in InChIs:
 
-                    for line in open( self.settings.OutputFolder / f).readlines():
-
+                    for line in open(self.settings.OutputFolder / f).readlines():
                         AllInchIs.append(line.strip())
 
                 for s in AllInchIs[:-1]:
-
-                    InchIsFile.write(s + "\n")
-
-                InchIsFile.write(AllInchIs[-1])
-
-                InchIsFile.close()
-
-                self.settings.InChIs = "InchIs_Input.smarts"
-
-
-        for f in self.Structure_paths:
-
-            if not Path(self.Output_folder / f).exists():
-                shutil.copyfile(f, self.settings.OutputFolder / f)
-
-                    Smiles.append(list_text)
-
-                elif (list_text.endswith('Smarts')) or (list_text.endswith('smarts')):
-
-                    Smarts.append(list_text)
-
-                elif (list_text.endswith('InChI')) or (list_text.endswith('InChi')) or (list_text.endswith('inchi')):
-
-                    InChIs.append(list_text)
-
-                else:
-
-                    print("file type not recognised to use smiles, smarts or inchi input please use .smiles, .smarts or .inchi file extension respectively")
-
-            if len(Smiles) == 1:
-                self.settings.Smiles = Smiles[0]
-
-            elif len(Smiles) > 1:
-
-                #if the user has added more than one Smiles string make a new file and concatenate them
-
-                SmilesFile = open(self.settings.OutputFolder / "Smiles_Input.smiles","w+")
-
-                AllSmiles =[]
-
-                for f in Smiles:
-
-                    for line in open( self.settings.OutputFolder / f).readlines():
-
-                        AllSmiles.append(line.strip())
-
-                for s in AllSmiles[:-1]:
-
-                    SmilesFile.write(s + "\n")
-
-                SmilesFile.write(AllSmiles[-1])
-
-                SmilesFile.close()
-
-                self.settings.Smiles = "Smiles_Input.smiles"
-
-            if len(Smarts) == 1:
-                self.settings.Smarts = Smarts[0]
-
-            elif len(Smarts) > 1:
-
-                #if the user has added more than one Smiles string make a new file and concatenate them
-
-                SmartsFile = open(self.settings.OutputFolder / "Smarts_Input.smarts","w+")
-
-                AllSmarts =[]
-
-                for f in Smarts:
-
-                    for line in open( self.settings.OutputFolder / f).readlines():
-
-                        AllSmarts.append(line.strip())
-
-                for s in AllSmarts[:-1]:
-
-                    SmartsFile.write(s + "\n")
-
-                SmartsFile.write(AllSmarts[-1])
-
-                SmartsFile.close()
-
-                self.settings.Smarts = "Smarts_Input.smarts"
-
-            if len(InchIs) == 1:
-                self.settings.InChIs = InchIs[0]
-
-            elif len(InchIs) > 1:
-
-                #if the user has added more than one Smiles string make a new file and concatenate them
-
-                InchIsFile = open(self.settings.OutputFolder / "InchIs_Input.inchi","w+")
-
-                AllInchIs =[]
-
-                for f in InchIs:
-
-                    for line in open( self.settings.OutputFolder / f).readlines():
-
-                        AllInchIs.append(line.strip())
-
-                for s in AllInchIs[:-1]:
-
                     InchIsFile.write(s + "\n")
 
                 InchIsFile.write(AllInchIs[-1])
@@ -1187,7 +1088,6 @@ class CalculationTab(QtWidgets.QWidget):
                 InchIsFile.close()
 
                 self.settings.InchIs = "InchIs_Input.smarts"
-
 
         self.settings.NMRsource = self.NMR_paths
 
@@ -2709,7 +2609,6 @@ ui = Window()
 ui.show()
 
 thread = QtCore.QThread()
-
 my_receiver = MyReceiver(q)
 my_receiver.mysignal.connect(ui.table_widget.Tab1.append_text)
 my_receiver.moveToThread(thread)
