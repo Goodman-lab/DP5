@@ -100,7 +100,6 @@ def kde_probs(Isomers,dp5Data,sigma):
 
                 scaled_kde_estimator = kde(dp5Data.folded_scaled_errors, weights=K_sim)
 
-
             s_e_diff = abs(s_e - dp5Data.mean_abs_error)
 
             s_p = scaled_kde_estimator.integrate_box_1d(dp5Data.mean_abs_error - s_e_diff, dp5Data.mean_abs_error + s_e_diff)
@@ -110,7 +109,6 @@ def kde_probs(Isomers,dp5Data,sigma):
         return  scaled_probs
 
     #for each atom in the molecule calculate the atomic worry factor
-
 
     dp5Data.ScaledAtomProbs = [[] for i in range(len(Isomers))]
 
@@ -133,8 +131,6 @@ def kde_probs(Isomers,dp5Data,sigma):
             ind1 += 1
 
         for ind1 in range(len(res)):
-
-
 
             dp5Data.ScaledAtomProbs[iso][ind1] = res[ind1].get()
 
@@ -334,8 +330,6 @@ def ScaleNMR(calcShifts, expShifts):
 
 def BoltzmannWeight_DP5(Isomers,dp5Data):
 
-    print("Conf", np.shape(np.array(dp5Data.ScaledAtomProbs)))
-
     for iso,scaled_probs in zip( Isomers, dp5Data.ScaledAtomProbs):
 
         B_scaled_probs = [0] * len(scaled_probs[0])
@@ -355,7 +349,7 @@ def Calculate_DP5(dp5Data):
 
     for scaled_probs in dp5Data.BScaledAtomProbs:
 
-        DP5scaled = (gmean([1 - p_si for p_si in scaled_probs]))
+        DP5scaled = 1 - gmean([1 - p_si for p_si in scaled_probs])
 
         dp5Data.CScaledprobs.append(DP5scaled)
 
@@ -372,11 +366,11 @@ def Rescale_DP5(dp5Data,Settings):
 
     for scaled in dp5Data.BScaledAtomProbs:
 
-        dp5Data.BScaledAtomProbs[i] = [  1 -  (incorrect_kde.pdf(x) / (incorrect_kde.pdf(x) + correct_kde.pdf(x)))[0] for x in scaled  ]
+        dp5Data.BScaledAtomProbs[i] = [ 1 - float(incorrect_kde.pdf(x) / (incorrect_kde.pdf(x) + correct_kde.pdf(x))) for x in scaled  ]
 
         i += 1
 
-    dp5Data.DP5scaledprobs = [1 -   (incorrect_kde.pdf(x) / (incorrect_kde.pdf(x) + correct_kde.pdf(x)))[0] for x in dp5Data.CScaledprobs  ]   # Final DP5S
+    dp5Data.DP5scaledprobs = [  1 - float(incorrect_kde.pdf(x) / (incorrect_kde.pdf(x) + correct_kde.pdf(x))) for x in dp5Data.CScaledprobs  ]   # Final DP5S
 
     return dp5Data
 
@@ -394,16 +388,14 @@ def Pickle_res(dp5Data,Settings):
                 "ConfCshifts": dp5Data.ConfCshifts,
                 "Compounds": dp5Data.Compounds,
                 "AtomReps": dp5Data.AtomReps,
-                #"UnscaledAtomProbs": dp5Data.UnscaledAtomProbs,
+
                 "ScaledAtomProbs": dp5Data.ScaledAtomProbs,
-                #"BUnscaledAtomProbs": dp5Data.BUnscaledAtomProbs,
+
                 "BScaledAtomProbs": dp5Data.BScaledAtomProbs,
-                #"CUnscaledprobs": dp5Data.CUnscaledprobs,
+
                 "CScaledprobs": dp5Data.CScaledprobs,
-                #"Cplusprobs": dp5Data.Cplusprobs,
-                #"DP5unscaledprobs": dp5Data.DP5unscaledprobs,
-                "DP5scaledprobs": dp5Data.DP5scaledprobs,}
-                #"DP5plusprobs": dp5Data.DP5plusprobs}
+
+                "DP5scaledprobs": dp5Data.DP5scaledprobs}
 
     pickle.dump(data_dic , open(Path(Settings.OutputFolder) / "dp5" / "data_dic.p","wb"))
 
@@ -425,16 +417,10 @@ def UnPickle_res(dp5Data,Settings):
     dp5Data.ConfCshifts = data_dic["ConfCshifts"]
     dp5Data.Compounds = data_dic["Compounds"]
     dp5Data.AtomReps = data_dic["AtomReps"]
-    #dp5Data.UnscaledAtomProbs = data_dic["UnscaledAtomProbs"]
     dp5Data.ScaledAtomProbs = data_dic["ScaledAtomProbs"]
-    #dp5Data.BUnscaledAtomProbs = data_dic["BUnscaledAtomProbs"]
     dp5Data.BScaledAtomProbs = data_dic["BScaledAtomProbs"]
-    #dp5Data.CUnscaledprobs = data_dic["CUnscaledprobs"]
     dp5Data.CScaledprobs = data_dic["CScaledprobs"]
-    #dp5Data.Cplusprobs = data_dic["Cplusprobs"]
-    #dp5Data.DP5unscaledprobs = data_dic["DP5unscaledprobs"]
     dp5Data.DP5scaledprobs = data_dic["DP5scaledprobs"]
-    #dp5Data.DP5plusprobs = data_dic["DP5plusprobs"]
 
     return dp5Data
 
@@ -451,6 +437,7 @@ def PrintAssignment(dp5Data):
 
 
 def PrintNMR(labels, values, scaled, exp,atom_p, dp5Data):
+
     s = np.argsort(values)
 
     svalues = np.array(values)[s]
@@ -466,10 +453,11 @@ def PrintNMR(labels, values, scaled, exp,atom_p, dp5Data):
     dp5Data.output += ("\nlabel, calc, corrected, exp, error,prob")
 
     for i in range(len(labels)):
+
         dp5Data.output += ("\n" + format(slabels[i], "6s") + ' ' + format(svalues[i], "6.2f") + ' '
                            + format(sscaled[i], "6.2f") + ' ' + format(sexp[i], "6.2f") + ' ' +
                            format(sexp[i] - sscaled[i], "6.2f")+ ' ' +
-                           format(atom_p[i], "6.2f"))
+                           format(atom_p[i] , "6.2f"))
 
 
 def MakeOutput(dp5Data, Isomers, Settings):
@@ -507,16 +495,11 @@ def MakeOutput(dp5Data, Isomers, Settings):
 
     PrintAssignment(dp5Data)
 
-    dp5Data.output += ("\n\nResults of DP4 using Carbon: ")
+    dp5Data.output += ("\n\nResults of DP5 using Carbon: ")
 
     for i, p in enumerate(dp5Data.DP5scaledprobs):
+
         dp5Data.output += ("\nIsomer " + str(i + 1) + ": " + format(p * 100, "4.1f") + "%")
-
-    dp5Data.output += ("\n\nResults of DP4: ")
-
-
-    print("number of c carbons = " + str(len(Isomers[0].Clabels)))
-    print("number of e carbons = " + str(len(dp5Data.Cexp[0])))
 
     print(dp5Data.output)
 

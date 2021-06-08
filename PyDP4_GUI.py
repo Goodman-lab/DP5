@@ -13,10 +13,6 @@ from scipy.stats import norm
 from PyQt5.QtSvg import QSvgWidget
 from rdkit.Chem import AllChem as Chem
 from rdkit.Chem.Draw import rdMolDraw2D
-
-from rdkit import Chem
-from rdkit.Chem import AllChem
-
 import pickle
 from matplotlib import cm
 
@@ -139,7 +135,7 @@ class DP5Tab(QtWidgets.QWidget):
 
         self.Isomer_DP5_table.setColumnCount(3)
 
-        self.Isomer_DP5_table.setHorizontalHeaderLabels(["Isomer", "Scaled DP5", "DP4"])
+        self.Isomer_DP5_table.setHorizontalHeaderLabels(["Isomer", "DP5", "DP4"])
 
         self.Isomer_DP5_table.setRowCount(len(self.DP5data.DP5scaledprobs))
 
@@ -164,7 +160,7 @@ class DP5Tab(QtWidgets.QWidget):
         self.DP5_table.setColumnCount(4)
 
         self.DP5_table.setHorizontalHeaderLabels(
-            ["Atom Label", "DP5",  "Scaled error (ppm)", "Unscaled error (ppm)"])
+            ["Atom Label", "Atomic Probability",  "Scaled error (ppm)", "Unscaled error (ppm)"])
 
         self.DP5_table.setColumnWidth(0, 70)
         self.DP5_table.setColumnWidth(1, 70)
@@ -262,7 +258,7 @@ class DP5Tab(QtWidgets.QWidget):
 
         for i, s in zip(inds, self.DP5data.BScaledAtomProbs[isomerindex]):
 
-            highlight[i] = cm.RdYlGn( s)
+            highlight[i] = cm.RdYlGn(s)
 
         # pick selected atom
 
@@ -418,9 +414,6 @@ class StatsTab(QtWidgets.QWidget):
             atom.append(H_atom - 1)
 
             highlight[H_atom - 1] = (0.84, 0.15, 0.16)
-
-        print(ui.table_widget.Tab1.worker.settings.InputFilesPaths)
-
 
         m = Chem.MolFromMolFile(str(ui.table_widget.Tab1.worker.settings.InputFilesPaths[isomerindex]).split('.sdf')[0] + '.sdf',removeHs=False)
         Chem.Compute2DCoords(m)
@@ -1087,7 +1080,15 @@ class CalculationTab(QtWidgets.QWidget):
 
                 InchIsFile.close()
 
-                self.settings.InchIs = "InchIs_Input.smarts"
+                self.settings.InChIs = "InchIs_Input.smarts"
+
+
+        for f in self.Structure_paths:
+
+            if not Path(self.Output_folder / f).exists():
+                shutil.copyfile(f, self.settings.OutputFolder / f)
+
+        # add NMR
 
         self.settings.NMRsource = self.NMR_paths
 
@@ -1154,6 +1155,10 @@ class CalculationTab(QtWidgets.QWidget):
             if self.Stats_list.item(0) != None:
                 self.settings.StatsParamFile = self.Stats_list.item(0).text()
                 self.settings.StatsModel = 'm'
+
+        if self.DP5_stat_yn.isChecked():
+
+            self.settings.Workflow += 'w'
 
         elif self.Assignment_yn.isChecked():
 
@@ -1229,7 +1234,30 @@ class CalculationTab(QtWidgets.QWidget):
 
             if p_switch == 0 and c_switch == 0:
                 self.NMR_list.addItem(filename.name)
-                self.NMR_paths.append(f)
+                self.NMR_paths.append(filename.name)
+
+            self.Add_NMR_desc.setEnabled(False)
+
+    def addNMRdesc(self):
+
+        f = QtWidgets.QFileDialog.getOpenFileName()[0]
+
+        if f:
+            filename = Path(f)
+
+            self.NMR_list.addItem(filename.name)
+            self.NMR_paths.append(filename)
+
+            self.Add_NMR.setEnabled(False)
+            self.Add_NMR_desc.setEnabled(False)
+
+
+    def remove_all_NMR(self):
+
+        self.NMR_list.clear()
+        self.NMR_paths = []
+        self.Add_NMR.setEnabled(True)
+        self.Add_NMR_desc.setEnabled(True)
 
     def removeNMR(self):
 
@@ -1239,6 +1267,11 @@ class CalculationTab(QtWidgets.QWidget):
         for i in item:
             self.NMR_list.takeItem(self.NMR_list.row(i))
             self.NMR_paths.pop(self.NMR_list.row(i))
+
+        if len(self.NMR_paths) == 0:
+            self.Add_NMR.setEnabled(True)
+            self.Add_NMR_desc.setEnabled(True)
+
 
     def addstats(self):
         filename = QtWidgets.QFileDialog.getOpenFileName()
@@ -1321,7 +1354,7 @@ class CalculationTab(QtWidgets.QWidget):
             #self.Gen_diastereomers_yn.setChecked(True)
             self.MM_yn.setChecked(False)
 
-    def Statstoggle(self, state):
+    def DP4toggle(self, state):
 
         if state > 0:
             self.Add_stats_model.setEnabled(True)
@@ -1335,6 +1368,24 @@ class CalculationTab(QtWidgets.QWidget):
 
         else:
             self.Add_stats_model.setEnabled(False)
+            self.DFT_yn.setChecked(False)
+            self.Solvent_yn.setChecked(False)
+            self.solvent_drop.setEnabled(False)
+            #self.Gen_diastereomers_yn.setChecked(True)
+            self.MM_yn.setChecked(False)
+            self.Assignment_yn.setChecked(False)
+
+    def DP5toggle(self, state):
+
+        if state > 0:
+            self.DFT_yn.setChecked(True)
+            self.Solvent_yn.setChecked(True)
+            self.solvent_drop.setEnabled(True)
+            #self.Gen_diastereomers_yn.setChecked(True)
+            self.MM_yn.setChecked(True)
+            self.Assignment_yn.setChecked(True)
+
+        else:
             self.DFT_yn.setChecked(False)
             self.Solvent_yn.setChecked(False)
             self.solvent_drop.setEnabled(False)
@@ -2600,7 +2651,7 @@ def ReadParamFile(f, t):
 
 q = queue.Queue()
 
-sys.stdout = WriteStream(q)
+#sys.stdout = WriteStream(q)
 
 app = QtWidgets.QApplication(sys.argv)
 
