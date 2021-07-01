@@ -1,6 +1,6 @@
 ===============================================================
 
-DP4-AI
+DP5
 
 version 1.0
 
@@ -22,20 +22,31 @@ CONTENTS
 
 RELEASE NOTES
 
-DP4-AI version 1.0 is the successor the PyDP4. As described in our latest paper
-(https://doi.org/10.26434/chemrxiv.11763255.v1) DP4-AI represents a significant increase in
-functionality over PyDP4.
+This latest release represents a leap forward in structural uncertainty calculation through the addition of the new DP5
+module. By adding this functionality to our existing state of the art DP5 software, both DP4 and DP5
+probabilities can be calculated alongside each other fully automatically.
 
-DP4-AI integrates NMR-AI, software for automatic processing, assignment and visualisation of raw NMR data.
-This functionality affords fully automated DP4 analysis of databases of molecules with no user input. DP4-AI also
-utilises a fully revised version of PyDP4 updated for Python 3 and with major workflow improvements.
+DP5 as described in our latest paper (...) calculates the standalone probability of structures being correct.
+If a user cannot guarantee the correct structure is in the list of proposals, DP5 calculates the probability each is
+correct, quantifying this uncertainty.
 
-Users can now also choose to run DP4-AI within a Graphical user interface for increased ease of use when single DP4
+When the user is certain a one of their proposals is correct i.e in the case of elucidating relative stereochemistry,
+DP4 is the best metric to use, as this uses the additional information that one of the proposals must be correct.
+
+The power of DP5 and DP4 however is greatest when they are used in conjunction as DP5 can be used to increase
+reliability and confidence in the conclusions of DP4 calculations (also described in the paper).
+
+DP5 (https://doi.org/10.26434/chemrxiv.11763255.v1) integrates NMR-AI, software for automatic processing, assignment
+and visualisation of raw NMR data. This functionality affords fully automated DP4 analysis of databases of molecules
+with no user input. DP5 also utilises a fully revised version of PyDP4 updated for Python 3 and with major workflow
+improvements.
+
+Users can now also choose to run DP5 within a Graphical user interface for increased ease of use when single DP4
 calculations. This graphical user interface can also be used to explore the spectra processed and assigned by NMR-AI.
-DP4-AI can also be utilised to perform assignments of NMR spectra for a single isomer of a molecule. These assignments
-can be viewed in the graphical output from DP4-AI or investigated interactively using The included GUI application.
+DP5 can also be utilised to perform assignments of NMR spectra for a single isomer of a molecule. These assignments
+can be viewed in the graphical output from DP5 or investigated interactively using The included GUI application.
 
-More details about the software can be found in the publication DP4-AI Straight from Spectrometer to Structure
+More details about the software can be found in the publication DP5 Straight from Spectrometer to Structure
 (https://doi.org/10.26434/chemrxiv.11763255.v1) and in the accompanying supporting information.
 
 ===============================================================
@@ -52,12 +63,12 @@ Gaussian for DFT and it runs Gaussian on ziggy by default. NWChem and TINKER is 
 This setup has several requirements.
 
 1) One should have MacroModel or TINKER and NWChem or Gaussian.
-The DP4-AI folder can contain settings.cfg, where the locations for the installed software packages
-can be given, so that DP4-AI can launch them and use in the workflow. Examples on how to do
+The DP5 folder can contain settings.cfg, where the locations for the installed software packages
+can be given, so that DP5 can launch them and use in the workflow. Examples on how to do
 this are provided in the included settings.example - this should be renamed to settings.cfg and
 any relevant changes made.
 
-2) In order to run DP4-AI a python 3.6+ environment the following packages are required:
+2) In order to run DP5 a python 3.6+ environment the following packages are required:
 numpy scipy Cython matplotlib nmrglue statsmodels lmfit openbabel rdkit pathos
 Additionally, the graphical user interface requires PyQT5
 
@@ -92,13 +103,10 @@ the GUI is then simply called by:
 
 python PyDP4_GUI.py
 
-This will open the main DP4-AI GUI window, the user can then select the required input files and the settings for MM and
-DFT calculations. The expected structure file format is *.sdf. In addition DP4-AI can also take inchi, smiles and smarts
-inputs. To use this feature text file should be prepared with the desired input strings on separate lines, marked with
-the relevant .smiles, .smarts or .inchi file extension and added using the GUI dialogue. Multiple file inputs in any
-combination of formats can be added this way
+This will open the main DP5 GUI window, the user can then select the required input files and the settings for MM and
+DFT calculations. The expected structure file format is *.sdf
 
-Once the DP4-AI has finished all calculations the GUI will open a number of new tabs. These tabs display interactive
+Once the DP5 has finished all calculations the GUI will open a number of new tabs. These tabs display interactive
 carbon and proton NMR spectra as processed and assigned by NMR-AI as well as interactive plots of the NMR prediction
 errors and probabilities and conformer energies and populations.
 
@@ -115,21 +123,20 @@ PyDP4.py Candidate CandidateNMR
 where Candidate is the sdf file containing 3D coordinates of the candidate
 structure (without the extension).
 
-DP4-AI will automatically detect whether an NMR description (see below) or raw NMR data has been provided by the user.
+DP5 will automatically detect whether an NMR description (see below) or raw NMR data has been provided by the user.
 If raw NMR data has been provided (currently in the Bruker file format), NMR-AI will automatically process the NMR spectra
-provided. In this case the NMR data should be organised into a single folder (passed to DP4-AI) containing one or two
+provided. In this case the NMR data should be organised into a single folder (passed to DP5) containing one or two
 folders labelled Proton and (or) Carbon.
 
 Alternatively:
 
 PyDP4.py -w gmns Candidate CandidateNMR
 
-The -w switch specifies the PyDP4 workflow, c specifies structure clean up and 3d coordinate generation utilising rdkit,
-g specifies diastereomer generation, m molecular mechanics conformational searching, o DFT geometry optimisation,
-n DFT NMR calculation, e M062X single point energy calculations, s calculate DP4 statistics. The default workflow is gnms,
-optimum workflow is gnomes. The letter a can be given in place of s, in the instance DP4-AI will analyse and assign the
-provided NMR spectra but not calculate a DP4 probability. This is perticularly useful in cases where only one isomer of
-a molecule is being passed to DP4-AI.
+The -w switch specifies the PyDP4 workflow, c specifies structure cleaning utilising RDkit, g specifies diastereomer
+generation, m molecular mechanics conformational searching, o DFT geometry optimisation, n DFT NMR calculation,
+e M062X single point energy calculations, s calculate DP4 statistics and w for DP5 statistics.
+The default workflow is gnms, optimum workflow is gnomes. The letter a can be given in place of s, in the instance
+DP5 will analyse and assign the provided NMR spectra but not calculate any probabilities.
 
 In addition the -s switch can be used to specify the solvent for use in MM and DFT calculations. Supported solvents are
 listed in the TMSdata file. Other Gaussian/Jaguar/NWChem supported solvents can be used, but only with manually interpreted
@@ -247,11 +254,11 @@ description
 CODE ORGANIZATION
 
 PyDP4.py
-file that should be called to start the DP4-AI workflow. Interprets the
+file that should be called to start the DP5 workflow. Interprets the
 arguments and takes care of the general workflow logic.
 
 PyDP4_GUI.py
-file that should be called to start the DP4-AI graphical user interface
+file that should be called to start the DP5 graphical user interface
 
 InchiGen.py
 Gets called if diastereomer and/or tautomer and/or protomer generation is
@@ -300,6 +307,9 @@ DP4.py
 Equivalent and compact port of the original DP4 java implementation to Python
 of the same DP4 process. Has been updated to include multigaussian models.
 
+DP5.py
+python implementation of the DP5 probability calucaltion
+
 Proton_processing.py/Carbon_processing.py
 NMR-AI python script from processing of raw proton/carbon NMR data
 
@@ -309,5 +319,5 @@ NMR-AI python script for assignment of raw proton/carbon NMR data
 Proton_plotting.py/Carbon_plotting
 NMR-AI python script for plotting of raw proton/carbon NMR data processed and assigned by NMR-AI
 
-
-
+StructureInput.py
+Script for cleaning structures using RDkit, generating 3d geometries and reading InChI, Smiles and SMARTS input formats
