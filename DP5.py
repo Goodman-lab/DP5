@@ -55,7 +55,7 @@ class DP5data:
 
         if self.Atom_number < 86:
 
-            with gzip.open(ScriptPath / "atomic_reps_c.gz", "rb") as f:
+            with gzip.open(ScriptPath / "atomic_reps.gz", "rb") as f:
 
                 self.atomic_reps = pickle.load(f)
 

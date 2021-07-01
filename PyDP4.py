@@ -481,9 +481,6 @@ def main(settings):
         # make folder for WF data to go into
 
         DP5data = DP5.DP5data(Path(settings.ScriptDir), len(Isomers[0].Atoms))
-        DP5data = DP5.ProcessIsomers(DP5data, Isomers, settings)
-        DP5data = DP5.InternalScaling(DP5data)
-
 
         if not os.path.exists('dp5'):
 
@@ -499,7 +496,7 @@ def main(settings):
 
         else:
 
-            DP5data = DP5.DP5data(Path(settings.ScriptDir), len(Isomers[0].Atoms))
+            DP5data = DP5.UnPickle_res(DP5data, settings)
 
         DP5data = DP5.MakeOutput(DP5data, Isomers, settings)
 
