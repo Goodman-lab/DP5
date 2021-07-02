@@ -508,15 +508,21 @@ def main(settings):
 
     if 's' in settings.Workflow:
 
-        print('\nCalculating DP4 probabilities...')
+        if len(Isomers) < 2:
 
-        DP4data = DP4.DP4data()
-        DP4data = DP4.ProcessIsomers(DP4data, Isomers)
-        DP4data = DP4.InternalScaling(DP4data)
-        DP4data = DP4.CalcProbs(DP4data, settings)
-        DP4data = DP4.CalcDP4(DP4data)
+            print("Multiple structures required for DP4 probability calculations...")
 
-        DP4data = DP4.MakeOutput(DP4data, Isomers, settings)
+        else:
+
+            print('\nCalculating DP4 probabilities...')
+
+            DP4data = DP4.DP4data()
+            DP4data = DP4.ProcessIsomers(DP4data, Isomers)
+            DP4data = DP4.InternalScaling(DP4data)
+            DP4data = DP4.CalcProbs(DP4data, settings)
+            DP4data = DP4.CalcDP4(DP4data)
+
+            DP4data = DP4.MakeOutput(DP4data, Isomers, settings)
 
     else:
         print('\nNo DP4 analysis requested.')
