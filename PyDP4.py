@@ -68,12 +68,14 @@ class Settings:
     MM = 'm'  # m for MacroModel, t for Tinker
     DFT = 'z'  # n, g, z or for NWChem or Gaussian
     Workflow = 'gmns'  # defines which steps to include in the workflow
+    # c for RDkit cleaning of input structures and 3d coordinate generation
     # g for generate diastereomers
     # m for molecular mechanics conformational search
     # o for DFT optimization
     # e for DFT single-point energies
     # n for DFT NMR calculation
     # s for computational and experimental NMR data extraction and stats analysis
+    # w for DP5 probability calculation
     Solvent = ''  # solvent for DFT optimization and NMR calculation
     ScriptDir = ''  # Script directory, automatically set on launch
     InputFiles = []  # Structure input files - can be MacroModel *-out.mae or *sdf files
