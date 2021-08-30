@@ -26,7 +26,7 @@ This latest release represents a leap forward in structural uncertainty calculat
 module. By adding this functionality to our existing state of the art DP5 software, both DP4 and DP5
 probabilities can be calculated alongside each other fully automatically.
 
-DP5 as described in our latest paper (...) calculates the standalone probability of structures being correct.
+DP5 as described in our latest paper (https://doi.org/10.33774/chemrxiv-2021-2blsb-v4) calculates the standalone probability of structures being correct.
 If a user cannot guarantee the correct structure is in the list of proposals, DP5 calculates the probability each is
 correct, quantifying this uncertainty.
 
