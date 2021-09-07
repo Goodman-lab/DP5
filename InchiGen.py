@@ -17,6 +17,7 @@ try:
 except ImportError:
     from openbabel import *
 
+import shutil
 import subprocess
 from rdkit import Chem
 from rdkit.Chem import AllChem
