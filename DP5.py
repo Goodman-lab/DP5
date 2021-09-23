@@ -172,6 +172,9 @@ def ProcessIsomers(dp5Data, Isomers,Settings):
                 dp5Data.Cinds[-1].append(int(label[1:]) - 1)
                 exp_inds.append(a_ind)
 
+
+            a_ind += 1
+
         if len(iso.ConformerCShifts) > 1:
 
             for i in range(len(iso.ConformerCShifts)):
