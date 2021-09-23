@@ -158,7 +158,9 @@ def ProcessIsomers(dp5Data, Isomers,Settings):
 
         dp5Data.ConfCshifts.append([[] for i in range(len(iso.DFTConformers))])
 
-        j = 0
+        a_ind = 0
+
+        exp_inds = []
 
         for shift, exp, label in zip(iso.Cshifts, iso.Cexp, iso.Clabels):
 
@@ -167,32 +169,14 @@ def ProcessIsomers(dp5Data, Isomers,Settings):
                 dp5Data.Cshifts[-1].append(shift)
                 dp5Data.Cexp[-1].append(exp)
                 dp5Data.Clabels[-1].append(label)
+                dp5Data.Cinds[-1].append(int(label[1:]) - 1)
+                exp_inds.append(a_ind)
 
-                for i in range( len(dp5Data.ConfCshifts[-1])):
+        if len(iso.ConformerCShifts) > 1:
 
-                    dp5Data.ConfCshifts[-1][i].append(iso.ConformerCShifts[i][j])
+            for i in range(len(iso.ConformerCShifts)):
 
-                    i+=1
-
-            elif label not in removedC:
-
-                removedC.append(label)
-
-            j+=1
-
-    for l in removedC:
-
-        for j, Clabel in enumerate(dp5Data.Clabels):
-
-            if l in Clabel:
-                i = Clabel.index(l)
-
-                dp5Data.Cshifts[j].pop(i)
-
-                dp5Data.Cexp[j].pop(i)
-
-                dp5Data.Clabels[j].pop(i)
-
+                dp5Data.ConfCshifts[-1].append( [iso.ConformerCShifts[i][e] for e in exp_inds])
 
     #write qml compound objects and atomic representations
 
