@@ -28,6 +28,7 @@ class DP5data:
         self.Cshifts = []  # Carbon shifts used in DP4 calculation
         self.Cexp = []  # Carbon experimental shifts used in DP4 calculation
         self.Clabels = []  # Carbon atom labels
+        self.Cinds = []
         self.Hshifts = []  # Proton shifts used in DP4 calculation
         self.Hexp = []  # Proton experimental shifts used in DP4 calculation
         self.Hlabels = []  # Proton atom labels
