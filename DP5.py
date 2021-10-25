@@ -119,7 +119,7 @@ def kde_probs(Isomers,dp5Data,sigma):
 
         dp5Data.ScaledAtomProbs[iso] = [[] for i in dp5Data.AtomReps[iso]]
 
-        maxproc = 4
+        maxproc = 6
 
         pool = mp.Pool(maxproc)
 
