@@ -156,6 +156,7 @@ def ProcessIsomers(dp5Data, Isomers,Settings):
         dp5Data.Cexp.append([])
         dp5Data.Cshifts.append([])
         dp5Data.Clabels.append([])
+        dp5Data.Cinds.append([])
 
         dp5Data.ConfCshifts.append([[] for i in range(len(iso.DFTConformers))])
 
