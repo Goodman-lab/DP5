@@ -323,6 +323,16 @@ def GenDiastereomers(structf, nS, atoms=[]):
     i,a = GetInchi(f)
 
     ds_inchis = GenDSInchis(inchi)
+
+    print("@@@@@@@@")
+
+
+    print(ds_inchis)
+
+    quit()
+
+
+
     ds_inchis = [FixTautProtons(f, i, aux) for i in ds_inchis]
     filenames = []
 
