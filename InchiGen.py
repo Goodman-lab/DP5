@@ -315,8 +315,6 @@ def GenDiastereomers(structf, nS, atoms=[]):
 
         shutil.copy(fullf, fullf[:-4] + "0.sdf")
 
-        print("here lolllllll")
-
         return [f[:-4] + "0"]
 
     inchi, aux = GetInchi(f)
