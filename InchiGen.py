@@ -315,7 +315,7 @@ def GenDiastereomers(structf, nS, atoms=[]):
 
         shutil.copy(fullf, fullf[:-4] + "0.sdf")
 
-        return [f[:-4] + "0.sdf"]
+        return [f[:-4] + "0"]
 
     inchi, aux = GetInchi(f)
 
@@ -323,14 +323,6 @@ def GenDiastereomers(structf, nS, atoms=[]):
     i,a = GetInchi(f)
 
     ds_inchis = GenDSInchis(inchi)
-
-    print("@@@@@@@@")
-
-
-    print(ds_inchis)
-
-    quit()
-
 
 
     ds_inchis = [FixTautProtons(f, i, aux) for i in ds_inchis]
