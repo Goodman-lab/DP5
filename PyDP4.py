@@ -478,6 +478,12 @@ def main(settings):
 
     if 'w' in settings.Workflow:
 
+        if "o" not in settings.Workflow:
+
+            print( "DFT optimised geometries required for DP5 calculation, please rerun with o option in workflow...")
+
+            quit()
+
         print('\nCalculating DP5 probabilities...')
 
         # make folder for WF data to go into

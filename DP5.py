@@ -113,6 +113,7 @@ def kde_probs(Isomers,dp5Data,sigma):
 
     dp5Data.ScaledAtomProbs = [[] for i in range(len(Isomers))]
 
+
     for iso in range(len(Isomers)):
 
         res = [[] for i in dp5Data.AtomReps[iso]]
@@ -126,6 +127,8 @@ def kde_probs(Isomers,dp5Data,sigma):
         ind1 = 0
 
         for conf_shifts , conf_reps in zip(dp5Data.ConfCshifts[iso],dp5Data.AtomReps[iso] ) :
+
+
             res[ind1] = pool.apply_async(kde_probfunction,
                                          [conf_shifts,conf_reps])
 
