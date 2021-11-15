@@ -154,6 +154,22 @@ def ProcessIsomers(dp5Data, Isomers,Settings):
 
     removedC = []
 
+    no_exp_data = 0
+
+    for iso in Isomers:
+
+        if len(iso.Cexp) == 0:
+
+            no_exp_data +=1
+
+    if no_exp_data == len(Isomers):
+
+        print("no experimental NMR data provided... quitting")
+
+        quit()
+
+
+
     for iso in Isomers:
 
         dp5Data.Cexp.append([])
@@ -167,18 +183,8 @@ def ProcessIsomers(dp5Data, Isomers,Settings):
 
         exp_inds = []
 
-        no_exp_data = 0
-
-        if len(iso.Cexp) ==0:
-
-            no_exp_data +=1
-
-        if no_exp_data == len(Isomers):
 
 
-            print("no experimental NMR data provided... quitting")
-
-            quit()
 
         for shift, exp, label in zip(iso.Cshifts, iso.Cexp, iso.Clabels):
 
