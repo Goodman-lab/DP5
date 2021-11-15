@@ -167,6 +167,19 @@ def ProcessIsomers(dp5Data, Isomers,Settings):
 
         exp_inds = []
 
+        no_exp_data = 0
+
+        if len(iso.Cexp) ==0:
+
+            no_exp_data +=1
+
+        if no_exp_data == len(Isomers):
+
+
+            print("no experimental NMR data provided... quitting")
+
+            quit()
+
         for shift, exp, label in zip(iso.Cshifts, iso.Cexp, iso.Clabels):
 
             if exp != '':
@@ -185,9 +198,6 @@ def ProcessIsomers(dp5Data, Isomers,Settings):
             for conf_shifts in iso.ConformerCShifts:
 
                 dp5Data.ConfCshifts[-1].append( [conf_shifts[e] for e in exp_inds])
-
-
-    print(dp5Data.ConfCshifts)
 
 
     #write qml compound objects and atomic representations
