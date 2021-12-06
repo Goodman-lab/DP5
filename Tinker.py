@@ -207,7 +207,7 @@ def GetEnergiesCharge(TinkerOutput, settings):
     infile = open(TinkerOutput + '.tout', 'r')
 
     inp = infile.readlines()
-    if len(inp) < 56:
+    if len(inp) < 13:
         print("Tinker output " + TinkerOutput + " is corrupted, aborting.")
         quit()
 

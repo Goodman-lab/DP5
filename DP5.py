@@ -184,8 +184,6 @@ def ProcessIsomers(dp5Data, Isomers,Settings):
         exp_inds = []
 
 
-
-
         for shift, exp, label in zip(iso.Cshifts, iso.Cexp, iso.Clabels):
 
             if exp != '':
