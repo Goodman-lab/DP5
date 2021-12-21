@@ -305,7 +305,7 @@ def RunCalcs(GausJobs, settings):
     for f in GausJobs:
         time.sleep(3)
         print(GausPrefix + " < " + f + ' > ' + f[:-3] + 'out')
-        outp = subprocess.check_output(GausPrefix + " < "  + f + ' > ' + f[:-3] + 'out', shell=True)
+        outp = subprocess.check_output(GausPrefix + " < "  + f + ' > ' + f[:-3] + 'out', shell=True,timeout= 86400)
 
         NCompleted += 1
         if IsGausCompleted(f[:-4] + '.out'):

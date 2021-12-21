@@ -52,15 +52,19 @@ def SetupTinker(settings):
             f.close()
 
         scriptdir = getScriptPath()
-        convinp = scriptdir + '/sdf2tinkerxyz -k ' + scriptdir + '/default.key <'
-        outp = subprocess.check_output(convinp + inpf + '.sdf', shell=True)
+        #convinp = scriptdir + '/sdf2tinkerxyz -k ' + scriptdir + '/default.key <'
+        #outp = subprocess.check_output(convinp + inpf + '.sdf', shell=True)
 
-        f = open(inpf + '.key', 'r+')
-        key = f.readlines()
-        key[2] = 'PARAMETERS        ' + settings.TinkerPath + 'params/mmff.prm\n'
-        f.seek(0)
-        f.writelines(key)
-        f.close()
+        import sdftinkerxyzpy
+
+        convinp = sdftinkerxyzpy.main(inpf)
+
+        #f = open(inpf + '.key', 'w+')
+        #key = f.readlines()
+        #key[2] = 'PARAMETERS        ' + settings.TinkerPath + 'params/mmff.prm\n'
+        #f.seek(0)
+        #f.writelines(key)
+        #f.close()
 
         TinkerInputs.append(inpf)
         print("Tinker input for " + inpf + " prepared.")
