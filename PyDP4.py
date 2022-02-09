@@ -384,7 +384,7 @@ def main(settings):
         print('\nNo NMR data calculated, quitting...')
         quit()
 
-    if ('s' in settings.Workflow) or ('a' in settings.Workflow):
+    if ('s' in settings.Workflow) or ('a' in settings.Workflow) or ('w' in settings.Workflow):
 
         print('\nSetting TMS computational NMR shielding constant references')
         settings.TMS_SC_C13, settings.TMS_SC_H1 = NMR.GetTMSConstants(settings)
@@ -406,6 +406,7 @@ def main(settings):
             print('Experimental NMR description found and read.')
 
             # performs a pairwise assignment
+
             Isomers = NMR.PairwiseAssignment(Isomers, NMRData)
 
             print('Cshifts: ' + str(NMRData.Cshifts))
@@ -505,6 +506,7 @@ def main(settings):
         else:
 
             DP5data = DP5.UnPickle_res(DP5data, settings)
+
 
         DP5data = DP5.MakeOutput(DP5data, Isomers, settings)
 

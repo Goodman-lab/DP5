@@ -127,7 +127,6 @@ class NMRData:
         self.Equivalents = equivalents
         self.Omits = omits
 
-
     def ParseExp(self, exp):
 
         if len(exp)>0:
@@ -549,7 +548,7 @@ def PairwiseAssignment(Isomers,NMRData):
 
         sortedCCalc = sorted(iso.Cshifts, reverse=True)
 
-        sortedClabels =[ '' for i in iso.Clabels]
+        sortedClabels =[  '' for i in iso.Clabels]
 
         for ind_1 ,  shift in enumerate(iso.Cshifts):
 
@@ -582,25 +581,32 @@ def PairwiseAssignment(Isomers,NMRData):
 
         # Carbon
 
-        for exp, shift ,label in zip(sortedCExp, sortedCCalc , sortedClabels):
+
+        exp_ind = 0
+
+        for shift ,label in zip( sortedCCalc , sortedClabels):
 
             if label not in NMRData.Omits:
 
                 ind = tempCCalcs.index(shift)
 
-                assignedCExp[ind] = exp
+                assignedCExp[ind] = sortedCExp[exp_ind]
 
                 tempCCalcs[ind] = ''
 
+                exp_ind += 1
+
         # Proton
 
-        for exp, shift,label in zip(sortedHExp, sortedHCalc,sortedHlabels):
+        exp_ind = 0
+
+        for shift,label in zip( sortedHCalc,sortedHlabels):
 
             if label not in NMRData.Omits:
 
                 ind = tempHCalcs.index(shift)
 
-                assignedHExp[ind] = exp
+                assignedHExp[ind] = sortedHExp[exp_ind]
 
                 tempHCalcs[ind] = ''
 
