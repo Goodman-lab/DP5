@@ -2,12 +2,17 @@
 name = "dp5"
 version = "0.1.0"
 description = "DP5 calculates the standalone probability of structures being correct"
-authors = ["Jonathan Goodman <jmg11@cam.ac.uk>"]
+authors = [
+    "Jonathan Goodman <jmg11@cam.ac.uk>",
+    "Alexander Howarth",
+    "Kristaps Ermanis",
+    "Edmund Goodman <egoodman3141@gmail.com>"
+]
 license = "MIT"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "<3.13,>=3.9"
+python = "<3.13,>=3.9"  # Required over ^3.9 by scipy
 numpy = "^1.25.1"
 scipy = "^1.11.1"
 cython = "^3.0.0"
@@ -15,18 +20,20 @@ matplotlib = "^3.7.2"
 nmrglue = "^0.9"
 statsmodels = "^0.14.0"
 lmfit = "^1.2.2"
-#openbabel = "^3.1.1.1"
 rdkit = "^2023.3.2"
 pathos = "^0.3.1"
-#qml = "^0.4.0.27"
+qml = {path = "wheels/qml-0.4.0.27-cp311-cp311-linux_x86_64.whl"}  #qml = "^0.4.0.27"
+#openbabel-wheel = {path = "wheels/openbabel_wheel-3.1.1.16-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl"}
+#openbabel = "^3.1.1.1"
+openbabel-wheel = "^3.1.1.16"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.7.0"
 isort = "^5.12.0"
-pre-commit = "^3.3.3"
-pre-commit-hooks = "^4.4.0"
-mkdocs-material = "^9.1.19"
+#pre-commit = "^3.3.3"
+#pre-commit-hooks = "^4.4.0"
+#mkdocs-material = "^9.1.19"
 
 [build-system]
-requires = ["poetry-core"]
+requires = ["setuptools==68.0.0", "poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
