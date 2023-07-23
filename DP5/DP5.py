@@ -50,19 +50,19 @@ class DP5data:
 
         self.output = str()  # final DP4 output
 
-        self.folded_scaled_errors = pickle.load(open(ScriptPath / "folded_scaled_errors.p", "rb"))
+        self.folded_scaled_errors = pickle.load(open(ScriptPath / "../data/folded_scaled_errors.p", "rb"))
 
         #self.folded_unscaled_errors = pickle.load(open(ScriptPath / "folded_unscaled_errors.p", "rb"))
 
         if self.Atom_number < 86:
 
-            with gzip.open(ScriptPath / "atomic_reps.gz", "rb") as f:
+            with gzip.open(ScriptPath / "../data/atomic_reps.gz", "rb") as f:
 
                 self.atomic_reps = pickle.load(f)
 
         else:
 
-            with gzip.open(ScriptPath / "frag_reps.gz", "rb") as f:
+            with gzip.open(ScriptPath / "../data/frag_reps.gz", "rb") as f:
 
                 self.atomic_reps = pickle.load(f)
 
@@ -368,7 +368,7 @@ def Rescale_DP5(dp5Data,Settings):
 
     incorrect_kde = pickle.load(open(Path(Settings.ScriptDir) / "i_w_kde_mean_s_0.025.p" ,"rb"))
 
-    correct_kde = pickle.load(open(Path(Settings.ScriptDir) / "c_w_kde_mean_s_0.025.p" ,"rb"))
+    correct_kde = pickle.load(open(Path(Settings.ScriptDir) / "../data/c_w_kde_mean_s_0.025.p" ,"rb"))
 
     i = 0
 

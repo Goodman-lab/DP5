@@ -332,7 +332,7 @@ def CalcBoltzmannWeightedShieldings(Isomers):
 
 
 def GetTMSConstants(settings):
-    TMSfile = open(settings.ScriptDir + '/TMSdata', 'r')
+    TMSfile = open(settings.ScriptDir + '../data/TMSdata', 'r')
     TMSdata = TMSfile.readlines()
     TMSfile.close()
 
