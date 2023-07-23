@@ -9,7 +9,6 @@ execution and output interpretation. Called by PyDP4.py.
 """
 
 import os
-import shutil
 import sys
 import subprocess
 import shutil
@@ -34,7 +33,7 @@ def SetupMacroModel(settings):
 
         if settings.Rot5Cycle is True:
             if not os.path.exists(f + 'rot.sdf'):
-                import FiveConf
+                from DP5.lib import FiveConf
                 # Generate the flipped fivemembered ring,
                 # result is in '*rot.sdf' file
                 FiveConf.main(f + '.sdf', settings)

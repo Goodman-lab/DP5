@@ -1,7 +1,6 @@
 from rdkit import Chem
 from rdkit.Chem import AllChem
-import os
-from InchiGen import *
+from DP5.lib.InchiGen import *
 
 def GenerateMolFromSDF(InputFile):
 

@@ -17,14 +17,11 @@ NMR raw data interpretation top level organization
 import re
 import os
 import math
-import copy
 import pickle
 
 from Proton_processing import process_proton
-from Carbon_processing import process_carbon
-import shutil
+from DP5.lib.Carbon_processing import process_carbon
 from pathlib import Path
-import shutil
 
 gasConstant = 8.3145
 temperature = 298.15

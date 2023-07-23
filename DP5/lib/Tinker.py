@@ -13,7 +13,7 @@ import shlex
 import shutil
 import sys
 import subprocess
-import PyDP4
+
 
 # Please modify the line below to give the path to the TINKER v8.x top level folder
 # This folder should contain bin/scan and params/mmff.prm for the process to work
@@ -27,7 +27,7 @@ def SetupTinker(settings):
 
         if settings.Rot5Cycle is True:
             if not os.path.exists(inpf+'rot.sdf'):
-                import FiveConf
+                from DP5.lib import FiveConf
                 #Generate the flipped fivemembered ring,
                 #result is put in '*rot.sdf' file
                 FiveConf.main(inpf + '.sdf', settings)
@@ -79,7 +79,7 @@ def SetupTinker(settings):
 def RunTinker(TinkerInputs, settings):
     #Run Tinker scan for all diastereomeric inputs
     TinkerOutputs = []
-    TinkerPrefix = os.path.join(settings.TinkerPath, 'bin', 'scan')
+    TinkerPrefix = os.path.join(settings.TinkerPath, '../../bin', 'scan')
     if shutil.which(TinkerPrefix) is None:
         print('Tinker.py, RunTinker:\n  Could not find Tinker scan executable at ' + TinkerPrefix)
         quit()

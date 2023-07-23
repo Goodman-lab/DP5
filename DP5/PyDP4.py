@@ -35,11 +35,7 @@ The main file, that should be called to start the PyDP4 workflow.
 Interprets the arguments and takes care of the general workflow logic.
 """
 
-import NMR
-import Tinker
-import MacroModel
-import DP5 as DP5
-import DP4 as DP4
+from DP5.lib import DP4 as DP4, ConfPrune, InchiGen, StructureInput, Tinker, NMR, MacroModel
 import sys
 import os
 import datetime
@@ -54,12 +50,11 @@ if os.name == 'nt':
     import pyximport
 
     pyximport.install()
-    import ConfPrune
 else:
     import pyximport
 
     pyximport.install()
-    import ConfPrune
+    import DP5.lib.ConfPrune
 
 # Assigning the config default values
 # Settings are defined roughly in the order they are used in the script
@@ -197,8 +192,6 @@ def main(settings):
 
     # Read in any text inputs and add these to the input file list
 
-    import StructureInput
-
     if settings.Smiles:
         settings.InputFiles.extend(StructureInput.GenerateSDFFromTxt(settings.Smiles, 'Smiles'))
 
@@ -211,7 +204,7 @@ def main(settings):
     # Clean up input files if c in workflow - this generates a new set of 3d coordinates as a starting point
 
     if 'c' in settings.Workflow and len(settings.InputFiles) > 0:
-        import StructureInput
+        import DP5.lib.StructureInput
 
         # if requested generate 3d coordinates to define any stereochemistry
 
@@ -228,7 +221,6 @@ def main(settings):
 
     if ('g' in settings.Workflow):
 
-        import InchiGen
         print("\nGenerating diastereomers...")
 
         FinalInputFiles = []
@@ -421,8 +413,8 @@ def main(settings):
 
                 if f.name == "Proton" or f.name == "proton":
 
-                    from Proton_assignment import AssignProton
-                    from Proton_plotting import PlotProton
+                    from DP5.lib.Proton_assignment import AssignProton
+                    from DP5.lib.Proton_plotting import PlotProton
 
                     print('\nAssigning proton spectrum...')
                     Isomers = AssignProton(NMRData, Isomers, settings)
@@ -433,8 +425,8 @@ def main(settings):
 
                 elif f.name == "Carbon" or f.name == "carbon":
 
-                    from Carbon_assignment import AssignCarbon
-                    from Carbon_plotting import PlotCarbon
+                    from DP5.lib.Carbon_assignment import AssignCarbon
+                    from DP5.lib.Carbon_plotting import PlotCarbon
 
                     print('\nAssigning carbon spectrum...')
                     Isomers = AssignCarbon(NMRData, Isomers, settings)
@@ -449,8 +441,8 @@ def main(settings):
 
                 if f.name == "Proton.dx" or f.name == "proton.dx":
 
-                    from Proton_assignment import AssignProton
-                    from Proton_plotting import PlotProton
+                    from DP5.lib.Proton_assignment import AssignProton
+                    from DP5.lib.Proton_plotting import PlotProton
 
                     print('\nAssigning proton spectrum...')
                     Isomers = AssignProton(NMRData, Isomers, settings)
@@ -461,8 +453,8 @@ def main(settings):
 
                 elif f.name == "Carbon.dx" or f.name == "carbon.dx":
 
-                    from Carbon_assignment import AssignCarbon
-                    from Carbon_plotting import PlotCarbon
+                    from DP5.lib.Carbon_assignment import AssignCarbon
+                    from DP5.lib.Carbon_plotting import PlotCarbon
 
                     print('\nAssigning carbon spectrum...')
                     Isomers = AssignCarbon(NMRData, Isomers, settings)
