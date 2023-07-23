@@ -26,6 +26,8 @@ qml = {path = "wheels/qml-0.4.0.27-cp311-cp311-linux_x86_64.whl"}  #qml = "^0.4.
 #openbabel-wheel = {path = "wheels/openbabel_wheel-3.1.1.16-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl"}
 #openbabel = "^3.1.1.1"
 openbabel-wheel = "^3.1.1.16"
+pyqt5-stubs = "^5.15.6.0"
+pyqt5 = "^5.15.9"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.7.0"
