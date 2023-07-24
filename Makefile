@@ -6,14 +6,16 @@ SHELL := bash
 
 
 ### Installation ###
-wheels:
-	@echo "Downloading wheels"
-	@pip wheel --use-pep517 "qml (==0.4.0.27)" &&\
-		mkdir -p lib/ &&\
-		mv ./qml-0.4.0.27-*.whl wheels/
+poetry.lock:
+	@poetry lock
+
+requirements.txt: poetry.lock
+	@poetry export \
+		--without-hashes --format=requirements.txt \
+		> requirements.txt
 
 .PHONY: install
-install: wheels
+install: requirements.txt
 	@echo "Initialising project:"
-	@pip install poetry
-	@poetry install
+	@python3 -m venv .venv
+	@.venv/bin/pip install -r requirements.txt

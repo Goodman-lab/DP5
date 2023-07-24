@@ -897,32 +897,32 @@ files = [
 
 [[package]]
 name = "pyqt5-sip"
-version = "12.12.1"
+version = "12.12.2"
 description = "The sip module support for PyQt5"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "PyQt5_sip-12.12.1-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:7ed598ff1b666f9e5e0214be7840f308f8fb347fe416a2a45fbedab046a7120b"},
-    {file = "PyQt5_sip-12.12.1-cp310-cp310-manylinux_2_5_x86_64.manylinux1_x86_64.whl", hash = "sha256:644310dcfed4373075bc576717eea60b0f49899beb5cffb204ddaf5f27cddb85"},
-    {file = "PyQt5_sip-12.12.1-cp310-cp310-win32.whl", hash = "sha256:51720277a53d99bac0914fb970970c9c2ec1a6ab3b7cc5580909d37d9cc6b152"},
-    {file = "PyQt5_sip-12.12.1-cp310-cp310-win_amd64.whl", hash = "sha256:2a344855b9c57d37cf000afa46967961122fb1867faee4f53054ebaa1ce51e24"},
-    {file = "PyQt5_sip-12.12.1-cp311-cp311-macosx_10_9_universal2.whl", hash = "sha256:59229c8d30141220a472ba4e4212846e8bf0bed84c32cbeb57f70fe727c6dfc2"},
-    {file = "PyQt5_sip-12.12.1-cp311-cp311-manylinux_2_5_x86_64.manylinux1_x86_64.whl", hash = "sha256:5a9cbcfe8c15d3a34ef33570f0b0130b8ba68b98fd6ec92c28202b186f3ab870"},
-    {file = "PyQt5_sip-12.12.1-cp311-cp311-win32.whl", hash = "sha256:7afc6ec06e79a3e0a7b447e28ef46dad372bdca32e7eff0dcbac6bc53b69a070"},
-    {file = "PyQt5_sip-12.12.1-cp311-cp311-win_amd64.whl", hash = "sha256:b5b7a6c76fe3eb6b245ac6599c807b18e9a718167878a0b547db1d071a914c08"},
-    {file = "PyQt5_sip-12.12.1-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:3dad0b2bbe0bae4916e43610186d425cd186469b2e6c7ff853177c113b6af6ed"},
-    {file = "PyQt5_sip-12.12.1-cp37-cp37m-manylinux_2_5_x86_64.manylinux1_x86_64.whl", hash = "sha256:d1378815b15198ce6dddd367fbd81f5c018ce473a89ae938b7a58e1d97f25b10"},
-    {file = "PyQt5_sip-12.12.1-cp37-cp37m-win32.whl", hash = "sha256:2e3d444f5cb81261c22e7c9d3a9a4484bb9db7a1a3077559100175d36297d1da"},
-    {file = "PyQt5_sip-12.12.1-cp37-cp37m-win_amd64.whl", hash = "sha256:eee684532876775e1d0fa20d4aae1b568aaa6c732d74e6657ee832e427d46947"},
-    {file = "PyQt5_sip-12.12.1-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:1364f460ae07fc2f4c42dd7a3b3738611b29f5c033025e5e70b03e2687d4bda4"},
-    {file = "PyQt5_sip-12.12.1-cp38-cp38-manylinux_2_5_x86_64.manylinux1_x86_64.whl", hash = "sha256:6cb6139b00e347e7d961467d092e67c47a97893bc6ab83104bcaf50bf4815036"},
-    {file = "PyQt5_sip-12.12.1-cp38-cp38-win32.whl", hash = "sha256:9e21e11eb6fb468affe0d72ff922788c2adc124480bb274941fce93ddb122b8f"},
-    {file = "PyQt5_sip-12.12.1-cp38-cp38-win_amd64.whl", hash = "sha256:f5ac060219c127a5b9009a4cfe33086e36c6bb8e26c0b757b31a6c04d29d630d"},
-    {file = "PyQt5_sip-12.12.1-cp39-cp39-macosx_10_9_universal2.whl", hash = "sha256:a65f5869f3f35330c920c1b218319140c0b84f8c49a20727b5e3df2acd496833"},
-    {file = "PyQt5_sip-12.12.1-cp39-cp39-manylinux_2_5_x86_64.manylinux1_x86_64.whl", hash = "sha256:e0241b62f5ca9aaff1037f12e6f5ed68168e7200e14e73f05b632381cee0ff4b"},
-    {file = "PyQt5_sip-12.12.1-cp39-cp39-win32.whl", hash = "sha256:0e30f6c9b99161d8a524d8b7aa5a001be5fe002797151c27414066b838beaa4e"},
-    {file = "PyQt5_sip-12.12.1-cp39-cp39-win_amd64.whl", hash = "sha256:8a2e48a331024a225128f94f5d0fb8089e924419693b2e03eda4d5dbc4313b52"},
-    {file = "PyQt5_sip-12.12.1.tar.gz", hash = "sha256:8fdc6e0148abd12d977a1d3828e7b79aae958e83c6cb5adae614916d888a6b10"},
+    {file = "PyQt5_sip-12.12.2-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:1cc49c8498c34649325d53bcd243c854391f828d9bab4f2f3afd3ee3451cab72"},
+    {file = "PyQt5_sip-12.12.2-cp310-cp310-manylinux_2_5_x86_64.manylinux1_x86_64.whl", hash = "sha256:c8f6e7a697d0ddf754798988fae7b2a0da04f6a59fb13ae863e5d1da4b280c4f"},
+    {file = "PyQt5_sip-12.12.2-cp310-cp310-win32.whl", hash = "sha256:7e572c8104e75db2c69609d195daf44c7b965dcb1c5b48e30fc376868909be56"},
+    {file = "PyQt5_sip-12.12.2-cp310-cp310-win_amd64.whl", hash = "sha256:6a65697aa0fdb66e20d7b1ef8adfacc1caf1e61655530920172bf3a2fb1148cd"},
+    {file = "PyQt5_sip-12.12.2-cp311-cp311-macosx_10_9_universal2.whl", hash = "sha256:761e018dbbc46daccdb01f8f0dcc0d055c76834d839f0343cbec4b0ecbbde512"},
+    {file = "PyQt5_sip-12.12.2-cp311-cp311-manylinux_2_5_x86_64.manylinux1_x86_64.whl", hash = "sha256:9d2b127ba5155bff452944b8a96ba06d7ec2161f48a2f9cc190425bfca94ab6b"},
+    {file = "PyQt5_sip-12.12.2-cp311-cp311-win32.whl", hash = "sha256:26e75bc4ffd8e6b19ae96fe93dc135eb5aea03e4570724d4b3c40dbf36f3a2e6"},
+    {file = "PyQt5_sip-12.12.2-cp311-cp311-win_amd64.whl", hash = "sha256:d9548f353f17407d00f67d08c737de9f5c067352c3bdac8571492c614c2893eb"},
+    {file = "PyQt5_sip-12.12.2-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:7e640b7636d86271ba8969b260e1655068b44750f20801ebc80f49a1aa737bf9"},
+    {file = "PyQt5_sip-12.12.2-cp37-cp37m-manylinux_2_5_x86_64.manylinux1_x86_64.whl", hash = "sha256:e46d957fbeecaa1437f2dd715407b1e59e0918cc29382c7ea79784c5f3cbe0d2"},
+    {file = "PyQt5_sip-12.12.2-cp37-cp37m-win32.whl", hash = "sha256:cb4523097f1ccabb95b3197a58278a40fc944b33791d3406bfa397e12303b6c6"},
+    {file = "PyQt5_sip-12.12.2-cp37-cp37m-win_amd64.whl", hash = "sha256:ed04bd0065d870912c1b0a4b34b8a78698c76d77f15474c3e841b0b6dd2f429f"},
+    {file = "PyQt5_sip-12.12.2-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:71795c177010e52109812b03ec919020461ec42a7d9d241a45fe6d708529b5a6"},
+    {file = "PyQt5_sip-12.12.2-cp38-cp38-manylinux_2_5_x86_64.manylinux1_x86_64.whl", hash = "sha256:de06b6bd8241a189f729b8c093ce5dcf5928489eb7748bda28e28324e57544b0"},
+    {file = "PyQt5_sip-12.12.2-cp38-cp38-win32.whl", hash = "sha256:7050ad8f94370eb7e4caa022b7e6d8b2de615e0714b557ca2098c82c0132074a"},
+    {file = "PyQt5_sip-12.12.2-cp38-cp38-win_amd64.whl", hash = "sha256:67eed70427d3291e5c52c349fb4619c57c9a8810ab8d78a142c00edcbfd20d3b"},
+    {file = "PyQt5_sip-12.12.2-cp39-cp39-macosx_10_9_universal2.whl", hash = "sha256:cf74db9a1542f66793ccc00e403c8c2c36c67c0cff0fb01d23fe71cc1c56c788"},
+    {file = "PyQt5_sip-12.12.2-cp39-cp39-manylinux_2_5_x86_64.manylinux1_x86_64.whl", hash = "sha256:23e983119f760dc6c1a1e6cb21fd4c268d14c4ee497de6da9ce2b9d46f9779b2"},
+    {file = "PyQt5_sip-12.12.2-cp39-cp39-win32.whl", hash = "sha256:a88ce85176639723f04cf5ce59157ecf3a9faca5d5dd1fe82d5ef46a3bd1d102"},
+    {file = "PyQt5_sip-12.12.2-cp39-cp39-win_amd64.whl", hash = "sha256:7f13e71f5171f30d8b4176c081f0203a43e1704746b4cdaa837477945177b2a0"},
+    {file = "PyQt5_sip-12.12.2.tar.gz", hash = "sha256:10d9bfa9f59f0fd1cad81be187479316ffc95684f573efea94512cb4257d2b17"},
 ]
 
 [[package]]
@@ -971,12 +971,8 @@ description = "Quantum Machine Learning"
 optional = false
 python-versions = "*"
 files = [
-    {file = "qml-0.4.0.27-cp311-cp311-linux_x86_64.whl", hash = "sha256:90bf9e2d8def037dd1d3ee0cd1d9d46835be99a13e39b76798e3ed0608f58160"},
+    {file = "qml-0.4.0.27.tar.gz", hash = "sha256:87ed611c214cf84bded1513243a03a00964578ad611306bbd42c673f88f5bb02"},
 ]
-
-[package.source]
-type = "file"
-url = "wheels/qml-0.4.0.27-cp311-cp311-linux_x86_64.whl"
 
 [[package]]
 name = "rdkit"
@@ -1178,4 +1174,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "<3.13,>=3.9"
-content-hash = "81a18e90cf395de476cbf28aa94956d8d4f2b5dd668aea126c022679ba9d8cfa"
+content-hash = "5925fdf7ec1e1c20585bff5fe7632c95d97a13eb7c7980d15be45790c6c0727d"
