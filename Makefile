@@ -6,16 +6,16 @@ SHELL := bash
 
 
 ### Installation ###
-poetry.lock:
+.PHONY: requirements.txt
+requirements.txt:
+	@echo "Exporting requirements.txt file"
 	@poetry lock
-
-requirements.txt: poetry.lock
 	@poetry export \
 		--without-hashes --format=requirements.txt \
 		> requirements.txt
 
 .PHONY: install
-install: requirements.txt
+install:
 	@echo "Initialising project:"
 	@python3 -m venv .venv
 	@.venv/bin/pip install -r requirements.txt
