@@ -17,5 +17,5 @@ requirements.txt:
 .PHONY: install
 install:
 	@echo "Initialising project:"
-	@python3 -m venv .venv
-	@.venv/bin/pip install -r requirements.txt
+	@poetry install --without=qml
+	@.venv/bin/pip install qml

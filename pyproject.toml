@@ -22,10 +22,12 @@ statsmodels = "^0.14.0"
 lmfit = "^1.2.2"
 rdkit = "^2023.3.2"
 pathos = "^0.3.1"
-qml = "^0.4.0.27"
 openbabel-wheel = "^3.1.1.16"
 pyqt5-stubs = "^5.15.6.0"
 pyqt5 = "^5.15.9"
+
+[tool.poetry.group.qml.dependencies]
+qml = "^0.4.0.27"
 
 #[tool.poetry.group.dev.dependencies]
 #black = "^23.7.0"
