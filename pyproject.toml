@@ -6,13 +6,16 @@ authors = [
     "Jonathan Goodman <jmg11@cam.ac.uk>",
     "Alexander Howarth",
     "Kristaps Ermanis",
-    "Edmund Goodman <egoodman3141@gmail.com>"
 ]
 license = "MIT"
 readme = "README.md"
 
+[build-system]
+requires = ["setuptools==68.0.0", "poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
 [tool.poetry.dependencies]
-python = "<3.13,>=3.9"  # Required over ^3.9 by scipy
+python = "<3.13,>=3.9"  # Largest range acceptable by SciPy
 numpy = "^1.25.1"
 scipy = "^1.11.1"
 cython = "^3.0.0"
@@ -23,19 +26,23 @@ lmfit = "^1.2.2"
 rdkit = "^2023.3.2"
 pathos = "^0.3.1"
 openbabel-wheel = "^3.1.1.16"
+
+[tool.poetry.group.qml.dependencies]
+# QML is packaged deeply unhelpfully, so separate it to allow
+# a hack-y workaround when installing
+qml = "^0.4.0.27"
+
+[tool.poetry.group.pyqt.dependencies]
+# Qt only needs to be installed if using the GUI
 pyqt5-stubs = "^5.15.6.0"
 pyqt5 = "^5.15.9"
 
-[tool.poetry.group.qml.dependencies]
-qml = "^0.4.0.27"
+[tool.poetry.group.dev.dependencies]
+black = "^23.7.0"
+isort = "^5.12.0"
+pre-commit = "^3.3.3"
+pre-commit-hooks = "^4.4.0"
 
-#[tool.poetry.group.dev.dependencies]
-#black = "^23.7.0"
-#isort = "^5.12.0"
-#pre-commit = "^3.3.3"
-#pre-commit-hooks = "^4.4.0"
-#mkdocs-material = "^9.1.19"
+[tool.poetry.group.docs.dependencies]
+mkdocs-material = "^9.1.19"
 
-[build-system]
-requires = ["setuptools==68.0.0", "poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
