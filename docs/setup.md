@@ -16,8 +16,8 @@ used by the tool. It should be renamed to `settings.cfg`, then its contents
 changed as required. This can be done with the following command:
 
 ```bash
-mv DP5/settings.example DP5/settings.cfg
-$EDITOR DP5/settings.cfg
+mv src/dp5/settings.example src/dp5/settings.cfg
+$EDITOR src/dp5/settings.cfg
 ```
 
 ## Setting up clustered compute

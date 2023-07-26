@@ -1,5 +1,11 @@
 # Installation
 
+!!! note
+
+    This is a more in-depth explanation of the process run automatically by the [quickstart guide](quickstart.md).
+
+    If you have already followed that, you don't need to run these again!
+
 !!! warning
 
     **This tool should be run on a Linux or MacOS system, using a Python version

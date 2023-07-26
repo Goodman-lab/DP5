@@ -52,7 +52,7 @@ def SetupTinker(settings):
             f.close()
 
         scriptdir = getScriptPath()
-        #convinp = scriptdir + '../scripts/sdf2tinkerxyz -k ' + scriptdir + '/../data/default.key <'
+        #convinp = scriptdir + '../scripts/sdf2tinkerxyz -k ' + scriptdir + '/../../data/default.key <'
         #outp = subprocess.check_output(convinp + inpf + '.sdf', shell=True)
 
         import sdftinkerxyzpy

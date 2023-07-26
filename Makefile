@@ -11,7 +11,7 @@ install: poetry
 	@echo "Initialising project:"
 	@poetry install --without=qml
 	@.venv/bin/pip install qml  # Install QML separately to avoid build dependency issues
-	@poetry run pre-commit install
+#	@poetry run pre-commit install
 
 .PHONY: requirements.txt
 requirements.txt: poetry

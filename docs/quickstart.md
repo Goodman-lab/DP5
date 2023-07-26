@@ -31,8 +31,7 @@ poetry shell
 
 # Run the tool to see its manual. More instructions can then be found on the
 # usage page on this website
-cd DP5/
-python PyDP4.py --help
+python src/dp5/PyDP4.py --help
 ```
 
 More detailed instructions for installing, setting up, and running the tool can be

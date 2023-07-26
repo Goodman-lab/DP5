@@ -54,12 +54,12 @@ if os.name == 'nt':
     import pyximport
 
     pyximport.install()
-    import ConfPrune
+    import dp5.ConfPrune as ConfPrune
 else:
     import pyximport
 
     pyximport.install()
-    import ConfPrune
+    import dp5.ConfPrune as ConfPrune
 
 # Assigning the config default values
 # Settings are defined roughly in the order they are used in the script

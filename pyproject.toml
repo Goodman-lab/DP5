@@ -14,6 +14,10 @@ readme = "README.md"
 requires = ["setuptools==68.0.0", "poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
+#[tool.poetry.scripts]
+#pydp4 = "dp5.PyDP4:run"
+#pydp4_gui = "dp5.PyDP4_GUI:run"
+
 [tool.poetry.dependencies]
 python = "<3.13,>=3.9"  # Largest range acceptable by SciPy
 numpy = "^1.25.1"

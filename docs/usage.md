@@ -19,7 +19,7 @@ To call the script from the Graphical User Interface the folder containing the i
 and the correct python environment activated. The GUI is then simply called by:
 
 ```bash
-python PyDP4_GUI.py
+python src/dp5/PyDP4_GUI.py
 ```
 
 This will open the main DP5 GUI window, the user can then select the required input files and the settings for MM and
@@ -36,7 +36,7 @@ To call the script from terminal:
 ### With all diastereomer generation
 
 ```bash
-PyDP4.py Candidate CandidateNMR
+python3 src/dp5/PyDP4.py Candidate CandidateNMR
 ```
 
 where Candidate is the sdf file containing 3D coordinates of the candidate
@@ -50,7 +50,7 @@ folders labelled Proton and (or) Carbon.
 Alternatively:
 
 ```bash
-PyDP4.py -w gmns Candidate CandidateNMR
+python3 src/dp5/PyDP4.py -w gmns Candidate CandidateNMR
 ```
 
 The -w switch specifies the PyDP4 workflow, c specifies structure cleaning utilising RDkit, g specifies diastereomer
@@ -64,7 +64,7 @@ listed in the TMSdata file. Other Gaussian/Jaguar/NWChem supported solvents can 
 data.
 
 ```bash
-PyDP4.py -s chloroform Candidate CandidateNMR
+python3 src/dp5/PyDP4.py -s chloroform Candidate CandidateNMR
 ```
 
 If solvent is not given, no solvent is used.
@@ -72,7 +72,7 @@ If solvent is not given, no solvent is used.
 ### With explicit diastereomer/other candidate structures
 
 ```bash
-PyDP4.py Candidate1 Candidate2 Candidate3 ... CandidateNMR
+python3 src/dp5/PyDP4.py Candidate1 Candidate2 Candidate3 ... CandidateNMR
 ```
 
 The script does not attempt to generate diastereomers, simply carries out the
@@ -81,7 +81,7 @@ DP4 on the specified candidate structures.
 Structures can also be added from InChI, Smiles and Smarts strings using the designated switches. For example:
 
 ```bash
-PyDP4.py --InChI Candidates_inchis.inchi ... CandidateNMR
+python3 src/dp5/PyDP4.py --InChI Candidates_inchis.inchi ... CandidateNMR
 ```
 where Candidates_inchs.inchi is a text file with all the desired InChI strings on separate lines.
 
@@ -93,5 +93,5 @@ switching the molecular mechanics and dft software etc. can be found on
 the tool's manual/help page with the following command:
 
 ```bash
-python3 DP5/PyDP4.py --help
+python3 src/dp5/PyDP4.py --help
 ```
