@@ -1,5 +1,14 @@
 # DP5
 
+!!! note NOTE
+
+    Re-write this to have better headings. Something like:
+
+    - Brief summary of the tool (1 paragraph)
+    - Why does it exist/what does it solve
+    - Killer features, e.g. GUI/things nothing else does
+    - References to papers etc
+    - Authors
 
 [DP5](https://doi.org/10.1039/D1SC04406K) integrates NMR-AI, software for automatic processing, assignment
 and visualisation of raw NMR data. This functionality affords fully automated DP4 analysis of databases of molecules
