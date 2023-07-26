@@ -1,0 +1,45 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.0.1
+    hooks:
+    ### Default checks (https://github.com/pre-commit/pre-commit-hooks/blob/main/.pre-commit-hooks.yaml)
+    # Git checks
+    - id: check-added-large-files
+    - id: check-merge-conflict
+    # General file checks
+    - id: destroyed-symlinks
+    - id: check-vcs-permalinks
+    - id: detect-private-key
+    - id: end-of-file-fixer
+      exclude: .idea/.*
+    - id: fix-byte-order-marker
+    - id: mixed-line-ending
+    - id: trailing-whitespace
+    # Data format checks
+    - id: check-toml
+    # Python specific checks
+    - id: check-ast
+    - id: check-builtin-literals
+    - id: check-case-conflict
+    - id: check-docstring-first
+    - id: check-executables-have-shebangs
+    - id: check-shebang-scripts-are-executable
+    - id: debug-statements
+    - id: fix-encoding-pragma
+
+  ### Python specific tools
+  - repo: local
+    hooks:
+    - id: black
+      name: black
+      description: formats python code.
+      entry: poetry run black
+      language: system
+      types_or: [ python ]
+
+    - id: isort
+      name: isort
+      description: sorts python imports.
+      entry: poetry run isort
+      language: system
+      types_or: [ python ]

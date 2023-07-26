@@ -2,11 +2,11 @@
 
 ## What is DP5?
 
-DP5 as described in our [latest paper](https://doi.org/10.33774/chemrxiv-2021-2blsb-v4) calculates the standalone
+DP5 as described in our [latest paper](https://doi.org/10.1039/D1SC04406K) calculates the standalone
 probability of structures being correct. If a user cannot guarantee the correct structure is in the list of proposals,
 DP5 calculates the probability each is correct, quantifying this uncertainty.
 
-[DP5](https://doi.org/10.26434/chemrxiv.11763255.v1) integrates NMR-AI, software for automatic processing, assignment
+[DP5](https://doi.org/10.1039/D1SC04406K) integrates NMR-AI, software for automatic processing, assignment
 and visualisation of raw NMR data. This functionality affords fully automated DP4 analysis of databases of molecules
 with no user input. DP5 also utilises a fully revised version of PyDP4 updated for Python 3 and with major workflow
 improvements.
@@ -17,7 +17,7 @@ DP5 can also be utilised to perform assignments of NMR spectra for a single isom
 can be viewed in the graphical output from DP5 or investigated interactively using The included GUI application.
 
 More details about the software can be found in the publication
-[DP5 Straight from Spectrometer to Structure](https://doi.org/10.26434/chemrxiv.11763255.v1) and in the accompanying
+[DP5 Straight from Spectrometer to Structure](https://doi.org/10.1039/D1SC04406K) and in the accompanying
 supporting information.
 
 ## Documentation
