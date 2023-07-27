@@ -7,10 +7,12 @@ SHELL := bash
 
 ### Installation ###
 .PHONY: install
-install: # poetry
+install: poetry
 	@echo "Initialising project:"
 	@poetry install --without=qml
 	@.venv/bin/pip install qml  # Install QML separately to avoid build dependency issues
+
+# Later can activate pre-commit on install
 #	@poetry run pre-commit install
 
 .PHONY: requirements.txt
@@ -21,7 +23,7 @@ requirements.txt: poetry
 		--without-hashes --format=requirements.txt \
 		> requirements.txt
 
-.PHONY: # poetry
+.PHONY: poetry
 poetry:
 	@echo "Ensuring poetry is installed"
 	@poetry --version || pip install poetry
@@ -39,11 +41,6 @@ check: .venv/
 docs: .venv/
 	@echo "Generating documentation:"
 	@poetry run mkdocs build --strict
-
-.PHONY: view_docs
-view_docs: site/index.html
-	@echo "Opening documentation:"
-	@open site/index.html || xdg-open site/index.html
 
 
 ### Cleanup ###

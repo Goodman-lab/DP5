@@ -6,7 +6,7 @@ The tool can be run in two modes:
 - From the command line, using the `PyDP4.py` script
 
 
-### Ways to play!
+## Running the tool
 
 !!! warning
 
@@ -15,18 +15,17 @@ The tool can be run in two modes:
 
     **The virtual environment must be activated to run the tool, and needs to be re-activated for each new session!**
 
+The tool can be run in a number of different ways:
 
-
-Can be run via lots of different commands
-
-
-
+- Via the binary endpoints (`pydp4` and `pydp4_gui`) provided when the virtual environment is activated
+- By running the scripts directly with the virtual environment activated (`python3 src/dp5/PyDP4.py` and
+  `python3 src/dp5/PyDP4_GUI.py`)
+- Via the helper bash scripts (`bin/pydp4` and `bin/pydp4_gui`), which automatically use the virtual environment
 
 
 ## GUI
 
-To call the script from the Graphical User Interface the folder containing the input files must be opened in terminal
-and the correct python environment activated. The GUI is then simply called by:
+To call the script from the Graphical User Interface from the terminal:
 
 ```bash
 pydp4_gui
@@ -42,6 +41,20 @@ errors and probabilities and conformer energies and populations.
 ## Terminal
 
 To call the script from terminal:
+
+```bash
+pydp4
+```
+
+A full description of the rest of the command line flags, which include
+switching the molecular mechanics and dft software etc. can be found on
+the tool's manual/help page with the following command:
+
+```bash
+pydp4 --help
+```
+
+Example use cases for the tool are listed below.
 
 ### With all diastereomer generation
 
@@ -94,16 +107,5 @@ Structures can also be added from InChI, Smiles and Smarts strings using the des
 pydp4 --InChI Candidates_inchis.inchi ... CandidateNMR
 ```
 where Candidates_inchs.inchi is a text file with all the desired InChI strings on separate lines.
-
-
-### Command line flags
-
-A full description of the rest of the command line flags, which include
-switching the molecular mechanics and dft software etc. can be found on
-the tool's manual/help page with the following command:
-
-```bash
-pydp4 --help
-```
 
 
