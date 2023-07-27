@@ -34,7 +34,7 @@ def SetupMacroModel(settings):
 
         if settings.Rot5Cycle is True:
             if not os.path.exists(f + 'rot.sdf'):
-                import FiveConf
+                from dp5 import FiveConf
                 # Generate the flipped fivemembered ring,
                 # result is in '*rot.sdf' file
                 FiveConf.main(f + '.sdf', settings)

@@ -7,7 +7,7 @@ SHELL := bash
 
 ### Installation ###
 .PHONY: install
-install: poetry
+install: # poetry
 	@echo "Initialising project:"
 	@poetry install --without=qml
 	@.venv/bin/pip install qml  # Install QML separately to avoid build dependency issues
@@ -21,7 +21,7 @@ requirements.txt: poetry
 		--without-hashes --format=requirements.txt \
 		> requirements.txt
 
-.PHONY: poetry
+.PHONY: # poetry
 poetry:
 	@echo "Ensuring poetry is installed"
 	@poetry --version || pip install poetry
@@ -47,11 +47,6 @@ view_docs: site/index.html
 
 
 ### Cleanup ###
-.PHONY: clean_cache
-clean_cache:
-	@echo "Deleting tooling cache files:"
-	rm -rf .mypy_cache/ .pytest_cache/ .ruff_cache/  .coverage
-
 .PHONY: clean_docs
 clean_docs:
 	@echo "Deleting generated documentation site:"
@@ -65,7 +60,7 @@ clean_pycache:
 		xargs rm -rf
 
 .PHONY: clean
-clean: clean_cache clean_docs clean_pycache
+clean: clean_docs clean_pycache
 
 .PHONY: clobber
 clobber: clean

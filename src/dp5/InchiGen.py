@@ -8,7 +8,7 @@ Code for diastereomer, tautomer and protomer generation via InChI strings.
 This file gets called by PyDP4.py if diastereomer and/or tautomer and/or
 protomer generation is used.
 """
-from PyDP4 import settings
+from dp5.PyDP4 import settings
 import sys
 import os
 

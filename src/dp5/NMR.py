@@ -20,9 +20,9 @@ import math
 import copy
 import pickle
 
-from Proton_processing import process_proton
-from Carbon_processing import process_carbon
-import shutil
+from dp5.Proton_processing import process_proton
+from dp5.Carbon_processing import process_carbon
+
 from pathlib import Path
 import shutil
 

@@ -16,7 +16,7 @@ import time
 import shutil
 import math
 
-import Gaussian
+from dp5 import Gaussian
 
 MaxConcurrentJobs = 160
 

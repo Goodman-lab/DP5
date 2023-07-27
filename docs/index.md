@@ -10,6 +10,8 @@
     - References to papers etc
     - Authors
 
+    Then copy improvements into README.md
+
 [DP5](https://doi.org/10.1039/D1SC04406K) integrates NMR-AI, software for automatic processing, assignment
 and visualisation of raw NMR data. This functionality affords fully automated DP4 analysis of databases of molecules
 with no user input. DP5 also utilises a fully revised version of PyDP4 updated for Python 3 and with major workflow

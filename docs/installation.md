@@ -83,4 +83,14 @@ poetry shell
 
 ### Adding to the `PATH` variable
 
+To use the `pydp4` and `pydp4_gui` commands outside the repository directory, simply add the `bin/` directory
+to your $PATH variable. This can be done as follows (replace `/path/to/DP5/` with the fully qualified path of the
+downloaded repository).
 
+```bash
+export PATH="/path/to/DP5/bin:$PATH"
+```
+
+!!! note
+
+    This can be made permanent by appending it to your `~/.bashrc` or `~/.zshrc` file!e

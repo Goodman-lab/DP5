@@ -14,7 +14,6 @@ The following code can be copied and pasted into any bash terminal,
 and should quickstart you running the tool.
 
 ```bash
-
 # Download the source code from GitHub, and navigate into its directory
 git clone https://github.com/Goodman-lab/DP5
 cd DP5
@@ -31,7 +30,7 @@ poetry shell
 
 # Run the tool to see its manual. More instructions can then be found on the
 # usage page on this website
-python src/dp5/PyDP4.py --help
+pydp4 --help
 ```
 
 More detailed instructions for installing, setting up, and running the tool can be

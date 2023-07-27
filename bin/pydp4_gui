@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# Get the absolute path to the repo irrespective of the
+# current working directory
+script=$(realpath $0)
+bin_dir=$(dirname $script)
+repo_dir=$(dirname $bin_dir)
+
+# Activate the virtual environment for the repo, so the
+# installed scripts can be used
+source "$repo_dir/.venv/bin/activate"
+
+# Run the tool as installed in the virtual environment,
+# passing along any command line arguments
+pydp4_gui "$@"
