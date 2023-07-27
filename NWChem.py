@@ -167,11 +167,11 @@ def GetPrerunNMRCalcs(Isomers):
 
     jobdir = os.getcwd()
     os.chdir('nmr')
-    """
+    
     for iso in Isomers:
-        iso.NMRInputFiles = glob.glob(iso.BaseName + 'ginp*com')
+        iso.NMRInputFiles = sorted(glob.glob(iso.BaseName + '*.nw'))
         iso.NMROutputFiles.extend([x[:-4] + '.out' for x in iso.NMRInputFiles if IsGausCompleted(x[:-4] + '.out')])
-    """
+    
     print('NMR calc files:')
     print(', '.join([', '.join(x.NMROutputFiles) for x in Isomers]))
 
@@ -509,7 +509,7 @@ def ReadGeometry(NWOutpFile):
 
     # Find the last geometry section
     for index in range(len(NWOutp)):
-        if ('Geometry "geometry" -> "geometry"' in NWOutp[index]):
+        if ('Geometry "geometry"' in NWOutp[index]):
             gindex = index + 7
 
     if gindex < 0:
