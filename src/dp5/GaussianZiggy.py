@@ -16,7 +16,7 @@ import os
 import time
 import math
 
-import Gaussian
+from dp5 import Gaussian
 
 SetupNMRCalcs = Gaussian.SetupNMRCalcs
 

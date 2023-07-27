@@ -35,11 +35,12 @@ The main file, that should be called to start the PyDP4 workflow.
 Interprets the arguments and takes care of the general workflow logic.
 """
 
-import NMR
-import Tinker
-import MacroModel
-import DP5 as DP5
-import DP4 as DP4
+from dp5 import NMR
+from dp5 import Tinker
+from dp5 import MacroModel
+from dp5 import DP5
+from dp5 import DP4
+
 import sys
 import os
 import datetime
@@ -54,12 +55,14 @@ if os.name == 'nt':
     import pyximport
 
     pyximport.install()
-    import ConfPrune
+    # import dp5.ConfPrune as ConfPrune
+    from dp5 import ConfPrune
 else:
     import pyximport
 
     pyximport.install()
-    import ConfPrune
+    # import dp5.ConfPrune as ConfPrune
+    from dp5 import ConfPrune
 
 # Assigning the config default values
 # Settings are defined roughly in the order they are used in the script
@@ -197,7 +200,7 @@ def main(settings):
 
     # Read in any text inputs and add these to the input file list
 
-    import StructureInput
+    from dp5 import StructureInput
 
     if settings.Smiles:
         settings.InputFiles.extend(StructureInput.GenerateSDFFromTxt(settings.Smiles, 'Smiles'))
@@ -211,7 +214,7 @@ def main(settings):
     # Clean up input files if c in workflow - this generates a new set of 3d coordinates as a starting point
 
     if 'c' in settings.Workflow and len(settings.InputFiles) > 0:
-        import StructureInput
+        from dp5 import StructureInput
 
         # if requested generate 3d coordinates to define any stereochemistry
 
@@ -228,7 +231,7 @@ def main(settings):
 
     if ('g' in settings.Workflow):
 
-        import InchiGen
+        from dp5 import InchiGen
         print("\nGenerating diastereomers...")
 
         FinalInputFiles = []
@@ -421,8 +424,8 @@ def main(settings):
 
                 if f.name == "Proton" or f.name == "proton":
 
-                    from Proton_assignment import AssignProton
-                    from Proton_plotting import PlotProton
+                    from dp5.Proton_assignment import AssignProton
+                    from dp5.Proton_plotting import PlotProton
 
                     print('\nAssigning proton spectrum...')
                     Isomers = AssignProton(NMRData, Isomers, settings)
@@ -433,8 +436,8 @@ def main(settings):
 
                 elif f.name == "Carbon" or f.name == "carbon":
 
-                    from Carbon_assignment import AssignCarbon
-                    from Carbon_plotting import PlotCarbon
+                    from dp5.Carbon_assignment import AssignCarbon
+                    from dp5.Carbon_plotting import PlotCarbon
 
                     print('\nAssigning carbon spectrum...')
                     Isomers = AssignCarbon(NMRData, Isomers, settings)
@@ -449,8 +452,8 @@ def main(settings):
 
                 if f.name == "Proton.dx" or f.name == "proton.dx":
 
-                    from Proton_assignment import AssignProton
-                    from Proton_plotting import PlotProton
+                    from dp5.Proton_assignment import AssignProton
+                    from dp5.Proton_plotting import PlotProton
 
                     print('\nAssigning proton spectrum...')
                     Isomers = AssignProton(NMRData, Isomers, settings)
@@ -461,8 +464,8 @@ def main(settings):
 
                 elif f.name == "Carbon.dx" or f.name == "carbon.dx":
 
-                    from Carbon_assignment import AssignCarbon
-                    from Carbon_plotting import PlotCarbon
+                    from dp5.Carbon_assignment import AssignCarbon
+                    from dp5.Carbon_plotting import PlotCarbon
 
                     print('\nAssigning carbon spectrum...')
                     Isomers = AssignCarbon(NMRData, Isomers, settings)
@@ -548,7 +551,7 @@ def main(settings):
 def ImportDFT(dft):
     if dft in DFTpackages[0]:
         DFTindex = DFTpackages[0].index(dft)
-        DFT = importlib.import_module(DFTpackages[1][DFTindex])
+        DFT = importlib.import_module(f"dp5.{DFTpackages[1][DFTindex]}")
     else:
         print("Invalid DFT package selected")
         quit()
@@ -639,14 +642,17 @@ def ReadConfig(settings):
     return settings
 
 
-if __name__ == '__main__':
-
+def run():
     print("==========================")
     print("PyDP4 script,\nintegrating Tinker/MacroModel,")
     print("Gaussian/NWChem and DP4\nv1.0")
     print("\nCopyright (c) 2015-2019 Kristaps Ermanis, Alexander Howarth, Jonathan M. Goodman")
     print("Distributed under MIT license")
     print("==========================\n\n")
+
+    # This is a big anti-pattern, but there is not a better way to provide an entrypoint function here without a
+    # major refactor!!!
+    global settings
 
     # Read config file and fill in settings in from that
     settings = ReadConfig(settings)
@@ -841,3 +847,8 @@ if __name__ == '__main__':
     settings.OutputFolder = Path(args.OutputFolder)
 
     main(settings)
+
+
+if __name__ == '__main__':
+    run()
+

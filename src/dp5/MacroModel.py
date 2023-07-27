@@ -34,7 +34,7 @@ def SetupMacroModel(settings):
 
         if settings.Rot5Cycle is True:
             if not os.path.exists(f + 'rot.sdf'):
-                import FiveConf
+                from dp5 import FiveConf
                 # Generate the flipped fivemembered ring,
                 # result is in '*rot.sdf' file
                 FiveConf.main(f + '.sdf', settings)
@@ -61,7 +61,7 @@ def SetupMacroModel(settings):
             MacroModelInputs.append(f + '.mae')
 
         # Copy default com file to directory
-        shutil.copyfile(settings.ScriptDir + '/default.com', cwd + '/' + f + '.com')
+        shutil.copyfile(settings.ScriptDir + '/../../data/default.com', cwd + '/' + f + '.com')
         # Change input and output file names in com file
         comf = open(f + '.com', 'r+')
         com = comf.readlines()
@@ -101,7 +101,7 @@ def SetupMacroModel(settings):
             MacroModelInputs.append(f + 'rot.mae')
 
             # Copy default com file to directory
-            shutil.copyfile(settings.ScriptDir + '/default.com', cwd + '/' + f +
+            shutil.copyfile(settings.ScriptDir + '/../../data/default.com', cwd + '/' + f +
                             'rot.com')
             # Change input and output file names in com file
             comf = open(f + 'rot.com', 'r+')

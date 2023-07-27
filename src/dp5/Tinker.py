@@ -13,7 +13,7 @@ import shlex
 import shutil
 import sys
 import subprocess
-import PyDP4
+from dp5 import PyDP4
 
 # Please modify the line below to give the path to the TINKER v8.x top level folder
 # This folder should contain bin/scan and params/mmff.prm for the process to work
@@ -27,7 +27,7 @@ def SetupTinker(settings):
 
         if settings.Rot5Cycle is True:
             if not os.path.exists(inpf+'rot.sdf'):
-                import FiveConf
+                from dp5 import FiveConf
                 #Generate the flipped fivemembered ring,
                 #result is put in '*rot.sdf' file
                 FiveConf.main(inpf + '.sdf', settings)
@@ -52,10 +52,10 @@ def SetupTinker(settings):
             f.close()
 
         scriptdir = getScriptPath()
-        #convinp = scriptdir + '/sdf2tinkerxyz -k ' + scriptdir + '/default.key <'
+        #convinp = scriptdir + '../scripts/sdf2tinkerxyz -k ' + scriptdir + '/../../data/default.key <'
         #outp = subprocess.check_output(convinp + inpf + '.sdf', shell=True)
 
-        import sdftinkerxyzpy
+        from dp5 import sdftinkerxyzpy
 
         convinp = sdftinkerxyzpy.main(inpf)
 
