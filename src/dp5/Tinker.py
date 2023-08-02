@@ -18,7 +18,7 @@ from dp5 import PyDP4
 # Please modify the line below to give the path to the TINKER v8.x top level folder
 # This folder should contain bin/scan and params/mmff.prm for the process to work
 
-def SetupTinker(settings):
+def SetupMM(settings):
 
     TinkerInputs = []
     for inpfi in settings.InputFiles:
@@ -76,12 +76,12 @@ def SetupTinker(settings):
 
     return TinkerInputs
 
-def RunTinker(TinkerInputs, settings):
+def RunMM(TinkerInputs, settings):
     #Run Tinker scan for all diastereomeric inputs
     TinkerOutputs = []
     TinkerPrefix = os.path.join(settings.TinkerPath, 'bin', 'scan')
     if shutil.which(TinkerPrefix) is None:
-        print('Tinker.py, RunTinker:\n  Could not find Tinker scan executable at ' + TinkerPrefix)
+        print('Tinker.py, RunMM:\n  Could not find Tinker scan executable at ' + TinkerPrefix)
         quit()
 
     NCompleted = 0
