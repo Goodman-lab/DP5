@@ -17,7 +17,7 @@ import time
 import re
 
 
-def SetupMacroModel(settings):
+def SetupMM(settings):
     if settings.SCHRODINGER == '':
         SchrodEnv = os.getenv('SCHRODINGER')
         if SchrodEnv != None:
@@ -123,7 +123,7 @@ def SetupMacroModel(settings):
     return MacroModelInputs
 
 
-def RunMacroModel(MacroModelInputs, settings):
+def RunMM(MacroModelInputs, settings):
     # not args, but MacroModelInputs, numDS removed
     # Run Macromodel conformation search for all diastereomeric inputs
 
