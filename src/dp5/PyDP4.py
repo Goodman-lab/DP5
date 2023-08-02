@@ -47,8 +47,8 @@ import importlib
 import getpass
 from pathlib import Path
 
-DFTpackages = [['n', 'w', 'g', 'z', 'd'],['NWChem', 'NWChemZiggy', 'Gaussian', 'GaussianZiggy', 'GaussianDarwin']]
 MMpackages = [['m','t'],['Macromodel','Tinker']
+DFTpackages = [['n', 'w', 'g', 'z', 'd'],['NWChem', 'NWChemZiggy', 'Gaussian', 'GaussianZiggy', 'GaussianDarwin']]
 
 if os.name == 'nt':
     import pyximport
