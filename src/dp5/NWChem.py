@@ -356,7 +356,7 @@ def NMRSuffix(settings):
             (settings.nFunctional).lower() == 'm06-2x':
         suffix +=  'dft\n  xc m06-2x\n  mult 1\nend\n\n'
     elif (settings.nFunctional).lower() == 'mpw1pw91':
-        suffix += 'dft\n  xc mpw91 0.75 HFexch 0.25 perdew91\n  mult 1\nend\n\n'
+        suffix += 'dft\n  xc mpw91 perdew91\n  mult 1\nend\n\n'
     else:
         suffix += 'dft\n  xc ' + settings.nFunctional + '\n  mult 1\nend\n\n'
     suffix += 'task dft energy\n\nproperty\n  shielding\nend\ntask dft property\n'
@@ -372,7 +372,7 @@ def ESuffix(settings):
             (settings.nFunctional).lower() == 'm06-2x':
         suffix +=  'dft\n  xc m06-2x\n  mult 1\nend\n\n'
     elif (settings.nFunctional).lower() == 'mpw1pw91':
-        suffix += 'dft\n  xc mpw91 0.75 HFexch 0.25 perdew91\n  mult 1\nend\n\n'
+        suffix += 'dft\n  xc mpw91 perdew91\n  mult 1\nend\n\n'
     else:
         suffix += 'dft\n  xc ' + settings.nFunctional + '\n  mult 1\nend\n\n'
     suffix += 'task dft energy\n'
