@@ -9,7 +9,7 @@ SCHRODINGER=not-installed
 
 # Define the root folder for Tinker software,
 # must contain bin/scan and params/mmff.prm for the process to work
-TinkerPath=/home/ke291/TINKER/
+TinkerPath=TINKER
 
 # Path to nwchem executable. If it's in the path, can be just nwchem
 NWChemPath=nwchem
