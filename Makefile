@@ -9,6 +9,7 @@ SHELL := bash
 .PHONY: install
 install: poetry
 	@echo "Initialising project:"
+	@export PYTHON_KEYRING_BACKEND=keyring.backends.null.Keyring  # https://stackoverflow.com/a/75098703
 	@poetry install --without=qml
 	@.venv/bin/pip install qml  # Install QML separately to avoid build dependency issues
 
