@@ -39,9 +39,12 @@ more details, and specific system requirements.
 git clone https://github.com/Goodman-lab/DP5
 cd DP5
 
-# Run the make installation target.
-# If make is not installed on your system, either install it or follow page on
-# installation on this website
+# OPTIONAL; If this change is still in the restructure branch not master
+git fetch origin
+git checkout remotes/origin/restructure
+# END OPTIONAL
+
+# Run the make installation target
 make install
 
 # Activate the virtual environment containing the installed dependencies.
