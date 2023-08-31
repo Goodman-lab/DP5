@@ -560,7 +560,7 @@ def ImportDFT(dft):
 
 
 def getScriptPath():
-    return os.path.dirname(os.path.realpath(sys.argv[0]))
+    return os.path.dirname(os.path.realpath(__file__))
 
 
 def NMR_files(NMR_args):
