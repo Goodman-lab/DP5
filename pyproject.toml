@@ -20,16 +20,16 @@ pydp4_gui = "dp5.PyDP4_GUI:run"
 
 [tool.poetry.dependencies]
 python = "<3.13,>=3.9"  # Largest range acceptable by SciPy
-numpy = "^1.25.1"
-scipy = "^1.11.1"
-cython = "^3.0.0"
+scipy = "^1.9,<1.10"
+numpy = "^1.25.2"
+cython = "^3.0.2"
 matplotlib = "^3.7.2"
 nmrglue = "^0.9"
 statsmodels = "^0.14.0"
 lmfit = "^1.2.2"
-rdkit = "^2023.3.2"
+rdkit = "^2023.3.3"
 pathos = "^0.3.1"
-openbabel-wheel = "^3.1.1.16"
+openbabel-wheel = "^3.1.1.17"
 
 [tool.poetry.group.qml.dependencies]
 # QML is packaged deeply unhelpfully, so separate it to allow
@@ -49,4 +49,3 @@ pre-commit-hooks = "^4.4.0"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs-material = "^9.1.19"
-
