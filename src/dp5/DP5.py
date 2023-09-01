@@ -366,9 +366,9 @@ def Calculate_DP5(dp5Data):
 
 def Rescale_DP5(dp5Data,Settings):
 
-    incorrect_kde = pickle.load(open(Path(Settings.ScriptDir) / "i_w_kde_mean_s_0.025.p" ,"rb"))
+    incorrect_kde = pickle.load(open(Path(Settings.DataDir) / "i_w_kde_mean_s_0.025.p" ,"rb"))
 
-    correct_kde = pickle.load(open(Path(Settings.ScriptDir) / "../../data/c_w_kde_mean_s_0.025.p" ,"rb"))
+    correct_kde = pickle.load(open(Path(Settings.DataDir) / "../../data/c_w_kde_mean_s_0.025.p" ,"rb"))
 
     i = 0
 
