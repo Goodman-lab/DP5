@@ -81,7 +81,6 @@ class Settings:
     # w for DP5 probability calculation
     Solvent = ''  # solvent for DFT optimization and NMR calculation
     ScriptDir = ''  # Script directory, automatically set on launch
-    DataDir = '' # data directory, automatically set on launch
     InputFiles = []  # Structure input files - can be MacroModel *-out.mae or *sdf files
     InputFilesPaths = []  # Path object for Structure input files - can be MacroModel *-out.mae or *sdf files
     NMRsource = ''  # File or folder containing NMR description or data
@@ -766,7 +765,6 @@ def run():
     settings.DFT = args.dft
     settings.queue = args.queue
     settings.ScriptDir = getScriptPath()
-    settings.DataDir = settings.ScriptDir+"/../../data/"
     settings.DataDir = 
     settings.ForceField = args.ff
     settings.PerStructConfLimit = args.ConfLimit
