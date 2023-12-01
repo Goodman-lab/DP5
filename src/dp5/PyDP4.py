@@ -50,18 +50,7 @@ from pathlib import Path
 MMpackages = [['m','t'],['Macromodel','Tinker']
 DFTpackages = [['n', 'w', 'g', 'z', 'd'],['NWChem', 'NWChemZiggy', 'Gaussian', 'GaussianZiggy', 'GaussianDarwin']]
 
-if os.name == 'nt':
-    import pyximport
-
-    pyximport.install()
-    # import dp5.ConfPrune as ConfPrune
-    from dp5 import ConfPrune
-else:
-    import pyximport
-
-    pyximport.install()
-    # import dp5.ConfPrune as ConfPrune
-    from dp5 import ConfPrune
+from dp5 import ConfPrune
 
 # Assigning the config default values
 # Settings are defined roughly in the order they are used in the script
