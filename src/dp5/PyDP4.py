@@ -36,8 +36,6 @@ Interprets the arguments and takes care of the general workflow logic.
 """
 
 from dp5 import NMR
-from dp5 import Tinker
-from dp5 import MacroModel
 from dp5 import DP5
 from dp5 import DP4
 
@@ -49,20 +47,10 @@ import importlib
 import getpass
 from pathlib import Path
 
+MMpackages = [['m','t'],['Macromodel','Tinker']
 DFTpackages = [['n', 'w', 'g', 'z', 'd'],['NWChem', 'NWChemZiggy', 'Gaussian', 'GaussianZiggy', 'GaussianDarwin']]
 
-if os.name == 'nt':
-    import pyximport
-
-    pyximport.install()
-    # import dp5.ConfPrune as ConfPrune
-    from dp5 import ConfPrune
-else:
-    import pyximport
-
-    pyximport.install()
-    # import dp5.ConfPrune as ConfPrune
-    from dp5 import ConfPrune
+from dp5 import ConfPrune
 
 # Assigning the config default values
 # Settings are defined roughly in the order they are used in the script
@@ -262,31 +250,17 @@ def main(settings):
 
     # Run conformational search, if requested
     if ('m' in settings.Workflow) and not (settings.AssumeDone or settings.UseExistingInputs):
-
-        #print("Performing conformational search using ", end="")
-
-        if settings.MM == 't':
-            print("Tinker")
-            print('\nSetting up Tinker files...')
-            TinkerInputs = Tinker.SetupTinker(settings)
-
-            print('\nRunning Tinker...')
-            TinkerOutputs = Tinker.RunTinker(TinkerInputs, settings)
-
-            Isomers = Tinker.ReadConformers(TinkerOutputs, Isomers, settings)
-
-        elif settings.MM == 'm':
-            print("MacroModel")
-            print('\nSetting up MacroModel files...')
-            MacroModelInputs = MacroModel.SetupMacroModel(settings)
-            print("MacroModel inputs: " + str(MacroModelInputs))
-            print('Running MacroModel...')
-            MacroModelOutputs = MacroModel.RunMacroModel(MacroModelInputs, settings)
-            print('\nReading conformers...')
-            Isomers = MacroModel.ReadConformers(MacroModelOutputs, Isomers, settings)
-            print('Energy window: ' + str(settings.MaxCutoffEnergy) + ' kJ/mol')
-            for iso in Isomers:
-                print(iso.InputFile + ": " + str(len(iso.Conformers)) + ' conformers read within energy window')
+        MM = ImportMM(settings.MM)
+        print("Performing conformational search")
+        print('\nSetting up files...')
+        MMInputs = MM.SetupMM(settings)
+        print('MM inputs: '+str(MMInputs))
+        print('Running MM:')
+        MMOutputs = MM.RunMM(MMInputs)
+        print('\nReading conformers...')
+        Isomers = MM.ReadConformers(MMOutputs, Isomers, settings)
+        for iso in Isomers:
+            print(iso.InputFile + ": " + str(len(iso.Conformers)) + ' conformers read within energy window')
     else:
         print('No conformational search was requested. Skipping...')
         settings.ConfPrune = False
@@ -546,6 +520,16 @@ def main(settings):
 
     return NMRData, Isomers, settings, DP4data, DP5data
 
+# Selects which MM package to import, returns imported module
+
+def ImportMM(mm):
+    if mm in MMpackages[0]:
+        MMindex = MMpackages[0].index(mm)
+        MM = importlib.import_module(f"dp5.{MMpackages[1][MMindex]}")
+    else:
+        print("Invalid MM package selected")
+        quit()
+    return MM
 
 # Selects which DFT package to import, returns imported module
 def ImportDFT(dft):
@@ -667,7 +651,7 @@ def run():
                                                  "s for computational and experimental NMR data extraction and stats analysis, default is 'gmns'",
                         default=settings.Workflow)
     parser.add_argument('-m', '--mm', help="Select molecular mechanics program,\
-    t for tinker or m for macromodel, default is m", choices=['t', 'm'],
+    t for tinker or m for macromodel, default is m", choices=MMpackages[0],
                         default='m')
     parser.add_argument('-d', '--dft', help="Select DFT program, \
     g for Gaussian, n for NWChem, z for Gaussian on ziggy, d for Gaussian on \
